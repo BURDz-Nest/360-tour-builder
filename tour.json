@@ -1,81 +1,63 @@
 {
   "version": 1,
   "meta": {
-    "title": "Sam's Office Tour (6 scenes)",
-    "description": "Walkthrough built from local web-optimized 360 photos.",
-    "author": "Franky",
-    "startSceneId": "s1",
-    "createdAt": "2026-06-15T00:00:00.000Z"
+    "title": "Sam's Office",
+    "description": "",
+    "author": "",
+    "startSceneId": "scene_l6w60b9jzg",
+    "createdAt": "2026-06-15T18:36:43.911Z"
   },
   "scenes": [
     {
-      "id": "s1",
-      "name": "Scene 1",
-      "panorama": "SamsOfficeTest/IMG_20260612_082948_00_228-2_web.jpg",
-      "thumbnail": "",
-      "caption": "Scene 1",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
-      "markers": [
-        { "id": "s1-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s2" }
-      ]
-    },
-    {
-      "id": "s2",
-      "name": "Scene 2",
-      "panorama": "SamsOfficeTest/IMG_20260612_083059_00_229-2_web.jpg",
-      "thumbnail": "",
-      "caption": "Scene 2",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
-      "markers": [
-        { "id": "s2-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s1" },
-        { "id": "s2-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s3" }
-      ]
-    },
-    {
-      "id": "s3",
-      "name": "Scene 3",
-      "panorama": "SamsOfficeTest/IMG_20260612_083151_00_230-2_web.jpg",
-      "thumbnail": "",
-      "caption": "Scene 3",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
-      "markers": [
-        { "id": "s3-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s2" },
-        { "id": "s3-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s4" }
-      ]
-    },
-    {
-      "id": "s4",
-      "name": "Scene 4",
-      "panorama": "SamsOfficeTest/IMG_20260612_083238_00_231-2_web.jpg",
-      "thumbnail": "",
-      "caption": "Scene 4",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
-      "markers": [
-        { "id": "s4-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s3" },
-        { "id": "s4-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s5" }
-      ]
-    },
-    {
-      "id": "s5",
-      "name": "Scene 5",
-      "panorama": "SamsOfficeTest/IMG_20260612_083341_00_232-2_web.jpg",
-      "thumbnail": "",
-      "caption": "Scene 5",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
-      "markers": [
-        { "id": "s5-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s4" },
-        { "id": "s5-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s6" }
-      ]
-    },
-    {
-      "id": "s6",
-      "name": "Scene 6",
+      "id": "scene_l6w60b9jzg",
+      "name": "Behind Sam's Desk",
       "panorama": "SamsOfficeTest/IMG_20260612_083538_00_233-2_web.jpg",
       "thumbnail": "",
-      "caption": "Scene 6",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "caption": "",
+      "initialView": {
+        "yaw": 178,
+        "pitch": -18.7,
+        "zoom": 38
+      },
       "markers": [
-        { "id": "s6-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s5" }
+        {
+          "id": "mk_qi5884tot5",
+          "type": "link",
+          "yaw": 177.6,
+          "pitch": -15.1,
+          "label": "In Front of Sam's Desk",
+          "targetSceneId": "scene_myiccxhnhc"
+        },
+        {
+          "id": "mk_ydy2756sej",
+          "type": "info",
+          "yaw": 145.1,
+          "pitch": -25.5,
+          "label": "Clock",
+          "html": "This has a clock on the desk"
+        }
+      ]
+    },
+    {
+      "id": "scene_myiccxhnhc",
+      "name": "In front of Sam's Desk",
+      "panorama": "SamsOfficeTest/IMG_20260612_083341_00_232-2_web.jpg",
+      "thumbnail": "",
+      "caption": "",
+      "initialView": {
+        "yaw": -173.4,
+        "pitch": -23.5,
+        "zoom": 38
+      },
+      "markers": [
+        {
+          "id": "mk_oljzyli6bt",
+          "type": "link",
+          "yaw": -173.5,
+          "pitch": -24.5,
+          "label": "Behind Desk",
+          "targetSceneId": "scene_l6w60b9jzg"
+        }
       ]
     }
   ]

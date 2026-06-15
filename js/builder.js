@@ -25,6 +25,7 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 let viewer;
+let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
 
 init();
 
@@ -441,7 +442,6 @@ function labeledTextarea(label, value, onInput) {
   return wrap;
 }
 
-let toastTimer;
 function toast(message, isError = false) {
   const el = $("toast");
   el.textContent = message;
