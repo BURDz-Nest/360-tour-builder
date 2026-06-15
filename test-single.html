@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PSV single-image test</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.5/index.css" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #111; color: #eee; font-family: system-ui; }
+      #viewer { width: 100vw; height: 100vh; }
+      #log { position: fixed; top: 8px; left: 8px; z-index: 9; background: rgba(0,0,0,.7);
+             padding: 8px 12px; border-radius: 8px; font: 13px monospace; max-width: 90vw; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+          "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.5/index.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="log">Booting…</div>
+    <div id="viewer"></div>
+    <script type="module">
+      import { Viewer } from "@photo-sphere-viewer/core";
+      const log = (m) => { document.getElementById("log").textContent = m; console.log("[test]", m); };
+      const url = "Sam's%20Office/IMG_20260612_083341_00_232-2_web.jpg";
+      log("Creating viewer with: " + url);
+      try {
+        const viewer = new Viewer({
+          container: document.getElementById("viewer"),
+          panorama: url,
+          loadingTxt: "Loading single pano…",
+        });
+        viewer.addEventListener("ready", () => log("READY — panorama rendered. WebGL + image OK."));
+        viewer.addEventListener("panorama-error", (e) => log("PANORAMA-ERROR: " + JSON.stringify(e)));
+      } catch (err) {
+        log("THREW: " + err.message);
+      }
+      // Report the GPU's max texture size — the usual culprit for blank panos.
+      try {
+        const gl = document.createElement("canvas").getContext("webgl");
+        console.log("[test] MAX_TEXTURE_SIZE =", gl.getParameter(gl.MAX_TEXTURE_SIZE));
+      } catch {}
+    </script>
+  </body>
+</html>

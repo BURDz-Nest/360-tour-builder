@@ -107,7 +107,7 @@ function initViewer(tour) {
         VirtualTourPlugin,
         {
           positionMode: "manual",
-          renderMode: "markers",
+          renderMode: "2d",
           nodes,
           startNodeId,
         },
@@ -144,7 +144,16 @@ function initViewer(tour) {
     if (e.key === "Escape") closeInfo();
   });
 
-  viewer.addEventListener("ready", () => hide(els.loading), { once: true });
+  viewer.addEventListener("ready", () => {
+    console.log("[player] viewer ready");
+    hide(els.loading);
+  }, { once: true });
+
+  // Surface any PSV-level error/abort so we actually see WHY a pano fails.
+  viewer.addEventListener("panorama-error", (e) => console.error("[player] panorama-error", e));
+  virtualTour.addEventListener("node-changed", ({ node }) =>
+    console.log("[player] node-changed ->", node.id)
+  );
 }
 
 /* ---------------- UI helpers ---------------- */
