@@ -32,15 +32,14 @@ const els = {
 
 let activeTour = null;
 
-// Surface ANY unexpected error into the UI instead of failing silently.
-window.addEventListener("error", (e) => {
-  console.error("[player] uncaught error", e.error || e.message);
-  fail(`Unexpected error: ${escapeHtml(e.message || String(e.error))}`);
-});
-window.addEventListener("unhandledrejection", (e) => {
-  console.error("[player] unhandled rejection", e.reason);
-  fail(`Unexpected error: ${escapeHtml(e.reason?.message || String(e.reason))}`);
-});
+// Log unexpected errors for debugging, but DON'T tear down a working viewer.
+// (Libraries can emit benign rejections, e.g. interrupted animations.)
+window.addEventListener("error", (e) =>
+  console.error("[player] error", e.error || e.message)
+);
+window.addEventListener("unhandledrejection", (e) =>
+  console.warn("[player] unhandled rejection (ignored)", e.reason)
+);
 
 main();
 
@@ -118,11 +117,14 @@ function initViewer(tour) {
   const virtualTour = viewer.getPlugin(VirtualTourPlugin);
 
   // Apply each scene's saved camera view + caption on arrival.
+  // Use rotate/zoom (synchronous) rather than animate() so we never leave a
+  // dangling animation promise that could reject when the tour interrupts it.
   virtualTour.addEventListener("node-changed", ({ node }) => {
     const scene = getScene(activeTour, node.id);
     if (!scene) return;
     const view = sceneInitialView(scene);
-    viewer.animate({ yaw: view.yaw, pitch: view.pitch, zoom: view.zoom, speed: "8rpm" });
+    viewer.rotate({ yaw: view.yaw, pitch: view.pitch });
+    if (Number.isFinite(view.zoom)) viewer.zoom(view.zoom);
     setCaption(scene.caption);
   });
 
