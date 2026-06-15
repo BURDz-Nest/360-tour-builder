@@ -288,7 +288,14 @@ function previewInPlayer() {
   } catch (e) {
     return toast(`Couldn't stage preview: ${e.message}`, true);
   }
-  window.open("player.html?config=__preview__", "_blank");
+  // Open the player that lives in the SAME folder as the images (the Preview
+  // base), so relative panorama paths resolve. Fall back to the template
+  // player when no base is set (only works with absolute/Azure image URLs).
+  const base = ($("preview-base")?.value || "").trim();
+  const playerUrl = base
+    ? base.replace(/\/?$/, "/") + "player.html?config=__preview__"
+    : "../player-template/player.html?config=__preview__";
+  window.open(playerUrl, "_blank");
 }
 
 async function importTour(e) {
