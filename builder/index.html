@@ -9,7 +9,7 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=2" />
 
     <script type="importmap">
       {
@@ -24,6 +24,10 @@
   <body class="builder-body">
     <header class="topbar">
       <h1 class="topbar__brand">360 Tour Builder <small>local authoring</small></h1>
+      <span id="workspace-bar">
+        <button id="btn-new-tour" class="btn btn--primary" type="button">+ New tour</button>
+        <button id="btn-open-tour" class="btn" type="button">Open tour folder</button>
+      </span>
       <span class="topbar__spacer"></span>
       <button id="btn-import" class="btn" type="button">Import tour.json</button>
       <input id="file-import" type="file" accept="application/json,.json" hidden />
@@ -57,6 +61,19 @@
         <h2 class="section-title">Scenes (<span id="scene-count">0</span>)</h2>
         <ul id="scene-list" class="scene-list"></ul>
         <button id="btn-add-scene" class="btn" type="button">+ Add scene</button>
+
+        <div id="image-panel-wrap" hidden>
+          <h2 class="section-title">Images</h2>
+          <div id="image-panel" class="image-panel">
+            <div class="image-panel__actions">
+              <button id="btn-add-images" class="btn" type="button">Add images…</button>
+              <input id="file-images" type="file" accept="image/*" multiple hidden />
+              <button id="btn-add-all-scenes" class="btn" type="button">Add all as scenes</button>
+            </div>
+            <p class="muted image-panel__hint">Drag 360 photos here, or click “Add images”. Click a thumbnail to use it in the selected scene.</p>
+            <div id="image-grid" class="image-grid"></div>
+          </div>
+        </div>
       </section>
 
       <!-- CENTER: live preview -->
@@ -120,6 +137,6 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script type="module" src="builder.js?v=8"></script>
+    <script type="module" src="builder.js?v=9"></script>
   </body>
 </html>

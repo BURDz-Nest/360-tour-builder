@@ -1,0 +1,16 @@
+[
+  "css/app.css",
+  "js/player.js",
+  "js/psv-adapter.js",
+  "js/tour-model.js",
+  "player.html",
+  "vendor/psv-core.css",
+  "vendor/psv-core.module.js",
+  "vendor/psv-gallery.css",
+  "vendor/psv-gallery.module.js",
+  "vendor/psv-markers.css",
+  "vendor/psv-markers.module.js",
+  "vendor/psv-virtual-tour.css",
+  "vendor/psv-virtual-tour.module.js",
+  "vendor/three.module.js"
+]
