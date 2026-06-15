@@ -52,17 +52,21 @@ export class BuilderViewer {
     this.placeMode = !!on;
   }
 
-  /** Load a scene's panorama (only reloads if the URL changed). */
-  async loadScene(scene) {
-    if (!scene?.panorama) {
+  /**
+   * Load a scene's panorama for preview. `panoramaUrl` is the resolved URL to
+   * actually fetch (may differ from scene.panorama when a preview base path is
+   * applied); markers still come from the scene. Only reloads if URL changed.
+   */
+  async loadScene(scene, panoramaUrl = scene?.panorama) {
+    if (!panoramaUrl) {
       await this.viewer.setPanorama(transparentPanorama(), { transition: false });
       this.markers.clearMarkers();
       return;
     }
-    if (this._currentPanorama !== scene.panorama) {
-      this._currentPanorama = scene.panorama;
+    if (this._currentPanorama !== panoramaUrl) {
+      this._currentPanorama = panoramaUrl;
       try {
-        await this.viewer.setPanorama(scene.panorama, {
+        await this.viewer.setPanorama(panoramaUrl, {
           transition: false,
           showLoader: true,
         });

@@ -41,6 +41,12 @@ function init() {
   bindInput("meta-description", (v) => (state.tour.meta.description = v));
   bindInput("meta-author", (v) => (state.tour.meta.author = v));
 
+  // Preview base path (authoring-only; reload current scene when it changes)
+  $("preview-base").addEventListener("input", () => {
+    const scene = getScene(state.tour, state.currentSceneId);
+    if (scene) loadCurrentPreview(scene);
+  });
+
   // Toolbar
   $("btn-add-scene").addEventListener("click", addScene);
   $("btn-download").addEventListener("click", downloadTour);
@@ -75,6 +81,28 @@ function addScene() {
   renderSceneList();
 }
 
+/**
+ * Resolve a panorama path for the LIVE PREVIEW only. Absolute URLs (http,
+ * data, blob) and root-relative paths pass through untouched. Relative paths
+ * get the "Preview image base" prepended so the builder (served from /builder/)
+ * can find images that live in /tours/<name>/. This base is never written to
+ * tour.json — the saved paths stay clean and portable.
+ */
+function resolvePreviewUrl(path) {
+  if (!path) return "";
+  if (/^(https?:|data:|blob:|\/)/i.test(path)) return path;
+  const base = ($("preview-base")?.value || "").trim();
+  if (!base) return path;
+  return base.replace(/\/?$/, "/") + path.replace(/^\.?\//, "");
+}
+
+/** Load a scene into the preview viewer using the resolved preview URL. */
+function loadCurrentPreview(scene) {
+  viewer
+    .loadScene(scene, resolvePreviewUrl(scene.panorama))
+    .catch(() => toast("Couldn't load that panorama URL (check the path / preview base).", true));
+}
+
 function selectScene(id) {
   state.currentSceneId = id;
   state.selectedMarkerId = null;
@@ -82,7 +110,7 @@ function selectScene(id) {
   const scene = getScene(state.tour, id);
   renderSceneList();
   renderSceneEditor();
-  if (scene) viewer.loadScene(scene).catch(() => toast("Couldn't load that panorama URL.", true));
+  if (scene) loadCurrentPreview(scene);
 }
 
 function deleteScene() {
@@ -121,7 +149,9 @@ function updateScene(patch, opts = {}) {
   Object.assign(scene, patch);
   if (opts.relistScene) renderSceneList();
   if (opts.reloadPreview) {
-    viewer.loadScene(scene).catch(() => toast("Couldn't load that panorama URL.", true));
+    viewer.loadScene(scene, resolvePreviewUrl(scene.panorama)).catch(() =>
+      toast("Couldn't load that panorama URL.", true)
+    );
   }
 }
 

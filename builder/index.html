@@ -48,6 +48,12 @@
           <input id="meta-author" class="field__input" type="text" />
         </label>
 
+        <label class="field">
+          <span class="field__label">Preview image base <span class="muted">(authoring only — not saved)</span></span>
+          <input id="preview-base" class="field__input" type="text"
+                 placeholder="../tours/your-tour/" value="../tours/sams-office/" />
+        </label>
+
         <h2 class="section-title">Scenes (<span id="scene-count">0</span>)</h2>
         <ul id="scene-list" class="scene-list"></ul>
         <button id="btn-add-scene" class="btn" type="button">+ Add scene</button>
@@ -114,6 +120,6 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script type="module" src="builder.js?v=5"></script>
+    <script type="module" src="builder.js?v=6"></script>
   </body>
 </html>
