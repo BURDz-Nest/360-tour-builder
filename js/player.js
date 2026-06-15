@@ -15,8 +15,6 @@ import { GalleryPlugin } from "@photo-sphere-viewer/gallery-plugin";
 import { validateTour, getScene } from "./tour-model.js";
 import { toViewerNodes, sceneInitialView, escapeHtml } from "./psv-adapter.js";
 
-console.log("[player] build v3 (synchronous view, log-only handlers)");
-
 const DEFAULT_CONFIG = "tour.json";
 
 const els = {
@@ -144,16 +142,13 @@ function initViewer(tour) {
     if (e.key === "Escape") closeInfo();
   });
 
-  viewer.addEventListener("ready", () => {
-    console.log("[player] viewer ready");
-    hide(els.loading);
-  }, { once: true });
+  viewer.addEventListener("ready", () => hide(els.loading), { once: true });
 
-  // Surface any PSV-level error/abort so we actually see WHY a pano fails.
-  viewer.addEventListener("panorama-error", (e) => console.error("[player] panorama-error", e));
-  virtualTour.addEventListener("node-changed", ({ node }) =>
-    console.log("[player] node-changed ->", node.id)
-  );
+  // Surface any panorama load failure with a clear message.
+  viewer.addEventListener("panorama-error", (e) => {
+    console.error("[player] panorama-error", e);
+    fail("A panorama image failed to load. Check the image URL is reachable (and CORS-enabled if remote).");
+  });
 }
 
 /* ---------------- UI helpers ---------------- */
