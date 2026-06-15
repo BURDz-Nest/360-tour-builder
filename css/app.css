@@ -274,6 +274,9 @@ textarea.field__input { resize: vertical; }
   padding: 1.5rem;
   z-index: 50;
 }
+/* The [hidden] attribute MUST win over the display:flex above, or these
+   overlays stay glued on top of a perfectly good viewer. */
+.player-loading[hidden], .player-error[hidden] { display: none; }
 .player-error__msg { white-space: pre-line; max-width: 560px; color: #ffd7d2; }
 .player-error__hint { color: #9aa0ab; max-width: 560px; font-size: 0.9rem; }
 .player-error code { background: #20232a; padding: 0.1rem 0.3rem; border-radius: 4px; }
