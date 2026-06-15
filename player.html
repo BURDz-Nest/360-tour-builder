@@ -8,22 +8,23 @@
 
     <!--
       Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (matched dependency).
-      Loaded as ES modules via an import map from jsDelivr. No build step.
+      VENDORED locally in vendor/ (no runtime CDN) so it works behind
+      corporate proxies/CSP and offline. No build step.
     -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.5/index.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin@5.11.5/index.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/virtual-tour-plugin@5.11.5/index.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/gallery-plugin@5.11.5/index.css" />
+    <link rel="stylesheet" href="vendor/psv-core.css" />
+    <link rel="stylesheet" href="vendor/psv-markers.css" />
+    <link rel="stylesheet" href="vendor/psv-virtual-tour.css" />
+    <link rel="stylesheet" href="vendor/psv-gallery.css" />
     <link rel="stylesheet" href="css/app.css?v=2" />
 
     <script type="importmap">
       {
         "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-          "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.5/index.module.js",
-          "@photo-sphere-viewer/markers-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin@5.11.5/index.module.js",
-          "@photo-sphere-viewer/virtual-tour-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/virtual-tour-plugin@5.11.5/index.module.js",
-          "@photo-sphere-viewer/gallery-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/gallery-plugin@5.11.5/index.module.js"
+          "three": "./vendor/three.module.js",
+          "@photo-sphere-viewer/core": "./vendor/psv-core.module.js",
+          "@photo-sphere-viewer/markers-plugin": "./vendor/psv-markers.module.js",
+          "@photo-sphere-viewer/virtual-tour-plugin": "./vendor/psv-virtual-tour.module.js",
+          "@photo-sphere-viewer/gallery-plugin": "./vendor/psv-gallery.module.js"
         }
       }
     </script>

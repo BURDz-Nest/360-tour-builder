@@ -6,17 +6,17 @@
     <title>360 Tour Builder</title>
     <meta name="description" content="Local dashboard for authoring 360 virtual tours." />
 
-    <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.5/index.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin@5.11.5/index.css" />
+    <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). VENDORED locally. -->
+    <link rel="stylesheet" href="vendor/psv-core.css" />
+    <link rel="stylesheet" href="vendor/psv-markers.css" />
     <link rel="stylesheet" href="css/app.css" />
 
     <script type="importmap">
       {
         "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-          "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.5/index.module.js",
-          "@photo-sphere-viewer/markers-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin@5.11.5/index.module.js"
+          "three": "./vendor/three.module.js",
+          "@photo-sphere-viewer/core": "./vendor/psv-core.module.js",
+          "@photo-sphere-viewer/markers-plugin": "./vendor/psv-markers.module.js"
         }
       }
     </script>
