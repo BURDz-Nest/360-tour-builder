@@ -1,55 +1,81 @@
 {
   "version": 1,
   "meta": {
-    "title": "Sample 360 Tour",
-    "description": "A two-scene demo using public equirectangular images. Replace the panorama URLs with your own Azure Blob URLs.",
-    "author": "360 Tour Builder",
-    "startSceneId": "scene-outside",
+    "title": "Sam's Office Tour (6 scenes)",
+    "description": "Walkthrough built from local web-optimized 360 photos.",
+    "author": "Franky",
+    "startSceneId": "s1",
     "createdAt": "2026-06-15T00:00:00.000Z"
   },
   "scenes": [
     {
-      "id": "scene-outside",
-      "name": "Outside",
-      "panorama": "https://cdn.jsdelivr.net/gh/mistic100/Photo-Sphere-Viewer@4/example/sphere.jpg",
+      "id": "s1",
+      "name": "Scene 1",
+      "panorama": "SamsOfficeTest/IMG_20260612_082948_00_228-2_web.jpg",
       "thumbnail": "",
-      "caption": "Outdoor scene - click the blue arrow to walk inside.",
+      "caption": "Scene 1",
       "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
       "markers": [
-        {
-          "id": "mk-to-inside",
-          "type": "link",
-          "yaw": 60,
-          "pitch": -5,
-          "label": "Go to the Park View",
-          "targetSceneId": "scene-inside"
-        },
-        {
-          "id": "mk-info-outside",
-          "type": "info",
-          "yaw": -90,
-          "pitch": 0,
-          "label": "About this spot",
-          "html": "<p>This is an <strong>info hotspot</strong>. Authors can put any HTML here - text, lists, even an image.</p>"
-        }
+        { "id": "s1-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s2" }
       ]
     },
     {
-      "id": "scene-inside",
-      "name": "Park View",
-      "panorama": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r169/examples/textures/2294472375_24a3b8ef46_o.jpg",
+      "id": "s2",
+      "name": "Scene 2",
+      "panorama": "SamsOfficeTest/IMG_20260612_083059_00_229-2_web.jpg",
       "thumbnail": "",
-      "caption": "A different panorama - click the arrow to go back.",
+      "caption": "Scene 2",
       "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
       "markers": [
-        {
-          "id": "mk-to-outside",
-          "type": "link",
-          "yaw": 180,
-          "pitch": -5,
-          "label": "Back to Outside",
-          "targetSceneId": "scene-outside"
-        }
+        { "id": "s2-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s1" },
+        { "id": "s2-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s3" }
+      ]
+    },
+    {
+      "id": "s3",
+      "name": "Scene 3",
+      "panorama": "SamsOfficeTest/IMG_20260612_083151_00_230-2_web.jpg",
+      "thumbnail": "",
+      "caption": "Scene 3",
+      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "markers": [
+        { "id": "s3-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s2" },
+        { "id": "s3-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s4" }
+      ]
+    },
+    {
+      "id": "s4",
+      "name": "Scene 4",
+      "panorama": "SamsOfficeTest/IMG_20260612_083238_00_231-2_web.jpg",
+      "thumbnail": "",
+      "caption": "Scene 4",
+      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "markers": [
+        { "id": "s4-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s3" },
+        { "id": "s4-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s5" }
+      ]
+    },
+    {
+      "id": "s5",
+      "name": "Scene 5",
+      "panorama": "SamsOfficeTest/IMG_20260612_083341_00_232-2_web.jpg",
+      "thumbnail": "",
+      "caption": "Scene 5",
+      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "markers": [
+        { "id": "s5-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s4" },
+        { "id": "s5-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s6" }
+      ]
+    },
+    {
+      "id": "s6",
+      "name": "Scene 6",
+      "panorama": "SamsOfficeTest/IMG_20260612_083538_00_233-2_web.jpg",
+      "thumbnail": "",
+      "caption": "Scene 6",
+      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "markers": [
+        { "id": "s6-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s5" }
       ]
     }
   ]
