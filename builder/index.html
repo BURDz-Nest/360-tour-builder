@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>360 Tour Builder</title>
+    <meta name="description" content="Local dashboard for authoring 360 virtual tours." />
+
+    <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
+    <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
+    <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
+    <link rel="stylesheet" href="../player-template/css/app.css" />
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "../player-template/vendor/three.module.js",
+          "@photo-sphere-viewer/core": "../player-template/vendor/psv-core.module.js",
+          "@photo-sphere-viewer/markers-plugin": "../player-template/vendor/psv-markers.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body class="builder-body">
+    <header class="topbar">
+      <h1 class="topbar__brand">360 Tour Builder <small>local authoring</small></h1>
+      <span class="topbar__spacer"></span>
+      <button id="btn-import" class="btn" type="button">Import tour.json</button>
+      <input id="file-import" type="file" accept="application/json,.json" hidden />
+      <button id="btn-preview" class="btn" type="button">Preview in player</button>
+      <button id="btn-download" class="btn btn--primary" type="button">Save tour</button>
+    </header>
+
+    <div class="builder-main">
+      <!-- LEFT: tour meta + scene list -->
+      <section class="col" aria-label="Tour settings and scenes">
+        <h2 class="section-title">Tour details</h2>
+        <label class="field">
+          <span class="field__label">Title</span>
+          <input id="meta-title" class="field__input" type="text" />
+        </label>
+        <label class="field">
+          <span class="field__label">Description</span>
+          <textarea id="meta-description" class="field__input" rows="2"></textarea>
+        </label>
+        <label class="field">
+          <span class="field__label">Author</span>
+          <input id="meta-author" class="field__input" type="text" />
+        </label>
+
+        <h2 class="section-title">Scenes (<span id="scene-count">0</span>)</h2>
+        <ul id="scene-list" class="scene-list"></ul>
+        <button id="btn-add-scene" class="btn" type="button">+ Add scene</button>
+      </section>
+
+      <!-- CENTER: live preview -->
+      <section class="col col--center" aria-label="Live 360 preview">
+        <div class="preview-wrap">
+          <div id="preview" class="preview"></div>
+          <div id="place-hint" class="place-hint" role="status" hidden></div>
+        </div>
+      </section>
+
+      <!-- RIGHT: scene + marker editor -->
+      <section class="col" aria-label="Scene editor">
+        <p id="no-scene" class="muted">Select or add a scene to edit it.</p>
+
+        <div id="scene-editor" hidden>
+          <div class="view-row">
+            <h2 class="section-title" style="margin:0">Scene</h2>
+            <span id="start-badge" class="start-badge" hidden>Start scene</span>
+          </div>
+
+          <label class="field">
+            <span class="field__label">Name (shown in gallery)</span>
+            <input id="scene-name" class="field__input" type="text" />
+          </label>
+          <label class="field">
+            <span class="field__label">Panorama URL (equirectangular, e.g. Azure Blob)</span>
+            <input id="scene-panorama" class="field__input" type="url"
+                   placeholder="https://account.blob.core.windows.net/tours/frontend.jpg" />
+          </label>
+          <label class="field">
+            <span class="field__label">Thumbnail URL (optional)</span>
+            <input id="scene-thumbnail" class="field__input" type="url"
+                   placeholder="defaults to the panorama" />
+          </label>
+          <label class="field">
+            <span class="field__label">Caption (optional)</span>
+            <input id="scene-caption" class="field__input" type="text" />
+          </label>
+
+          <h2 class="section-title">Default camera view</h2>
+          <div class="view-row">
+            <button id="btn-capture-view" class="btn" type="button">Capture current view</button>
+            <span id="view-readout" class="view-readout"></span>
+          </div>
+
+          <h2 class="section-title">Hotspots</h2>
+          <div class="marker-actions">
+            <button id="btn-add-link" class="btn" type="button">+ Navigation</button>
+            <button id="btn-add-info" class="btn" type="button">+ Info</button>
+          </div>
+          <div id="marker-list"></div>
+
+          <h2 class="section-title">Scene actions</h2>
+          <div class="marker-actions">
+            <button id="btn-set-start" class="btn" type="button">Set as start</button>
+            <button id="btn-delete-scene" class="btn btn--danger" type="button">Delete scene</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="builder.js?v=5"></script>
+  </body>
+</html>

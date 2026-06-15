@@ -19,6 +19,10 @@ azure-credentials*
 .DS_Store
 Thumbs.db
 
+# Raw full-resolution source photos (dev-only staging area). These are large;
+# the web-optimized copies that ship live inside each tours/<name>/images/.
+source-photos/
+
 # Editor
 .vscode/
 .idea/

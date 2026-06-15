@@ -1,0 +1,338 @@
+/* app.css — shared neutral styling for builder + player.
+   Brand-later friendly: swap the CSS variables below for Walmart tokens.
+   Contrast ratios target WCAG 2.2 AA. */
+
+:root {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --ink: #1a1d21;        /* ~15:1 on white */
+  --ink-soft: #4a4f57;   /* ~8:1 on white  */
+  --muted: #6b7280;      /* ~4.7:1 on white */
+  --line: #d6dae0;
+  --accent: #1d4ed8;     /* link/nav, 6.4:1 on white */
+  --accent-ink: #ffffff;
+  --info: #0f766e;       /* info hotspot */
+  --danger: #b42318;
+  --shadow: 0 2px 10px rgba(16, 24, 40, 0.12);
+  --radius: 10px;
+  --focus: 3px solid #0b5cd6;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}
+
+button { font: inherit; cursor: pointer; }
+
+.muted { color: var(--muted); font-size: 0.85rem; }
+
+/* ============ Buttons ============ */
+.btn {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+.btn:hover { background: #eef1f5; }
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn--primary:hover { background: #1740b8; }
+.btn--danger {
+  color: var(--danger);
+  border-color: #e7b9b4;
+}
+.btn--danger:hover { background: #fbeae8; }
+
+.mini-btn {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink-soft);
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.mini-btn:hover:not(:disabled) { background: #eef1f5; }
+.mini-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ============ Builder layout ============ */
+.builder-body { display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.topbar__brand { font-size: 1.05rem; font-weight: 700; margin: 0; }
+.topbar__brand small { color: var(--muted); font-weight: 500; }
+.topbar__spacer { flex: 1; }
+
+.builder-main {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  gap: 0;
+  height: calc(100vh - 53px);
+}
+@media (max-width: 980px) {
+  .builder-main { grid-template-columns: 1fr; height: auto; overflow: auto; }
+}
+
+.col {
+  padding: 1rem;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+}
+.col:last-child { border-right: none; }
+.col--center { padding: 0; background: #0c0d10; }
+
+.section-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+
+/* ============ Fields ============ */
+.field { display: block; margin-bottom: 0.75rem; }
+.field__label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 0.25rem;
+}
+.field__input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+}
+textarea.field__input { resize: vertical; }
+
+/* ============ Scene list ============ */
+.scene-list { list-style: none; margin: 0 0 0.75rem; padding: 0; }
+.scene-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 0.35rem;
+  background: #fff;
+}
+.scene-item.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.scene-item__name {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+.scene-item__controls { display: flex; gap: 0.2rem; padding-right: 0.35rem; }
+
+/* ============ Preview ============ */
+.preview-wrap { position: relative; height: 100%; min-height: 360px; }
+.preview { width: 100%; height: 100%; }
+.place-hint {
+  position: absolute;
+  top: 12px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  z-index: 90;
+  box-shadow: var(--shadow);
+}
+
+/* ============ Marker editor ============ */
+.marker-actions { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+.marker-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem;
+  margin-bottom: 0.6rem;
+  background: #fff;
+}
+.marker-row.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.marker-row__head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+.marker-row__head .mini-btn:last-child { margin-left: auto; }
+.marker-row__pos { margin: 0.25rem 0 0; }
+.marker-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 20px;
+  color: #fff;
+}
+.marker-badge--link { background: var(--accent); }
+.marker-badge--info { background: var(--info); }
+
+.view-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.view-readout {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.start-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  padding: 0.1rem 0.5rem;
+}
+
+/* ============ Toast ============ */
+.toast {
+  position: fixed;
+  bottom: 18px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 200;
+  max-width: 90vw;
+}
+.toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.is-error { background: var(--danger); }
+
+/* ============ Builder hotspot pins (preview) ============ */
+.builder-pin__bg--link { fill: #1d4ed8; }
+.builder-pin__bg--info { fill: #0f766e; }
+.builder-pin__glyph { fill: #fff; font-size: 16px; font-weight: 700; font-family: serif; }
+.builder-pin__glyph-shape { fill: #fff; }
+
+/* ============ Player ============ */
+.player-body { display: flex; flex-direction: column; height: 100vh; background: #0c0d10; }
+.player-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: #16181d;
+  color: #fff;
+  border-bottom: 1px solid #2a2d34;
+}
+.player-bar__title { font-size: 1.05rem; margin: 0; }
+.player-bar__caption { margin: 0; color: #c2c7d0; font-size: 0.9rem; }
+.player-stage { position: relative; flex: 1; }
+.player-viewer { position: absolute; inset: 0; }
+
+.player-loading, .player-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-align: center;
+  color: #e7e9ee;
+  background: #0c0d10;
+  padding: 1.5rem;
+  z-index: 50;
+}
+/* The [hidden] attribute MUST win over the display:flex above, or these
+   overlays stay glued on top of a perfectly good viewer. */
+.player-loading[hidden], .player-error[hidden] { display: none; }
+.player-error__msg { white-space: pre-line; max-width: 560px; color: #ffd7d2; }
+.player-error__hint { color: #9aa0ab; max-width: 560px; font-size: 0.9rem; }
+.player-error code { background: #20232a; padding: 0.1rem 0.3rem; border-radius: 4px; }
+
+.spinner {
+  width: 44px; height: 44px;
+  border: 4px solid #2a2d34;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+/* Player info pin */
+.tour-info-pin__bg { fill: #0f766e; }
+.tour-info-pin__glyph { fill: #fff; font-size: 16px; font-weight: 700; font-family: serif; }
+
+/* ============ Info overlay (player) ============ */
+.info-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 300;
+}
+.info-overlay[hidden] { display: none; }
+.info-overlay__panel {
+  background: #fff;
+  color: var(--ink);
+  border-radius: 12px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: var(--shadow);
+}
+.info-overlay__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.info-overlay__title { margin: 0; font-size: 1.1rem; }
+.info-overlay__close {
+  border: none;
+  background: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  padding: 0 0.25rem;
+}
+.info-overlay__body { padding: 1rem; }
+.info-overlay__body :first-child { margin-top: 0; }
+.info-overlay__body :last-child { margin-bottom: 0; }

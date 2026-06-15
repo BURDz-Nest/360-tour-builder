@@ -1,0 +1,486 @@
+/**
+ * builder.js — controller for the local tour-authoring dashboard.
+ *
+ * Responsibilities: hold tour state, render the meta/scene/marker UI, wire
+ * user actions, place hotspots via the live preview, and export/import
+ * tour.json. PSV specifics live in BuilderViewer (SRP).
+ */
+
+import {
+  createEmptyTour,
+  createScene,
+  createMarker,
+  getScene,
+  validateTour,
+  MARKER_TYPES,
+} from "../player-template/js/tour-model.js";
+import { BuilderViewer } from "./builder-viewer.js";
+
+const state = {
+  tour: createEmptyTour(),
+  currentSceneId: null,
+  selectedMarkerId: null,
+  placing: null, // null | { type, markerId? }
+  fileHandle: null, // File System Access handle for one-click re-saving
+};
+
+const $ = (id) => document.getElementById(id);
+let viewer;
+let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
+
+init();
+
+function init() {
+  viewer = new BuilderViewer($("preview"), {
+    onPlace: handlePlace,
+    onMarkerClick: (id) => selectMarker(id),
+  });
+
+  // Meta inputs
+  bindInput("meta-title", (v) => (state.tour.meta.title = v));
+  bindInput("meta-description", (v) => (state.tour.meta.description = v));
+  bindInput("meta-author", (v) => (state.tour.meta.author = v));
+
+  // Toolbar
+  $("btn-add-scene").addEventListener("click", addScene);
+  $("btn-download").addEventListener("click", downloadTour);
+  $("btn-import").addEventListener("click", () => $("file-import").click());
+  $("file-import").addEventListener("change", importTour);
+  $("btn-preview").addEventListener("click", previewInPlayer);
+
+  // Scene editor
+  bindInput("scene-name", (v) => updateScene({ name: v }, { relistScene: true }));
+  bindInput("scene-panorama", (v) => updateScene({ panorama: v }, { reloadPreview: true }));
+  bindInput("scene-thumbnail", (v) => updateScene({ thumbnail: v }));
+  bindInput("scene-caption", (v) => updateScene({ caption: v }));
+  $("btn-capture-view").addEventListener("click", captureView);
+  $("btn-set-start").addEventListener("click", setStartScene);
+  $("btn-delete-scene").addEventListener("click", deleteScene);
+
+  // Marker buttons
+  $("btn-add-link").addEventListener("click", () => beginPlacing(MARKER_TYPES.LINK));
+  $("btn-add-info").addEventListener("click", () => beginPlacing(MARKER_TYPES.INFO));
+
+  renderAll();
+  toast("New tour started. Add a scene to begin.");
+}
+
+/* ===================== Scenes ===================== */
+
+function addScene() {
+  const scene = createScene({ name: `Scene ${state.tour.scenes.length + 1}` });
+  state.tour.scenes.push(scene);
+  if (!state.tour.meta.startSceneId) state.tour.meta.startSceneId = scene.id;
+  selectScene(scene.id);
+  renderSceneList();
+}
+
+function selectScene(id) {
+  state.currentSceneId = id;
+  state.selectedMarkerId = null;
+  cancelPlacing();
+  const scene = getScene(state.tour, id);
+  renderSceneList();
+  renderSceneEditor();
+  if (scene) viewer.loadScene(scene).catch(() => toast("Couldn't load that panorama URL.", true));
+}
+
+function deleteScene() {
+  const id = state.currentSceneId;
+  if (!id) return;
+  if (!confirm("Delete this scene? Links pointing to it will be left dangling.")) return;
+  state.tour.scenes = state.tour.scenes.filter((s) => s.id !== id);
+  if (state.tour.meta.startSceneId === id) {
+    state.tour.meta.startSceneId = state.tour.scenes[0]?.id || "";
+  }
+  state.currentSceneId = state.tour.scenes[0]?.id || null;
+  selectScene(state.currentSceneId);
+  renderSceneList();
+}
+
+function setStartScene() {
+  if (!state.currentSceneId) return;
+  state.tour.meta.startSceneId = state.currentSceneId;
+  renderSceneList();
+  renderSceneEditor();
+  toast("Set as the starting scene.");
+}
+
+function moveScene(id, delta) {
+  const i = state.tour.scenes.findIndex((s) => s.id === id);
+  const j = i + delta;
+  if (i < 0 || j < 0 || j >= state.tour.scenes.length) return;
+  const arr = state.tour.scenes;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  renderSceneList();
+}
+
+function updateScene(patch, opts = {}) {
+  const scene = getScene(state.tour, state.currentSceneId);
+  if (!scene) return;
+  Object.assign(scene, patch);
+  if (opts.relistScene) renderSceneList();
+  if (opts.reloadPreview) {
+    viewer.loadScene(scene).catch(() => toast("Couldn't load that panorama URL.", true));
+  }
+}
+
+function captureView() {
+  const scene = getScene(state.tour, state.currentSceneId);
+  if (!scene) return;
+  scene.initialView = viewer.getCurrentView();
+  renderViewReadout(scene);
+  toast("Saved this camera angle as the scene's default view.");
+}
+
+/* ===================== Markers ===================== */
+
+function beginPlacing(type) {
+  if (!state.currentSceneId) return toast("Select a scene first.", true);
+  state.placing = { type };
+  viewer.setPlaceMode(true);
+  const label = type === MARKER_TYPES.LINK ? "navigation" : "info";
+  $("place-hint").textContent = ` Click in the preview to drop a ${label} hotspot. (Esc to cancel)`;
+  $("place-hint").hidden = false;
+}
+
+function cancelPlacing() {
+  state.placing = null;
+  viewer.setPlaceMode(false);
+  $("place-hint").hidden = true;
+}
+
+function handlePlace(yaw, pitch) {
+  if (!state.placing) return;
+  const scene = getScene(state.tour, state.currentSceneId);
+  if (!scene) return;
+
+  if (state.placing.markerId) {
+    const m = scene.markers.find((x) => x.id === state.placing.markerId);
+    if (m) {
+      m.yaw = yaw;
+      m.pitch = pitch;
+    }
+  } else {
+    const marker = createMarker({ type: state.placing.type, yaw, pitch });
+    scene.markers.push(marker);
+    state.selectedMarkerId = marker.id;
+  }
+  cancelPlacing();
+  viewer.renderMarkers(scene.markers);
+  renderMarkerList();
+}
+
+function selectMarker(id) {
+  state.selectedMarkerId = id;
+  renderMarkerList();
+}
+
+function deleteMarker(id) {
+  const scene = getScene(state.tour, state.currentSceneId);
+  if (!scene) return;
+  scene.markers = scene.markers.filter((m) => m.id !== id);
+  if (state.selectedMarkerId === id) state.selectedMarkerId = null;
+  viewer.renderMarkers(scene.markers);
+  renderMarkerList();
+}
+
+function replaceMarker(id) {
+  const scene = getScene(state.tour, state.currentSceneId);
+  const m = scene?.markers.find((x) => x.id === id);
+  if (!m) return;
+  state.placing = { type: m.type, markerId: id };
+  viewer.setPlaceMode(true);
+  $("place-hint").textContent = " Click to reposition this hotspot. (Esc to cancel)";
+  $("place-hint").hidden = false;
+}
+
+function updateMarker(id, patch) {
+  const scene = getScene(state.tour, state.currentSceneId);
+  const m = scene?.markers.find((x) => x.id === id);
+  if (!m) return;
+  Object.assign(m, patch);
+  if ("label" in patch) viewer.renderMarkers(scene.markers);
+}
+
+/* ===================== Import / Export ===================== */
+
+function downloadTour() {
+  saveTour();
+}
+
+/**
+ * Save tour.json. Prefers the File System Access API (Chrome/Edge) so it writes
+ * straight into the tour's folder (e.g. tours/<name>/tour.json) and remembers
+ * the location for one-click re-saves. Falls back to a classic download.
+ */
+async function saveTour() {
+  const err = preExportCheck();
+  if (err) return toast(err, true);
+  const json = JSON.stringify(serializeTour(), null, 2);
+
+  if (window.showSaveFilePicker) {
+    try {
+      if (!state.fileHandle) {
+        state.fileHandle = await window.showSaveFilePicker({
+          suggestedName: "tour.json",
+          types: [{ description: "Tour config", accept: { "application/json": [".json"] } }],
+        });
+      }
+      const writable = await state.fileHandle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      return toast(`Saved ${state.fileHandle.name} into your tour folder.`);
+    } catch (e) {
+      if (e.name === "AbortError") return; // user cancelled the picker
+      console.warn("[builder] FS save failed; falling back to download", e);
+    }
+  }
+
+  // Fallback: classic download to ~/Downloads.
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "tour.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast("Downloaded tour.json. Move it into your tour folder next to player.html.");
+}
+
+function previewInPlayer() {
+  const err = preExportCheck();
+  if (err) return toast(err, true);
+  // Hand the in-progress tour to the player via localStorage (shared across
+  // tabs, instant, and no flaky blob-URL fetching).
+  try {
+    localStorage.setItem("tour-preview-config", JSON.stringify(serializeTour()));
+  } catch (e) {
+    return toast(`Couldn't stage preview: ${e.message}`, true);
+  }
+  window.open("player.html?config=__preview__", "_blank");
+}
+
+async function importTour(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const { ok, tour, errors, warnings } = validateTour(JSON.parse(text));
+    if (!ok) throw new Error(errors.join("; "));
+    state.tour = tour;
+    state.currentSceneId = tour.scenes[0]?.id || null;
+    state.selectedMarkerId = null;
+    state.fileHandle = null; // imported a different file; next Save asks where
+    renderAll();
+    selectScene(state.currentSceneId);
+    toast(` Loaded "${tour.meta.title}".${warnings.length ? ` (${warnings.length} warning(s) — see console)` : ""}`);
+    warnings.forEach((w) => console.warn("[import]", w));
+  } catch (err) {
+    toast(` Import failed: ${err.message}`, true);
+  } finally {
+    e.target.value = "";
+  }
+}
+
+function serializeTour() {
+  // Return a clean copy; meta.createdAt refreshed on export.
+  return {
+    ...state.tour,
+    meta: { ...state.tour.meta, createdAt: new Date().toISOString() },
+  };
+}
+
+function preExportCheck() {
+  if (!state.tour.scenes.length) return "Add at least one scene first.";
+  const missing = state.tour.scenes.filter((s) => !s.panorama);
+  if (missing.length) return `${missing.length} scene(s) are missing a panorama URL.`;
+  return null;
+}
+
+/* ===================== Rendering ===================== */
+
+function renderAll() {
+  $("meta-title").value = state.tour.meta.title;
+  $("meta-description").value = state.tour.meta.description;
+  $("meta-author").value = state.tour.meta.author;
+  renderSceneList();
+  renderSceneEditor();
+}
+
+function renderSceneList() {
+  const list = $("scene-list");
+  list.innerHTML = "";
+  $("scene-count").textContent = String(state.tour.scenes.length);
+
+  state.tour.scenes.forEach((scene, idx) => {
+    const li = document.createElement("li");
+    li.className = "scene-item" + (scene.id === state.currentSceneId ? " is-active" : "");
+
+    const isStart = scene.id === state.tour.meta.startSceneId;
+    const name = document.createElement("button");
+    name.type = "button";
+    name.className = "scene-item__name";
+    name.textContent = (isStart ? "[start] " : "") + (scene.name || "(unnamed)");
+    name.addEventListener("click", () => selectScene(scene.id));
+
+    const up = miniBtn("Up", "Move up", () => moveScene(scene.id, -1), idx === 0);
+    const down = miniBtn("Down", "Move down", () => moveScene(scene.id, 1), idx === state.tour.scenes.length - 1);
+
+    const controls = document.createElement("span");
+    controls.className = "scene-item__controls";
+    controls.append(up, down);
+
+    li.append(name, controls);
+    list.append(li);
+  });
+}
+
+function renderSceneEditor() {
+  const scene = getScene(state.tour, state.currentSceneId);
+  $("no-scene").hidden = !!scene;
+  $("scene-editor").hidden = !scene;
+  if (!scene) return;
+
+  $("scene-name").value = scene.name;
+  $("scene-panorama").value = scene.panorama;
+  $("scene-thumbnail").value = scene.thumbnail;
+  $("scene-caption").value = scene.caption;
+  $("start-badge").hidden = scene.id !== state.tour.meta.startSceneId;
+  renderViewReadout(scene);
+  renderMarkerList();
+}
+
+function renderViewReadout(scene) {
+  const v = scene.initialView;
+  $("view-readout").textContent = `yaw ${v.yaw}° · pitch ${v.pitch}° · zoom ${v.zoom}`;
+}
+
+function renderMarkerList() {
+  const scene = getScene(state.tour, state.currentSceneId);
+  const list = $("marker-list");
+  list.innerHTML = "";
+  if (!scene) return;
+
+  if (!scene.markers.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "No hotspots yet. Add a navigation or info hotspot above.";
+    list.append(empty);
+    return;
+  }
+
+  scene.markers.forEach((m) => list.append(renderMarkerRow(scene, m)));
+}
+
+function renderMarkerRow(scene, m) {
+  const row = document.createElement("div");
+  row.className = "marker-row" + (m.id === state.selectedMarkerId ? " is-selected" : "");
+
+  const head = document.createElement("div");
+  head.className = "marker-row__head";
+  const badge = document.createElement("span");
+  badge.className = `marker-badge marker-badge--${m.type}`;
+  badge.textContent = m.type === MARKER_TYPES.LINK ? "Navigation" : "Info";
+  head.append(badge);
+  head.append(miniBtn("Move", "Re-place on sphere", () => replaceMarker(m.id)));
+  head.append(miniBtn("Delete", "Delete hotspot", () => deleteMarker(m.id)));
+
+  const label = labeledInput("Label", m.label, (v) => updateMarker(m.id, { label: v }));
+
+  row.append(head, label);
+
+  if (m.type === MARKER_TYPES.LINK) {
+    row.append(linkTargetSelect(scene, m));
+  } else {
+    row.append(
+      labeledTextarea("Info content (HTML allowed)", m.html, (v) =>
+        updateMarker(m.id, { html: v })
+      )
+    );
+  }
+
+  const pos = document.createElement("p");
+  pos.className = "marker-row__pos muted";
+  pos.textContent = `Position: yaw ${m.yaw}° · pitch ${m.pitch}°`;
+  row.append(pos);
+  return row;
+}
+
+function linkTargetSelect(scene, m) {
+  const wrap = document.createElement("label");
+  wrap.className = "field";
+  wrap.innerHTML = "<span class='field__label'>Go to scene</span>";
+  const select = document.createElement("select");
+  select.className = "field__input";
+  const blank = new Option("— choose target —", "");
+  select.append(blank);
+  state.tour.scenes
+    .filter((s) => s.id !== scene.id)
+    .forEach((s) => select.append(new Option(s.name || s.id, s.id)));
+  select.value = m.targetSceneId || "";
+  select.addEventListener("change", () => updateMarker(m.id, { targetSceneId: select.value }));
+  wrap.append(select);
+  return wrap;
+}
+
+/* ===================== Small DOM helpers ===================== */
+
+function bindInput(id, onInput) {
+  $(id).addEventListener("input", (e) => onInput(e.target.value));
+}
+
+function miniBtn(text, title, onClick, disabled = false) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "mini-btn";
+  b.textContent = text;
+  b.title = title;
+  b.setAttribute("aria-label", title);
+  b.disabled = disabled;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function labeledInput(label, value, onInput) {
+  const wrap = document.createElement("label");
+  wrap.className = "field";
+  const span = document.createElement("span");
+  span.className = "field__label";
+  span.textContent = label;
+  const input = document.createElement("input");
+  input.className = "field__input";
+  input.type = "text";
+  input.value = value || "";
+  input.addEventListener("input", () => onInput(input.value));
+  wrap.append(span, input);
+  return wrap;
+}
+
+function labeledTextarea(label, value, onInput) {
+  const wrap = document.createElement("label");
+  wrap.className = "field";
+  const span = document.createElement("span");
+  span.className = "field__label";
+  span.textContent = label;
+  const ta = document.createElement("textarea");
+  ta.className = "field__input";
+  ta.rows = 3;
+  ta.value = value || "";
+  ta.addEventListener("input", () => onInput(ta.value));
+  wrap.append(span, ta);
+  return wrap;
+}
+
+function toast(message, isError = false) {
+  const el = $("toast");
+  el.textContent = message;
+  el.className = "toast is-visible" + (isError ? " is-error" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (el.className = "toast"), 4000);
+}
+
+// Global Esc cancels placing mode.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && state.placing) cancelPlacing();
+});
