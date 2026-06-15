@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vendor module self-test</title>
+    <style>
+      body { font: 16px/1.5 system-ui; margin: 0; padding: 24px; background: #0c0d10; color: #eee; }
+      .ok { color: #5ee27a; } .bad { color: #ff8a80; }
+      pre { white-space: pre-wrap; background:#16181d; padding:12px; border-radius:8px; }
+      h1 { font-size: 18px; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three.module.js",
+          "@photo-sphere-viewer/core": "./vendor/psv-core.module.js",
+          "@photo-sphere-viewer/markers-plugin": "./vendor/psv-markers.module.js",
+          "@photo-sphere-viewer/virtual-tour-plugin": "./vendor/psv-virtual-tour.module.js",
+          "@photo-sphere-viewer/gallery-plugin": "./vendor/psv-gallery.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Vendor module self-test</h1>
+    <pre id="out">Running…</pre>
+    <script type="module">
+      const out = document.getElementById("out");
+      const lines = [];
+      const log = (msg, ok) => {
+        lines.push((ok ? "[OK]  " : "[BAD] ") + msg);
+        out.innerHTML = lines.map(l => l.startsWith("[OK]")
+          ? `<span class="ok">${l}</span>` : `<span class="bad">${l}</span>`).join("\n");
+      };
+      window.addEventListener("error", (e) => log("window error: " + (e.message || e.error), false));
+
+      async function tryImport(name) {
+        try { const m = await import(name); log("imported " + name, true); return m; }
+        catch (err) { log("FAILED " + name + " -> " + err.message, false); return null; }
+      }
+
+      log("starting imports…", true);
+      await tryImport("three");
+      const core = await tryImport("@photo-sphere-viewer/core");
+      await tryImport("@photo-sphere-viewer/markers-plugin");
+      await tryImport("@photo-sphere-viewer/virtual-tour-plugin");
+      await tryImport("@photo-sphere-viewer/gallery-plugin");
+
+      if (core?.Viewer) log("core.Viewer is available — modules are GOOD", true);
+      else log("core.Viewer MISSING", false);
+      log("done.", true);
+    </script>
+  </body>
+</html>
