@@ -15,6 +15,8 @@ import { GalleryPlugin } from "@photo-sphere-viewer/gallery-plugin";
 import { validateTour, getScene } from "./tour-model.js";
 import { toViewerNodes, sceneInitialView, escapeHtml } from "./psv-adapter.js";
 
+console.log("[player] build v3 (synchronous view, log-only handlers)");
+
 const DEFAULT_CONFIG = "tour.json";
 
 const els = {
