@@ -82,13 +82,13 @@
             <input id="scene-name" class="field__input" type="text" />
           </label>
           <label class="field">
-            <span class="field__label">Panorama URL (equirectangular, e.g. Azure Blob)</span>
-            <input id="scene-panorama" class="field__input" type="url"
-                   placeholder="https://account.blob.core.windows.net/tours/frontend.jpg" />
+            <span class="field__label">Panorama path or URL (equirectangular)</span>
+            <input id="scene-panorama" class="field__input" type="text"
+                   placeholder="images/frontend.jpg  or  https://account.blob.core.windows.net/tours/frontend.jpg" />
           </label>
           <label class="field">
-            <span class="field__label">Thumbnail URL (optional)</span>
-            <input id="scene-thumbnail" class="field__input" type="url"
+            <span class="field__label">Thumbnail path or URL (optional)</span>
+            <input id="scene-thumbnail" class="field__input" type="text"
                    placeholder="defaults to the panorama" />
           </label>
           <label class="field">
@@ -120,6 +120,6 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script type="module" src="builder.js?v=6"></script>
+    <script type="module" src="builder.js?v=7"></script>
   </body>
 </html>
