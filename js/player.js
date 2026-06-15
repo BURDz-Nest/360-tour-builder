@@ -32,6 +32,16 @@ const els = {
 
 let activeTour = null;
 
+// Surface ANY unexpected error into the UI instead of failing silently.
+window.addEventListener("error", (e) => {
+  console.error("[player] uncaught error", e.error || e.message);
+  fail(`Unexpected error: ${escapeHtml(e.message || String(e.error))}`);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  console.error("[player] unhandled rejection", e.reason);
+  fail(`Unexpected error: ${escapeHtml(e.reason?.message || String(e.reason))}`);
+});
+
 main();
 
 async function main() {
@@ -73,7 +83,12 @@ async function main() {
   document.title = `${tour.meta.title} — 360 Tour`;
   els.title.textContent = tour.meta.title;
 
-  initViewer(tour);
+  try {
+    initViewer(tour);
+  } catch (err) {
+    console.error("[player] viewer init failed", err);
+    fail(`Couldn't start the 360 viewer: ${escapeHtml(err.message)}`);
+  }
 }
 
 function initViewer(tour) {
