@@ -1,0 +1,29 @@
+# Dependencies / build artifacts
+node_modules/
+dist/
+.cache/
+
+# Python (if ever added)
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Env / secrets — NEVER commit SAS tokens or connection strings
+.env
+.env.*
+*.secret
+azure-credentials*
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Local working tours that may contain sensitive image URLs.
+# Keep examples/ tracked; ignore a personal scratch folder.
+/local-tours/
+*.local.json

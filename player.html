@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>360 Tour</title>
+    <meta name="description" content="Interactive 360 virtual tour viewer." />
+
+    <!--
+      Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (matched dependency).
+      Loaded as ES modules via an import map from jsDelivr. No build step.
+    -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.5/index.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin@5.11.5/index.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/virtual-tour-plugin@5.11.5/index.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/gallery-plugin@5.11.5/index.css" />
+    <link rel="stylesheet" href="css/app.css" />
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+          "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.5/index.module.js",
+          "@photo-sphere-viewer/markers-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin@5.11.5/index.module.js",
+          "@photo-sphere-viewer/virtual-tour-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/virtual-tour-plugin@5.11.5/index.module.js",
+          "@photo-sphere-viewer/gallery-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/gallery-plugin@5.11.5/index.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body class="player-body">
+    <header class="player-bar">
+      <h1 id="tour-title" class="player-bar__title">360 Tour</h1>
+      <p id="scene-caption" class="player-bar__caption" hidden></p>
+    </header>
+
+    <main class="player-stage">
+      <div id="viewer" class="player-viewer" role="application"
+           aria-label="Interactive 360 degree tour. Use arrow keys to look around."></div>
+
+      <!-- Loading state -->
+      <div id="loading" class="player-loading" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Loading tour…</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="error" class="player-error" role="alert" hidden>
+        <h2>Couldn't load this tour</h2>
+        <p id="error-message" class="player-error__msg"></p>
+        <p class="player-error__hint">
+          Check the <code>?config=</code> link, your network connection, and that the
+          image URLs are reachable.
+        </p>
+      </div>
+    </main>
+
+    <!-- Accessible info popup (for info hotspots) -->
+    <div id="info-overlay" class="info-overlay" hidden role="dialog" aria-modal="true"
+         aria-labelledby="info-title">
+      <div class="info-overlay__panel">
+        <div class="info-overlay__head">
+          <h2 id="info-title" class="info-overlay__title">Details</h2>
+          <button id="info-close" class="info-overlay__close" type="button" aria-label="Close details">
+            &times;
+          </button>
+        </div>
+        <div id="info-body" class="info-overlay__body"></div>
+      </div>
+    </div>
+
+    <script type="module" src="js/player.js"></script>
+  </body>
+</html>
