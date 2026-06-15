@@ -221,9 +221,14 @@ function downloadTour() {
 function previewInPlayer() {
   const err = preExportCheck();
   if (err) return toast(err, true);
-  const blob = new Blob([JSON.stringify(serializeTour())], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  window.open(`player.html?config=${encodeURIComponent(url)}`, "_blank");
+  // Hand the in-progress tour to the player via localStorage (shared across
+  // tabs, instant, and no flaky blob-URL fetching).
+  try {
+    localStorage.setItem("tour-preview-config", JSON.stringify(serializeTour()));
+  } catch (e) {
+    return toast(`Couldn't stage preview: ${e.message}`, true);
+  }
+  window.open("player.html?config=__preview__", "_blank");
 }
 
 async function importTour(e) {

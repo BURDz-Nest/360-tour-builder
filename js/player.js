@@ -16,6 +16,8 @@ import { validateTour, getScene } from "./tour-model.js";
 import { toViewerNodes, sceneInitialView, escapeHtml } from "./psv-adapter.js";
 
 const DEFAULT_CONFIG = "tour.json";
+const PREVIEW_SENTINEL = "__preview__";
+const PREVIEW_KEY = "tour-preview-config";
 
 const els = {
   container: document.getElementById("viewer"),
@@ -51,25 +53,11 @@ async function main() {
     );
   }
 
-  const configUrl = resolveConfigUrl();
-  if (!configUrl) {
-    return fail(
-      "This viewer was opened with an unsafe or cross-origin ?config= value. " +
-        "Configs must live on the same site as the player."
-    );
-  }
-
   let raw;
   try {
-    const res = await fetch(configUrl, { cache: "no-cache" });
-    if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${configUrl}`);
-    raw = await res.json();
+    raw = await loadRawConfig();
   } catch (err) {
-    return fail(
-      `Couldn't load the tour config (${escapeHtml(configUrl)}). ${escapeHtml(
-        err.message
-      )}`
-    );
+    return fail(`Couldn't load the tour config. ${escapeHtml(err.message)}`);
   }
 
   const { ok, tour, errors, warnings } = validateTour(raw);
@@ -188,21 +176,32 @@ function fail(message) {
 /* ---------------- config + capability ---------------- */
 
 /**
- * Resolve the ?config= param to a SAME-ORIGIN URL.
- * Cross-origin configs are rejected to avoid loading arbitrary remote JSON.
- * (The big IMAGE URLs inside the config can still be remote/Azure — only the
- *  config document itself must be local.)
+ * Load the raw tour config object.
+ *  - "?config=__preview__" reads the in-progress tour from localStorage
+ *    (how the builder's "Preview in player" hands data across tabs).
+ *  - otherwise fetches a SAME-ORIGIN config file. Cross-origin configs are
+ *    rejected (the big IMAGE URLs inside may still be remote/Azure; only the
+ *    config document itself must be local).
  */
-function resolveConfigUrl() {
+async function loadRawConfig() {
   const params = new URLSearchParams(location.search);
-  const raw = params.get("config") || DEFAULT_CONFIG;
-  try {
-    const url = new URL(raw, location.href);
-    if (url.origin !== location.origin) return null;
-    return url.href;
-  } catch {
-    return null;
+  const param = params.get("config") || DEFAULT_CONFIG;
+
+  if (param === PREVIEW_SENTINEL) {
+    const stored = localStorage.getItem(PREVIEW_KEY);
+    if (!stored) {
+      throw new Error("No preview data found. Click 'Preview in player' in the builder again.");
+    }
+    return JSON.parse(stored);
   }
+
+  const url = new URL(param, location.href);
+  if (url.origin !== location.origin) {
+    throw new Error("Config must live on the same site as the player.");
+  }
+  const res = await fetch(url.href, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url.href}`);
+  return res.json();
 }
 
 function hasWebGL() {
