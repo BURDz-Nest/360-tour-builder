@@ -173,10 +173,13 @@ with a text/transcript description of each area where possible.
 
 - Photo-Sphere-Viewer **5.11.5** + plugins (virtual-tour, markers, gallery)
 - three **0.169.0** (matched to PSV's dependency)
-- Loaded via an ES-module **import map** from jsDelivr — no build step, no npm install.
+- **Vendored locally** in `vendor/` — no runtime CDN, no build step, no npm install.
+  This makes it work behind corporate proxies/CSP and offline, and ships
+  self-contained to GitHub Pages.
 
-To pin different versions, update the `<script type="importmap">` and the CSS
-`<link>` tags in both `index.html` and `player.html` together.
+The import maps in `index.html` and `player.html` point at `vendor/*.module.js`.
+To upgrade versions, re-download the matching files into `vendor/` (see the
+`curl` block in git history) and keep `three` matched to PSV's dependency.
 
 ---
 
