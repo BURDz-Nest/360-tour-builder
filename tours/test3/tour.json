@@ -12,7 +12,7 @@
       "id": "scene_zb25uzqd81",
       "name": "Behind Sam's Desk",
       "panorama": "images/IMG_20260612_083538_00_233-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083538_00_233-2_web.jpg",
       "caption": "",
       "initialView": {
         "yaw": 176.8,
@@ -34,7 +34,7 @@
       "id": "scene_0qvhat4s70",
       "name": "In front of desk",
       "panorama": "images/IMG_20260612_083341_00_232-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083341_00_232-2_web.jpg",
       "caption": "",
       "initialView": {
         "yaw": -167.5,

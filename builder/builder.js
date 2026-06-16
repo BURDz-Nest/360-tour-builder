@@ -268,6 +268,7 @@ function updateMarker(id, patch) {
 async function saveTour() {
   const err = preExportCheck();
   if (err) return toast(err, true);
+  await prepareThumbnails();
   const json = JSON.stringify(serializeTour(), null, 2);
 
   // Workspace mode: write straight into the bound tour folder, no dialog.
@@ -310,11 +311,13 @@ async function saveTour() {
   toast("Downloaded tour.json. Move it into your tour folder next to player.html.");
 }
 
-function previewInPlayer() {
+async function previewInPlayer() {
   const err = preExportCheck();
   if (err) return toast(err, true);
-  // Make sure snapshot thumbnails exist before previewing (best-effort).
-  if (state.dirHandle) fs.ensureThumbnails(state.dirHandle).catch(() => {});
+  // Generate snapshot files AND point each scene at its thumbnail BEFORE we
+  // stage the preview — awaited so we never open the player before the thumbs
+  // exist (that race caused broken-image icons).
+  await prepareThumbnails();
   // Hand the in-progress tour to the player via localStorage (shared across
   // tabs, instant, and no flaky blob-URL fetching).
   try {
@@ -360,6 +363,26 @@ function serializeTour() {
     ...state.tour,
     meta: { ...state.tour.meta, createdAt: new Date().toISOString() },
   };
+}
+
+/**
+ * Make sure snapshot thumbnails exist on disk AND that every local-image scene
+ * references one. Backfills `thumbnail` for scenes whose panorama is a local
+ * "images/<file>" path (covers old tours that predate the thumbnail feature).
+ */
+async function prepareThumbnails() {
+  if (state.dirHandle) {
+    try {
+      await fs.ensureThumbnails(state.dirHandle);
+    } catch (e) {
+      console.warn("[builder] ensureThumbnails failed", e);
+    }
+  }
+  for (const s of state.tour.scenes) {
+    if (s.thumbnail) continue;
+    const m = /^images\/(.+)$/.exec(s.panorama || "");
+    if (m) s.thumbnail = `images/thumbs/${fs.thumbName(m[1])}`;
+  }
 }
 
 function preExportCheck() {

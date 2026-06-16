@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Sam's Office ",
+    "description": "oadjf a",
+    "author": "",
+    "startSceneId": "scene_8veyshxfmz",
+    "createdAt": "2026-06-16T19:36:50.283Z"
+  },
+  "scenes": [
+    {
+      "id": "scene_8veyshxfmz",
+      "name": "Behind Sam's Desk",
+      "panorama": "images/IMG_20260612_083538_00_233-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_083538_00_233-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": 173,
+        "pitch": -18.7,
+        "zoom": 25
+      },
+      "markers": [
+        {
+          "id": "mk_agjo6jjo22",
+          "type": "link",
+          "yaw": -95.2,
+          "pitch": -29.7,
+          "label": "Office Spot 1",
+          "targetSceneId": "scene_8vey2j61b9"
+        }
+      ]
+    },
+    {
+      "id": "scene_8vey2j61b9",
+      "name": "Office Spot 1",
+      "panorama": "images/IMG_20260612_082948_00_228-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_082948_00_228-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": -60.7,
+        "pitch": -17.9,
+        "zoom": 25
+      },
+      "markers": [
+        {
+          "id": "mk_b773ob5sx8",
+          "type": "link",
+          "yaw": -95.2,
+          "pitch": -32.2,
+          "label": "Behind Sam's Desk",
+          "targetSceneId": "scene_8veyshxfmz"
+        }
+      ]
+    },
+    {
+      "id": "scene_8veyiwhbft",
+      "name": "Scene 2",
+      "panorama": "images/IMG_20260612_083059_00_229-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_083059_00_229-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
+      "markers": [
+        {
+          "id": "mk_8vez6xkw8c",
+          "type": "link",
+          "yaw": 90,
+          "pitch": 0,
+          "label": "Next",
+          "targetSceneId": "scene_8veyyljyrh"
+        },
+        {
+          "id": "mk_8vezy5jlg4",
+          "type": "link",
+          "yaw": -90,
+          "pitch": 0,
+          "label": "Back",
+          "targetSceneId": "scene_8vey2j61b9"
+        }
+      ]
+    },
+    {
+      "id": "scene_8veyyljyrh",
+      "name": "Scene 3",
+      "panorama": "images/IMG_20260612_083151_00_230-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_083151_00_230-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
+      "markers": [
+        {
+          "id": "mk_8vezhnphh9",
+          "type": "link",
+          "yaw": 90,
+          "pitch": 0,
+          "label": "Next",
+          "targetSceneId": "scene_8vey2m9imo"
+        },
+        {
+          "id": "mk_8vezxeymbg",
+          "type": "link",
+          "yaw": -90,
+          "pitch": 0,
+          "label": "Back",
+          "targetSceneId": "scene_8veyiwhbft"
+        }
+      ]
+    },
+    {
+      "id": "scene_8vey2m9imo",
+      "name": "Scene 4",
+      "panorama": "images/IMG_20260612_083238_00_231-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_083238_00_231-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
+      "markers": [
+        {
+          "id": "mk_8vezs3pezu",
+          "type": "link",
+          "yaw": 90,
+          "pitch": 0,
+          "label": "Next",
+          "targetSceneId": "scene_8veyaa67xn"
+        },
+        {
+          "id": "mk_8vezgy521b",
+          "type": "link",
+          "yaw": -90,
+          "pitch": 0,
+          "label": "Back",
+          "targetSceneId": "scene_8veyyljyrh"
+        }
+      ]
+    },
+    {
+      "id": "scene_8veyaa67xn",
+      "name": "Scene 5",
+      "panorama": "images/IMG_20260612_083341_00_232-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_083341_00_232-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
+      "markers": [
+        {
+          "id": "mk_8vez9wz84j",
+          "type": "link",
+          "yaw": 90,
+          "pitch": 0,
+          "label": "Next",
+          "targetSceneId": "scene_8veyshxfmz"
+        },
+        {
+          "id": "mk_8vez8yrybq",
+          "type": "link",
+          "yaw": -90,
+          "pitch": 0,
+          "label": "Back",
+          "targetSceneId": "scene_8vey2m9imo"
+        }
+      ]
+    }
+  ]
+}

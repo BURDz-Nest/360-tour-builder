@@ -12,7 +12,7 @@
       "id": "scene_zz33b65p44",
       "name": "Behind Sam's Desk",
       "panorama": "images/IMG_20260612_083538_00_233-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083538_00_233-2_web.jpg",
       "caption": "",
       "initialView": {
         "yaw": 179.6,
@@ -58,7 +58,7 @@
       "id": "scene_zz33vvramo",
       "name": "Office spot 1",
       "panorama": "images/IMG_20260612_082948_00_228-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_082948_00_228-2_web.jpg",
       "caption": "",
       "initialView": {
         "yaw": -63.3,
@@ -96,7 +96,7 @@
       "id": "scene_zz33vyavrn",
       "name": "Office Spot 2",
       "panorama": "images/IMG_20260612_083059_00_229-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083059_00_229-2_web.jpg",
       "caption": "",
       "initialView": {
         "yaw": -90.3,
@@ -142,7 +142,7 @@
       "id": "scene_zz333f2b2f",
       "name": "Office Spot 3",
       "panorama": "images/IMG_20260612_083151_00_230-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083151_00_230-2_web.jpg",
       "caption": "",
       "initialView": {
         "yaw": -162.1,
@@ -196,7 +196,7 @@
       "id": "scene_zz33eent2s",
       "name": "Office Spot 4",
       "panorama": "images/IMG_20260612_083238_00_231-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083238_00_231-2_web.jpg",
       "caption": "",
       "initialView": {
         "yaw": 16.9,

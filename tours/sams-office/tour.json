@@ -12,70 +12,164 @@
       "id": "s1",
       "name": "Scene 1",
       "panorama": "images/IMG_20260612_082948_00_228-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_082948_00_228-2_web.jpg",
       "caption": "Scene 1",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
       "markers": [
-        { "id": "s1-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s2" }
+        {
+          "id": "s1-next",
+          "type": "link",
+          "yaw": 90,
+          "pitch": 0,
+          "label": "Next",
+          "targetSceneId": "s2"
+        }
       ]
     },
     {
       "id": "s2",
       "name": "Scene 2",
       "panorama": "images/IMG_20260612_083059_00_229-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083059_00_229-2_web.jpg",
       "caption": "Scene 2",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
       "markers": [
-        { "id": "s2-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s1" },
-        { "id": "s2-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s3" }
+        {
+          "id": "s2-prev",
+          "type": "link",
+          "yaw": -90,
+          "pitch": 0,
+          "label": "Back",
+          "targetSceneId": "s1"
+        },
+        {
+          "id": "s2-next",
+          "type": "link",
+          "yaw": 90,
+          "pitch": 0,
+          "label": "Next",
+          "targetSceneId": "s3"
+        }
       ]
     },
     {
       "id": "s3",
       "name": "Scene 3",
       "panorama": "images/IMG_20260612_083151_00_230-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083151_00_230-2_web.jpg",
       "caption": "Scene 3",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
       "markers": [
-        { "id": "s3-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s2" },
-        { "id": "s3-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s4" }
+        {
+          "id": "s3-prev",
+          "type": "link",
+          "yaw": -90,
+          "pitch": 0,
+          "label": "Back",
+          "targetSceneId": "s2"
+        },
+        {
+          "id": "s3-next",
+          "type": "link",
+          "yaw": 90,
+          "pitch": 0,
+          "label": "Next",
+          "targetSceneId": "s4"
+        }
       ]
     },
     {
       "id": "s4",
       "name": "Scene 4",
       "panorama": "images/IMG_20260612_083238_00_231-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083238_00_231-2_web.jpg",
       "caption": "Scene 4",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
       "markers": [
-        { "id": "s4-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s3" },
-        { "id": "s4-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s5" }
+        {
+          "id": "s4-prev",
+          "type": "link",
+          "yaw": -90,
+          "pitch": 0,
+          "label": "Back",
+          "targetSceneId": "s3"
+        },
+        {
+          "id": "s4-next",
+          "type": "link",
+          "yaw": 90,
+          "pitch": 0,
+          "label": "Next",
+          "targetSceneId": "s5"
+        }
       ]
     },
     {
       "id": "s5",
       "name": "Scene 5",
       "panorama": "images/IMG_20260612_083341_00_232-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083341_00_232-2_web.jpg",
       "caption": "Scene 5",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
       "markers": [
-        { "id": "s5-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s4" },
-        { "id": "s5-next", "type": "link", "yaw": 90, "pitch": 0, "label": "Next", "targetSceneId": "s6" }
+        {
+          "id": "s5-prev",
+          "type": "link",
+          "yaw": -90,
+          "pitch": 0,
+          "label": "Back",
+          "targetSceneId": "s4"
+        },
+        {
+          "id": "s5-next",
+          "type": "link",
+          "yaw": 90,
+          "pitch": 0,
+          "label": "Next",
+          "targetSceneId": "s6"
+        }
       ]
     },
     {
       "id": "s6",
       "name": "Scene 6",
       "panorama": "images/IMG_20260612_083538_00_233-2_web.jpg",
-      "thumbnail": "",
+      "thumbnail": "images/thumbs/IMG_20260612_083538_00_233-2_web.jpg",
       "caption": "Scene 6",
-      "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },
+      "initialView": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 50
+      },
       "markers": [
-        { "id": "s6-prev", "type": "link", "yaw": -90, "pitch": 0, "label": "Back", "targetSceneId": "s5" }
+        {
+          "id": "s6-prev",
+          "type": "link",
+          "yaw": -90,
+          "pitch": 0,
+          "label": "Back",
+          "targetSceneId": "s5"
+        }
       ]
     }
   ]
