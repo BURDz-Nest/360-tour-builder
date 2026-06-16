@@ -72,11 +72,27 @@ function init() {
     $("btn-open-tour").addEventListener("click", ws.handleOpenTour);
     $("btn-add-images").addEventListener("click", () => $("file-images").click());
     $("file-images").addEventListener("change", (e) => ws.handleAddImages([...e.target.files]));
-    $("btn-add-all-scenes").addEventListener("click", ws.addAllImagesAsScenes);
+    $("btn-add-all-scenes").addEventListener("click", async () => {
+      await ws.addAllImagesAsScenes();
+      closeImageModal();
+    });
+    $("btn-bind-folder").addEventListener("click", ws.bindFolder);
     fs.setupDropZone($("image-panel"), ws.handleAddImages);
+
+    // Images modal open/close.
+    $("btn-images").addEventListener("click", () => {
+      $("image-modal").hidden = false;
+      ws.refreshImageGrid();
+    });
+    $("image-modal-close").addEventListener("click", closeImageModal);
+    $("image-modal").addEventListener("click", (e) => {
+      if (e.target === $("image-modal")) closeImageModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !$("image-modal").hidden) closeImageModal();
+    });
   } else {
     $("workspace-bar").hidden = true;
-    $("image-panel-wrap").hidden = true;
   }
 
   // Scene editor
@@ -363,6 +379,10 @@ function serializeTour() {
     ...state.tour,
     meta: { ...state.tour.meta, createdAt: new Date().toISOString() },
   };
+}
+
+function closeImageModal() {
+  $("image-modal").hidden = true;
 }
 
 /**

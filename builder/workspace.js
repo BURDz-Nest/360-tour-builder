@@ -75,7 +75,16 @@ export function createWorkspace(ctx) {
   }
 
   async function refreshImageGrid() {
-    if (!state.dirHandle) return;
+    const note = $("bind-folder-note");
+    const panel = $("image-panel");
+    // No folder bound yet (e.g. tour was imported) -> offer to link one.
+    if (!state.dirHandle) {
+      if (note) note.hidden = false;
+      if (panel) panel.hidden = true;
+      return;
+    }
+    if (note) note.hidden = true;
+    if (panel) panel.hidden = false;
     try {
       const made = await fs.ensureThumbnails(state.dirHandle);
       if (made) toast(`Generated ${made} snapshot thumbnail(s).`);
@@ -83,8 +92,19 @@ export function createWorkspace(ctx) {
       console.warn("[workspace] ensureThumbnails failed", e);
     }
     const names = await fs.listImageNames(state.dirHandle);
-    $("image-panel-wrap").hidden = false;
     fs.renderImageGrid($("image-grid"), names, $("preview-base").value, assignImageToScene);
+  }
+
+  /** Link an EXISTING tour's folder without wiping the in-memory tour. */
+  async function bindFolder() {
+    try {
+      const { dirHandle, name } = await fs.openTour();
+      adoptWorkspace(dirHandle, name);
+      toast(`Linked folder \u201c${name}\u201d \u2014 you can manage images now.`);
+    } catch (e) {
+      if (e.name === "AbortError") return;
+      toast(e.message, true);
+    }
   }
 
   /** Click a thumbnail -> set the current scene's panorama to that image. */
@@ -121,5 +141,5 @@ export function createWorkspace(ctx) {
     toast(`Created ${scenes.length} auto-linked scenes. Tweak names + nudge hotspots, then Save.`);
   }
 
-  return { handleNewTour, handleOpenTour, handleAddImages, addAllImagesAsScenes };
+  return { handleNewTour, handleOpenTour, handleAddImages, addAllImagesAsScenes, bindFolder, refreshImageGrid };
 }
