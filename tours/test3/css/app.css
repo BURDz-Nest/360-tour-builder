@@ -380,6 +380,8 @@ textarea.field__input { resize: vertical; }
 .img-thumb:hover { border-color: #0071dc; }
 .img-thumb:focus-visible { outline: 2px solid #0071dc; outline-offset: 1px; }
 .img-thumb img { width: 100%; height: 56px; object-fit: cover; display: block; background: #eee; }
+.img-thumb.is-broken img { visibility: hidden; }
+.img-thumb.is-broken { background: repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 6px, #e5e7eb 6px, #e5e7eb 12px); }
 .img-thumb span {
   font-size: 0.6rem; line-height: 1.2; padding: 2px 3px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

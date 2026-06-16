@@ -135,6 +135,42 @@ async function makeSnapshotThumbnail(file, size = 240) {
   );
 }
 
+/**
+ * Generate snapshot thumbnails for any images that don't have one yet (e.g.
+ * copied into images/ via Finder rather than dragged into the builder).
+ * Returns the count generated.
+ */
+export async function ensureThumbnails(dirHandle) {
+  let imagesDir;
+  try {
+    imagesDir = await dirHandle.getDirectoryHandle("images");
+  } catch {
+    return 0;
+  }
+  const thumbsDir = await imagesDir.getDirectoryHandle("thumbs", { create: true });
+  const haveThumb = new Set();
+  for await (const [n, h] of thumbsDir.entries()) {
+    if (h.kind === "file") haveThumb.add(n);
+  }
+  let made = 0;
+  for await (const [name, h] of imagesDir.entries()) {
+    if (h.kind !== "file" || !IMG_RE.test(name)) continue;
+    const tn = thumbName(name);
+    if (haveThumb.has(tn)) continue;
+    try {
+      const file = await h.getFile();
+      const thumb = await makeSnapshotThumbnail(file);
+      if (thumb) {
+        await writeBlobTo(thumbsDir, tn, thumb);
+        made++;
+      }
+    } catch (e) {
+      console.warn("[fs] thumbnail gen failed for", name, e);
+    }
+  }
+  return made;
+}
+
 /** List image filenames already in the tour's images/ folder. */
 export async function listImageNames(dirHandle) {
   let imagesDir;
@@ -199,7 +235,14 @@ export function renderImageGrid(container, names, baseUrl, onAssign) {
     btn.type = "button";
     btn.className = "img-thumb";
     btn.title = `Use ${name} for the selected scene`;
-    btn.innerHTML = `<img loading="lazy" src="${base}images/${encodeURIComponent(name)}" alt="" /><span>${name}</span>`;
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.alt = "";
+    img.src = `${base}images/${encodeURIComponent(name)}`;
+    img.addEventListener("error", () => btn.classList.add("is-broken"));
+    const span = document.createElement("span");
+    span.textContent = name;
+    btn.append(img, span);
     btn.addEventListener("click", () => onAssign(name));
     container.appendChild(btn);
   }

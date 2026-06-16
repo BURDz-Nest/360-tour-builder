@@ -100,9 +100,11 @@ function initViewer(tour) {
           nodes,
           startNodeId,
           arrowStyle: waypointArrowStyle(),
-          // Animate straight to each scene's saved view DURING the fade, so we
-          // never snap afterwards (smooth arrival). Runs for the first node too.
-          transitionOptions: (node) => {
+          // On the FIRST load, animate to the scene's saved view. On link
+          // navigation, keep PSV's natural "face the way you're heading"
+          // behaviour so we never take the long way around the sphere.
+          transitionOptions: (node, fromNode, fromLink) => {
+            if (fromLink) return {};
             const scene = getScene(activeTour, node.id);
             if (!scene) return {};
             const view = sceneInitialView(scene);

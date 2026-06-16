@@ -17,6 +17,7 @@ import {
 import { BuilderViewer } from "./builder-viewer.js";
 import { miniBtn, labeledInput, labeledTextarea } from "./ui-dom.js";
 import * as fs from "./fs-workspace.js";
+import { createWorkspace } from "./workspace.js";
 
 const state = {
   tour: createEmptyTour(),
@@ -59,12 +60,17 @@ function init() {
 
   // Workspace (File System Access — Chrome/Edge). Hide if unsupported.
   if (fs.fsSupported()) {
-    $("btn-new-tour").addEventListener("click", handleNewTour);
-    $("btn-open-tour").addEventListener("click", handleOpenTour);
+    const ws = createWorkspace({
+      state, $, toast, getScene,
+      createEmptyTour, createScene, createMarker, MARKER_TYPES,
+      updateScene, renderAll, selectScene, loadCurrentPreview, cancelPlacing,
+    });
+    $("btn-new-tour").addEventListener("click", ws.handleNewTour);
+    $("btn-open-tour").addEventListener("click", ws.handleOpenTour);
     $("btn-add-images").addEventListener("click", () => $("file-images").click());
-    $("file-images").addEventListener("change", (e) => handleAddImages([...e.target.files]));
-    $("btn-add-all-scenes").addEventListener("click", addAllImagesAsScenes);
-    fs.setupDropZone($("image-panel"), handleAddImages);
+    $("file-images").addEventListener("change", (e) => ws.handleAddImages([...e.target.files]));
+    $("btn-add-all-scenes").addEventListener("click", ws.addAllImagesAsScenes);
+    fs.setupDropZone($("image-panel"), ws.handleAddImages);
   } else {
     $("workspace-bar").hidden = true;
     $("image-panel-wrap").hidden = true;
@@ -304,6 +310,8 @@ async function saveTour() {
 function previewInPlayer() {
   const err = preExportCheck();
   if (err) return toast(err, true);
+  // Make sure snapshot thumbnails exist before previewing (best-effort).
+  if (state.dirHandle) fs.ensureThumbnails(state.dirHandle).catch(() => {});
   // Hand the in-progress tour to the player via localStorage (shared across
   // tabs, instant, and no flaky blob-URL fetching).
   try {
@@ -319,105 +327,6 @@ function previewInPlayer() {
     ? base.replace(/\/?$/, "/") + "player.html?config=__preview__"
     : "../player-template/player.html?config=__preview__";
   window.open(playerUrl, "_blank");
-}
-
-// ---- Workspace (File System Access) handlers --------------------------------
-
-/** Adopt a tour folder: remember handles, auto-set preview base, refresh grid. */
-function adoptWorkspace(dirHandle, name) {
-  state.dirHandle = dirHandle;
-  state.fileHandle = null; // we now save via the directory handle instead
-  // Tours live under tours/<slug>/; the running server serves them there.
-  $("preview-base").value = `../tours/${fs.slugify(name)}/`;
-  if (name && !state.tour.meta.title) {
-    state.tour.meta.title = name;
-    $("meta-title").value = name;
-  }
-  refreshImageGrid();
-}
-
-async function handleNewTour() {
-  const name = (prompt("Name your new tour (e.g. \u201cStore 1234 Frontend\u201d):") || "").trim();
-  if (!name) return;
-  try {
-    toast("Creating tour folder + copying runtime\u2026");
-    const { dirHandle } = await fs.newTour(name, (d, t) =>
-      toast(`Copying runtime ${d}/${t}\u2026`)
-    );
-    adoptWorkspace(dirHandle, name);
-    toast(`Created \u201c${name}\u201d. Drag your 360 photos into the Images panel.`);
-  } catch (e) {
-    if (e.name === "AbortError") return;
-    toast(e.message, true);
-  }
-}
-
-async function handleOpenTour() {
-  try {
-    const { dirHandle, name } = await fs.openTour();
-    adoptWorkspace(dirHandle, name);
-    toast(`Opened \u201c${name}\u201d. Import its tour.json if you have one.`);
-  } catch (e) {
-    if (e.name === "AbortError") return;
-    toast(e.message, true);
-  }
-}
-
-async function handleAddImages(files) {
-  if (!state.dirHandle) return toast("Create or open a tour folder first.", true);
-  try {
-    const added = await fs.addImages(state.dirHandle, files);
-    if (!added.length) return toast("No image files found to add.", true);
-    await refreshImageGrid();
-    toast(`Added ${added.length} image(s). Click a thumbnail to use it in a scene.`);
-  } catch (e) {
-    toast(`Couldn't add images: ${e.message}`, true);
-  }
-}
-
-async function refreshImageGrid() {
-  if (!state.dirHandle) return;
-  const names = await fs.listImageNames(state.dirHandle);
-  $("image-panel-wrap").hidden = false;
-  fs.renderImageGrid($("image-grid"), names, $("preview-base").value, assignImageToScene);
-}
-
-/** Click a thumbnail -> set the current scene's panorama to that image. */
-function assignImageToScene(name) {
-  const scene = getScene(state.tour, state.currentSceneId);
-  if (!scene) return toast("Add or select a scene first, then click an image.", true);
-  updateScene({
-    panorama: `images/${name}`,
-    thumbnail: `images/thumbs/${fs.thumbName(name)}`,
-  });
-  $("scene-panorama").value = `images/${name}`;
-  loadCurrentPreview(scene);
-  toast(`Scene \u201c${scene.name}\u201d now uses ${name}.`);
-}
-
-/** One click: a scene per image in the folder, auto-linked Next/Back. */
-async function addAllImagesAsScenes() {
-  if (!state.dirHandle) return toast("Create or open a tour folder first.", true);
-  const names = await fs.listImageNames(state.dirHandle);
-  if (!names.length) return toast("No images in this tour yet \u2014 add some first.", true);
-  const scenes = names.map((n, i) => {
-    const s = createScene({ name: `Scene ${i + 1}`, panorama: `images/${n}` });
-    s.thumbnail = `images/thumbs/${fs.thumbName(n)}`;
-    return s;
-  });
-  // Auto-link sequentially.
-  scenes.forEach((s, i) => {
-    if (i < scenes.length - 1)
-      s.markers.push(createMarker({ type: MARKER_TYPES.LINK, yaw: 90, label: "Next", targetSceneId: scenes[i + 1].id }));
-    if (i > 0)
-      s.markers.push(createMarker({ type: MARKER_TYPES.LINK, yaw: -90, label: "Back", targetSceneId: scenes[i - 1].id }));
-  });
-  state.tour.scenes = scenes;
-  state.tour.meta.startSceneId = scenes[0].id;
-  state.currentSceneId = scenes[0].id;
-  renderAll();
-  selectScene(scenes[0].id);
-  toast(`Created ${scenes.length} auto-linked scenes. Tweak names + nudge hotspots, then Save.`);
 }
 
 async function importTour(e) {
