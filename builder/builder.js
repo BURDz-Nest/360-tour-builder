@@ -386,7 +386,10 @@ async function refreshImageGrid() {
 function assignImageToScene(name) {
   const scene = getScene(state.tour, state.currentSceneId);
   if (!scene) return toast("Add or select a scene first, then click an image.", true);
-  updateScene({ panorama: `images/${name}` });
+  updateScene({
+    panorama: `images/${name}`,
+    thumbnail: `images/thumbs/${fs.thumbName(name)}`,
+  });
   $("scene-panorama").value = `images/${name}`;
   loadCurrentPreview(scene);
   toast(`Scene \u201c${scene.name}\u201d now uses ${name}.`);
@@ -397,9 +400,11 @@ async function addAllImagesAsScenes() {
   if (!state.dirHandle) return toast("Create or open a tour folder first.", true);
   const names = await fs.listImageNames(state.dirHandle);
   if (!names.length) return toast("No images in this tour yet \u2014 add some first.", true);
-  const scenes = names.map((n, i) =>
-    createScene({ name: `Scene ${i + 1}`, panorama: `images/${n}` })
-  );
+  const scenes = names.map((n, i) => {
+    const s = createScene({ name: `Scene ${i + 1}`, panorama: `images/${n}` });
+    s.thumbnail = `images/thumbs/${fs.thumbName(n)}`;
+    return s;
+  });
   // Auto-link sequentially.
   scenes.forEach((s, i) => {
     if (i < scenes.length - 1)

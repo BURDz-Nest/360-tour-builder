@@ -102,6 +102,29 @@ function infoPinHtml() {
     </svg>`;
 }
 
+/**
+ * Custom navigation arrow style for the VirtualTour plugin: a floor-anchored
+ * waypoint pin instead of PSV's default circle + up-arrow. Returns the
+ * { element, size } shape PSV expects (element is a factory function).
+ */
+export function waypointArrowStyle() {
+  return {
+    element: () => {
+      const btn = document.createElement("button");
+      btn.className = "psv-virtual-tour-arrow tour-waypoint";
+      btn.setAttribute("aria-label", "Go to linked scene");
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true" focusable="false">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                class="tour-waypoint__body"></path>
+          <circle cx="12" cy="9" r="2.6" class="tour-waypoint__dot"></circle>
+        </svg>`;
+      return btn;
+    },
+    size: { width: 60, height: 60 },
+  };
+}
+
 /** Minimal HTML escaping for tooltip/label injection. */
 export function escapeHtml(str) {
   return String(str)

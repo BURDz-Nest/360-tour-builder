@@ -295,6 +295,20 @@ textarea.field__input { resize: vertical; }
 .tour-info-pin__bg { fill: #0f766e; }
 .tour-info-pin__glyph { fill: #fff; font-size: 16px; font-weight: 700; font-family: serif; }
 
+/* Navigation waypoint pin (VirtualTour arrow override) */
+.tour-waypoint {
+  background: none !important;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+  transition: transform 0.12s ease;
+}
+.tour-waypoint:hover { transform: scale(1.15); }
+.tour-waypoint:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 6px; }
+.tour-waypoint__body { fill: #0071dc; stroke: #fff; stroke-width: 1.25; }
+.tour-waypoint__dot { fill: #fff; }
+
 /* ============ Info overlay (player) ============ */
 .info-overlay {
   position: fixed;
@@ -336,3 +350,37 @@ textarea.field__input { resize: vertical; }
 .info-overlay__body { padding: 1rem; }
 .info-overlay__body :first-child { margin-top: 0; }
 .info-overlay__body :last-child { margin-bottom: 0; }
+
+/* ---- Builder: workspace bar + image panel (Chrome/Edge FS workspace) ---- */
+#workspace-bar { display: inline-flex; gap: 0.5rem; }
+.image-panel {
+  border: 2px dashed var(--border, #c9ccd2);
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.image-panel.is-dragover {
+  border-color: #0071dc;
+  background: rgba(0, 113, 220, 0.06);
+}
+.image-panel__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.image-panel__hint { margin: 0 0 0.5rem; font-size: 0.8rem; }
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 0.4rem;
+}
+.img-thumb {
+  display: flex; flex-direction: column; align-items: stretch;
+  border: 1px solid var(--border, #c9ccd2);
+  border-radius: 8px; overflow: hidden; cursor: pointer;
+  background: #fff; padding: 0; font: inherit; text-align: left;
+}
+.img-thumb:hover { border-color: #0071dc; }
+.img-thumb:focus-visible { outline: 2px solid #0071dc; outline-offset: 1px; }
+.img-thumb img { width: 100%; height: 56px; object-fit: cover; display: block; background: #eee; }
+.img-thumb span {
+  font-size: 0.6rem; line-height: 1.2; padding: 2px 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}

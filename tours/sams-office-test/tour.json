@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Sam's Office",
+    "description": "",
+    "author": "",
+    "startSceneId": "scene_zz33b65p44",
+    "createdAt": "2026-06-16T18:06:38.358Z"
+  },
+  "scenes": [
+    {
+      "id": "scene_zz33b65p44",
+      "name": "Behind Sam's Desk",
+      "panorama": "images/IMG_20260612_083538_00_233-2_web.jpg",
+      "thumbnail": "",
+      "caption": "",
+      "initialView": {
+        "yaw": 179.6,
+        "pitch": -16.4,
+        "zoom": 25
+      },
+      "markers": [
+        {
+          "id": "mk_xww2csmxb9",
+          "type": "link",
+          "yaw": -97,
+          "pitch": -31.8,
+          "label": "Office Spot 1",
+          "targetSceneId": "scene_zz33vvramo"
+        },
+        {
+          "id": "mk_y418s9uxh8",
+          "type": "link",
+          "yaw": -146.9,
+          "pitch": -16.8,
+          "label": "Office Spot 2",
+          "targetSceneId": "scene_zz33vyavrn"
+        },
+        {
+          "id": "mk_yihglb71sw",
+          "type": "link",
+          "yaw": 145.2,
+          "pitch": -3.7,
+          "label": "Office Spot 3",
+          "targetSceneId": "scene_zz333f2b2f"
+        },
+        {
+          "id": "mk_yr1ug3wzd4",
+          "type": "link",
+          "yaw": 90.2,
+          "pitch": -27.8,
+          "label": "Office Spot 4",
+          "targetSceneId": "scene_zz33eent2s"
+        }
+      ]
+    },
+    {
+      "id": "scene_zz33vvramo",
+      "name": "Office spot 1",
+      "panorama": "images/IMG_20260612_082948_00_228-2_web.jpg",
+      "thumbnail": "",
+      "caption": "",
+      "initialView": {
+        "yaw": -63.3,
+        "pitch": -22.8,
+        "zoom": 25
+      },
+      "markers": [
+        {
+          "id": "mk_qykphutx5a",
+          "type": "link",
+          "yaw": -100.7,
+          "pitch": -31.6,
+          "label": "Sam's Chair",
+          "targetSceneId": "scene_zz33b65p44"
+        },
+        {
+          "id": "mk_reckmw9mwj",
+          "type": "link",
+          "yaw": 0.3,
+          "pitch": -32.4,
+          "label": "Office Spot 2",
+          "targetSceneId": "scene_zz33vyavrn"
+        },
+        {
+          "id": "mk_tgysgusm4r",
+          "type": "link",
+          "yaw": -53.3,
+          "pitch": -19.6,
+          "label": "Office Spot 3",
+          "targetSceneId": "scene_zz333f2b2f"
+        }
+      ]
+    },
+    {
+      "id": "scene_zz33vyavrn",
+      "name": "Office Spot 2",
+      "panorama": "images/IMG_20260612_083059_00_229-2_web.jpg",
+      "thumbnail": "",
+      "caption": "",
+      "initialView": {
+        "yaw": -90.3,
+        "pitch": -23,
+        "zoom": 25
+      },
+      "markers": [
+        {
+          "id": "mk_4oz592lfvv",
+          "type": "link",
+          "yaw": -139,
+          "pitch": -31.8,
+          "label": "Office Spot 1",
+          "targetSceneId": "scene_zz33vvramo"
+        },
+        {
+          "id": "mk_tf465j55a5",
+          "type": "info",
+          "yaw": -112.1,
+          "pitch": -2,
+          "label": "Picture of Sam and dog",
+          "html": "adlsfj all;kj ads;lkfj;alsd"
+        },
+        {
+          "id": "mk_rz6oe6n86r",
+          "type": "link",
+          "yaw": -100.8,
+          "pitch": -17.7,
+          "label": "Sam's Chair",
+          "targetSceneId": "scene_zz33b65p44"
+        },
+        {
+          "id": "mk_sb734dfi3i",
+          "type": "link",
+          "yaw": -42.3,
+          "pitch": -25.7,
+          "label": "Office Spot 3",
+          "targetSceneId": "scene_zz333f2b2f"
+        }
+      ]
+    },
+    {
+      "id": "scene_zz333f2b2f",
+      "name": "Office Spot 3",
+      "panorama": "images/IMG_20260612_083151_00_230-2_web.jpg",
+      "thumbnail": "",
+      "caption": "",
+      "initialView": {
+        "yaw": -162.1,
+        "pitch": -20.7,
+        "zoom": 25
+      },
+      "markers": [
+        {
+          "id": "mk_umzrfm7tw0",
+          "type": "link",
+          "yaw": 119,
+          "pitch": -24.6,
+          "label": "Office Spot 2",
+          "targetSceneId": "scene_zz33vyavrn"
+        },
+        {
+          "id": "mk_uu4i4hgt9v",
+          "type": "link",
+          "yaw": 159.4,
+          "pitch": -17.2,
+          "label": "Office Spot 1",
+          "targetSceneId": "scene_zz33vvramo"
+        },
+        {
+          "id": "mk_v40828bqzo",
+          "type": "link",
+          "yaw": -173.8,
+          "pitch": -19.6,
+          "label": "Sam's Chair",
+          "targetSceneId": "scene_zz33b65p44"
+        },
+        {
+          "id": "mk_ve4dguyxce",
+          "type": "link",
+          "yaw": -137.7,
+          "pitch": -30.9,
+          "label": "Office Spot 4",
+          "targetSceneId": "scene_zz33eent2s"
+        },
+        {
+          "id": "mk_dbclwdzlw1",
+          "type": "info",
+          "yaw": -168.6,
+          "pitch": 2.3,
+          "label": "Sam and dog",
+          "html": "adojufoapd jfoa dflkaj dsf;l"
+        }
+      ]
+    },
+    {
+      "id": "scene_zz33eent2s",
+      "name": "Office Spot 4",
+      "panorama": "images/IMG_20260612_083238_00_231-2_web.jpg",
+      "thumbnail": "",
+      "caption": "",
+      "initialView": {
+        "yaw": 16.9,
+        "pitch": -33.6,
+        "zoom": 25
+      },
+      "markers": [
+        {
+          "id": "mk_wotu7zmq69",
+          "type": "link",
+          "yaw": 53.5,
+          "pitch": -24.8,
+          "label": "Office Spot 1",
+          "targetSceneId": "scene_zz33vvramo"
+        },
+        {
+          "id": "mk_wxfwa05evk",
+          "type": "link",
+          "yaw": 10.9,
+          "pitch": -20.8,
+          "label": "Office Spot 2",
+          "targetSceneId": "scene_zz33vyavrn"
+        },
+        {
+          "id": "mk_x43cbwcj1a",
+          "type": "link",
+          "yaw": -48,
+          "pitch": -31.2,
+          "label": "Office Spot 3",
+          "targetSceneId": "scene_zz333f2b2f"
+        }
+      ]
+    }
+  ]
+}

@@ -81,17 +81,58 @@ export async function openTour() {
 /** Copy dropped/selected image files into the tour's images/ folder. */
 export async function addImages(dirHandle, files) {
   const imagesDir = await dirHandle.getDirectoryHandle("images", { create: true });
+  const thumbsDir = await imagesDir.getDirectoryHandle("thumbs", { create: true });
   const added = [];
   for (const file of files) {
     if (!IMG_RE.test(file.name)) continue;
-    const fh = await imagesDir.getFileHandle(file.name, { create: true });
-    const w = await fh.createWritable();
-    await w.write(file);
-    await w.close();
+    await writeBlobTo(imagesDir, file.name, file);
+    // Generate a center-crop "snapshot" thumbnail (nicer than the raw
+    // equirectangular strip in link hover previews). Best-effort.
+    try {
+      const thumb = await makeSnapshotThumbnail(file);
+      if (thumb) await writeBlobTo(thumbsDir, thumbName(file.name), thumb);
+    } catch (e) {
+      console.warn("[fs] thumbnail failed for", file.name, e);
+    }
     added.push(file.name);
   }
   added.sort((a, b) => a.localeCompare(b));
   return added;
+}
+
+async function writeBlobTo(dir, name, blob) {
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w = await fh.createWritable();
+  await w.write(blob);
+  await w.close();
+}
+
+/** Thumbnail filename for an image (always .jpg). */
+export function thumbName(imageName) {
+  return imageName.replace(/\.[^.]+$/, "") + ".jpg";
+}
+
+/**
+ * Make a square center-crop of an equirectangular image — roughly the
+ * forward-facing view, which reads like a normal photo instead of the
+ * stretched 2:1 panorama. Returns a JPEG Blob (or null if unsupported).
+ */
+async function makeSnapshotThumbnail(file, size = 240) {
+  if (typeof createImageBitmap !== "function") return null;
+  const bmp = await createImageBitmap(file);
+  // Centered square crop ~ the middle of the panorama (forward view).
+  const side = Math.round(Math.min(bmp.height * 0.85, bmp.width));
+  const sx = Math.round((bmp.width - side) / 2);
+  const sy = Math.round((bmp.height - side) / 2);
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(bmp, sx, sy, side, side, 0, 0, size, size);
+  bmp.close?.();
+  return new Promise((resolve) =>
+    canvas.toBlob((b) => resolve(b), "image/jpeg", 0.8)
+  );
 }
 
 /** List image filenames already in the tour's images/ folder. */

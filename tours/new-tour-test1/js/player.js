@@ -10,10 +10,14 @@
 import { Viewer } from "@photo-sphere-viewer/core";
 import { VirtualTourPlugin } from "@photo-sphere-viewer/virtual-tour-plugin";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
-import { GalleryPlugin } from "@photo-sphere-viewer/gallery-plugin";
 
 import { validateTour, getScene } from "./tour-model.js";
-import { toViewerNodes, sceneInitialView, escapeHtml } from "./psv-adapter.js";
+import {
+  toViewerNodes,
+  sceneInitialView,
+  waypointArrowStyle,
+  escapeHtml,
+} from "./psv-adapter.js";
 
 const DEFAULT_CONFIG = "tour.json";
 const PREVIEW_SENTINEL = "__preview__";
@@ -87,7 +91,6 @@ function initViewer(tour) {
     navbar: ["zoom", "move", "caption", "fullscreen"],
     keyboard: "always", // arrow-key panning for keyboard users (a11y)
     plugins: [
-      [GalleryPlugin, { visibleOnLoad: nodes.length > 1, thumbnailSize: { width: 120, height: 80 } }],
       [MarkersPlugin, {}],
       [
         VirtualTourPlugin,
@@ -96,6 +99,18 @@ function initViewer(tour) {
           renderMode: "2d",
           nodes,
           startNodeId,
+          arrowStyle: waypointArrowStyle(),
+          // Animate straight to each scene's saved view DURING the fade, so we
+          // never snap afterwards (smooth arrival). Runs for the first node too.
+          transitionOptions: (node) => {
+            const scene = getScene(activeTour, node.id);
+            if (!scene) return {};
+            const view = sceneInitialView(scene);
+            return {
+              rotateTo: { yaw: view.yaw, pitch: view.pitch },
+              zoomTo: view.zoom,
+            };
+          },
         },
       ],
     ],
@@ -104,16 +119,11 @@ function initViewer(tour) {
   const markers = viewer.getPlugin(MarkersPlugin);
   const virtualTour = viewer.getPlugin(VirtualTourPlugin);
 
-  // Apply each scene's saved camera view + caption on arrival.
-  // Use rotate/zoom (synchronous) rather than animate() so we never leave a
-  // dangling animation promise that could reject when the tour interrupts it.
+  // The transition already moved us to the saved view; here we only update the
+  // caption text (no rotate/zoom -> no jump).
   virtualTour.addEventListener("node-changed", ({ node }) => {
     const scene = getScene(activeTour, node.id);
-    if (!scene) return;
-    const view = sceneInitialView(scene);
-    viewer.rotate({ yaw: view.yaw, pitch: view.pitch });
-    if (Number.isFinite(view.zoom)) viewer.zoom(view.zoom);
-    setCaption(scene.caption);
+    if (scene) setCaption(scene.caption);
   });
 
   // Info markers -> accessible overlay panel.
