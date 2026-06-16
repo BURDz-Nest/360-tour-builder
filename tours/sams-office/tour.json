@@ -1,174 +1,241 @@
 {
   "version": 1,
   "meta": {
-    "title": "Sam's Office Tour",
-    "description": "Walkthrough built from local web-optimized 360 photos.",
-    "author": "Franky",
-    "startSceneId": "s1",
-    "createdAt": "2026-06-15T00:00:00.000Z"
+    "title": "Sam's Office ",
+    "description": "oadjf a",
+    "author": "",
+    "startSceneId": "scene_8veyshxfmz",
+    "showThumbnails": false,
+    "createdAt": "2026-06-16T19:48:15.120Z"
   },
   "scenes": [
     {
-      "id": "s1",
-      "name": "Scene 1",
-      "panorama": "images/IMG_20260612_082948_00_228-2_web.jpg",
-      "thumbnail": "images/thumbs/IMG_20260612_082948_00_228-2_web.jpg",
-      "caption": "Scene 1",
-      "initialView": {
-        "yaw": 0,
-        "pitch": 0,
-        "zoom": 50
-      },
-      "markers": [
-        {
-          "id": "s1-next",
-          "type": "link",
-          "yaw": 90,
-          "pitch": 0,
-          "label": "Next",
-          "targetSceneId": "s2"
-        }
-      ]
-    },
-    {
-      "id": "s2",
-      "name": "Scene 2",
-      "panorama": "images/IMG_20260612_083059_00_229-2_web.jpg",
-      "thumbnail": "images/thumbs/IMG_20260612_083059_00_229-2_web.jpg",
-      "caption": "Scene 2",
-      "initialView": {
-        "yaw": 0,
-        "pitch": 0,
-        "zoom": 50
-      },
-      "markers": [
-        {
-          "id": "s2-prev",
-          "type": "link",
-          "yaw": -90,
-          "pitch": 0,
-          "label": "Back",
-          "targetSceneId": "s1"
-        },
-        {
-          "id": "s2-next",
-          "type": "link",
-          "yaw": 90,
-          "pitch": 0,
-          "label": "Next",
-          "targetSceneId": "s3"
-        }
-      ]
-    },
-    {
-      "id": "s3",
-      "name": "Scene 3",
-      "panorama": "images/IMG_20260612_083151_00_230-2_web.jpg",
-      "thumbnail": "images/thumbs/IMG_20260612_083151_00_230-2_web.jpg",
-      "caption": "Scene 3",
-      "initialView": {
-        "yaw": 0,
-        "pitch": 0,
-        "zoom": 50
-      },
-      "markers": [
-        {
-          "id": "s3-prev",
-          "type": "link",
-          "yaw": -90,
-          "pitch": 0,
-          "label": "Back",
-          "targetSceneId": "s2"
-        },
-        {
-          "id": "s3-next",
-          "type": "link",
-          "yaw": 90,
-          "pitch": 0,
-          "label": "Next",
-          "targetSceneId": "s4"
-        }
-      ]
-    },
-    {
-      "id": "s4",
-      "name": "Scene 4",
-      "panorama": "images/IMG_20260612_083238_00_231-2_web.jpg",
-      "thumbnail": "images/thumbs/IMG_20260612_083238_00_231-2_web.jpg",
-      "caption": "Scene 4",
-      "initialView": {
-        "yaw": 0,
-        "pitch": 0,
-        "zoom": 50
-      },
-      "markers": [
-        {
-          "id": "s4-prev",
-          "type": "link",
-          "yaw": -90,
-          "pitch": 0,
-          "label": "Back",
-          "targetSceneId": "s3"
-        },
-        {
-          "id": "s4-next",
-          "type": "link",
-          "yaw": 90,
-          "pitch": 0,
-          "label": "Next",
-          "targetSceneId": "s5"
-        }
-      ]
-    },
-    {
-      "id": "s5",
-      "name": "Scene 5",
-      "panorama": "images/IMG_20260612_083341_00_232-2_web.jpg",
-      "thumbnail": "images/thumbs/IMG_20260612_083341_00_232-2_web.jpg",
-      "caption": "Scene 5",
-      "initialView": {
-        "yaw": 0,
-        "pitch": 0,
-        "zoom": 50
-      },
-      "markers": [
-        {
-          "id": "s5-prev",
-          "type": "link",
-          "yaw": -90,
-          "pitch": 0,
-          "label": "Back",
-          "targetSceneId": "s4"
-        },
-        {
-          "id": "s5-next",
-          "type": "link",
-          "yaw": 90,
-          "pitch": 0,
-          "label": "Next",
-          "targetSceneId": "s6"
-        }
-      ]
-    },
-    {
-      "id": "s6",
-      "name": "Scene 6",
+      "id": "scene_8veyshxfmz",
+      "name": "Behind Sam's Desk",
       "panorama": "images/IMG_20260612_083538_00_233-2_web.jpg",
       "thumbnail": "images/thumbs/IMG_20260612_083538_00_233-2_web.jpg",
-      "caption": "Scene 6",
+      "caption": "",
       "initialView": {
-        "yaw": 0,
-        "pitch": 0,
+        "yaw": 180,
+        "pitch": -16,
         "zoom": 50
       },
       "markers": [
         {
-          "id": "s6-prev",
+          "id": "mk_agjo6jjo22",
           "type": "link",
-          "yaw": -90,
-          "pitch": 0,
-          "label": "Back",
-          "targetSceneId": "s5"
+          "yaw": -93.5,
+          "pitch": -14.3,
+          "label": "",
+          "targetSceneId": "scene_8vey2j61b9"
+        },
+        {
+          "id": "mk_urtm6fsdjj",
+          "type": "link",
+          "yaw": -147.7,
+          "pitch": -8.2,
+          "label": "",
+          "targetSceneId": "scene_8veyiwhbft"
+        },
+        {
+          "id": "mk_xuejph2sys",
+          "type": "link",
+          "yaw": 146.8,
+          "pitch": -4.9,
+          "label": "",
+          "targetSceneId": "scene_8veyyljyrh"
+        },
+        {
+          "id": "mk_y0774ddjgv",
+          "type": "link",
+          "yaw": 94.1,
+          "pitch": -5.4,
+          "label": "",
+          "targetSceneId": "scene_8vey2m9imo"
+        }
+      ]
+    },
+    {
+      "id": "scene_8vey2j61b9",
+      "name": "Office Spot 1",
+      "panorama": "images/IMG_20260612_082948_00_228-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_082948_00_228-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": -60.7,
+        "pitch": -17.9,
+        "zoom": 25
+      },
+      "markers": [
+        {
+          "id": "mk_b773ob5sx8",
+          "type": "link",
+          "yaw": -95.2,
+          "pitch": -32.2,
+          "label": "Behind Sam's Desk",
+          "targetSceneId": "scene_8veyshxfmz"
+        },
+        {
+          "id": "mk_u8kk6udiyy",
+          "type": "link",
+          "yaw": -0.2,
+          "pitch": -22.4,
+          "label": "",
+          "targetSceneId": "scene_8veyiwhbft"
+        },
+        {
+          "id": "mk_05x92ewn9v",
+          "type": "link",
+          "yaw": -51.5,
+          "pitch": -9.8,
+          "label": "",
+          "targetSceneId": "scene_8veyyljyrh"
+        },
+        {
+          "id": "mk_09scvd1bzl",
+          "type": "link",
+          "yaw": -93.4,
+          "pitch": -7.3,
+          "label": "",
+          "targetSceneId": "scene_8vey2m9imo"
+        }
+      ]
+    },
+    {
+      "id": "scene_8veyiwhbft",
+      "name": "Office Spot 2",
+      "panorama": "images/IMG_20260612_083059_00_229-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_083059_00_229-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": -105.6,
+        "pitch": -17.8,
+        "zoom": 30
+      },
+      "markers": [
+        {
+          "id": "mk_tmswhzo2m1",
+          "type": "link",
+          "yaw": -99.5,
+          "pitch": -19.5,
+          "label": "",
+          "targetSceneId": "scene_8veyshxfmz"
+        },
+        {
+          "id": "mk_vdzj977ytn",
+          "type": "link",
+          "yaw": -141.2,
+          "pitch": -17.1,
+          "label": "",
+          "targetSceneId": "scene_8vey2j61b9"
+        },
+        {
+          "id": "mk_zvg28sy4zb",
+          "type": "link",
+          "yaw": -81.8,
+          "pitch": -8.5,
+          "label": "",
+          "targetSceneId": "scene_8vey2m9imo"
+        },
+        {
+          "id": "mk_zz09g4k8hk",
+          "type": "link",
+          "yaw": -46.3,
+          "pitch": -10.7,
+          "label": "",
+          "targetSceneId": "scene_8veyyljyrh"
+        }
+      ]
+    },
+    {
+      "id": "scene_8veyyljyrh",
+      "name": "Office Spot 3",
+      "panorama": "images/IMG_20260612_083151_00_230-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_083151_00_230-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": 162,
+        "pitch": -19.4,
+        "zoom": 30
+      },
+      "markers": [
+        {
+          "id": "mk_z7nlcopojy",
+          "type": "link",
+          "yaw": 117.9,
+          "pitch": -10.4,
+          "label": "",
+          "targetSceneId": "scene_8veyiwhbft"
+        },
+        {
+          "id": "mk_zdosw242zq",
+          "type": "link",
+          "yaw": 157.3,
+          "pitch": -9.9,
+          "label": "",
+          "targetSceneId": "scene_8vey2j61b9"
+        },
+        {
+          "id": "mk_zi4r0kk0eo",
+          "type": "link",
+          "yaw": -176.2,
+          "pitch": -22.5,
+          "label": "",
+          "targetSceneId": "scene_8veyshxfmz"
+        },
+        {
+          "id": "mk_zmeh3vilqt",
+          "type": "link",
+          "yaw": -134.9,
+          "pitch": -16.1,
+          "label": "",
+          "targetSceneId": "scene_8vey2m9imo"
+        }
+      ]
+    },
+    {
+      "id": "scene_8vey2m9imo",
+      "name": "Office Spot 4",
+      "panorama": "images/IMG_20260612_083238_00_231-2_web.jpg",
+      "thumbnail": "images/thumbs/IMG_20260612_083238_00_231-2_web.jpg",
+      "caption": "",
+      "initialView": {
+        "yaw": 11.3,
+        "pitch": -24.4,
+        "zoom": 30
+      },
+      "markers": [
+        {
+          "id": "mk_yf4hb2h57x",
+          "type": "link",
+          "yaw": -48.9,
+          "pitch": -13.3,
+          "label": "",
+          "targetSceneId": "scene_8veyyljyrh"
+        },
+        {
+          "id": "mk_yjjym5evt0",
+          "type": "link",
+          "yaw": 6.2,
+          "pitch": -10.2,
+          "label": "",
+          "targetSceneId": "scene_8veyiwhbft"
+        },
+        {
+          "id": "mk_yqvioezcwq",
+          "type": "link",
+          "yaw": 50,
+          "pitch": -12.4,
+          "label": "",
+          "targetSceneId": "scene_8vey2j61b9"
+        },
+        {
+          "id": "mk_yxbp0ranbt",
+          "type": "link",
+          "yaw": 46.7,
+          "pitch": -43.3,
+          "label": "",
+          "targetSceneId": "scene_8veyshxfmz"
         }
       ]
     }

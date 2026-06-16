@@ -218,7 +218,7 @@ function handlePlace(yaw, pitch) {
     }
   } else {
     const marker = createMarker({ type: state.placing.type, yaw, pitch });
-    scene.markers.push(marker);
+    scene.markers.unshift(marker); // newest card on top of the list
     state.selectedMarkerId = marker.id;
   }
   cancelPlacing();
