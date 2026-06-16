@@ -7,6 +7,8 @@
 
 const TEMPLATE_BASE = "../player-template/";
 const IMG_RE = /\.(jpe?g|png|webp)$/i;
+const MAX_PANO_WIDTH = 4096; // GPU-safe (incl. locked-down work laptops/VDI)
+const JPEG_QUALITY = 0.82;
 
 export function fsSupported() {
   return typeof window.showDirectoryPicker === "function";
@@ -78,26 +80,101 @@ export async function openTour() {
   return { dirHandle, name: dirHandle.name };
 }
 
-/** Copy dropped/selected image files into the tour's images/ folder. */
+/** Copy + web-optimize dropped/selected images into the tour's images/ folder.
+ *  Each image is downscaled to <= MAX_PANO_WIDTH and re-encoded as JPEG (we
+ *  only ever store the web version). Returns the STORED filenames. */
 export async function addImages(dirHandle, files) {
   const imagesDir = await dirHandle.getDirectoryHandle("images", { create: true });
   const thumbsDir = await imagesDir.getDirectoryHandle("thumbs", { create: true });
   const added = [];
   for (const file of files) {
     if (!IMG_RE.test(file.name)) continue;
-    await writeBlobTo(imagesDir, file.name, file);
-    // Generate a center-crop "snapshot" thumbnail (nicer than the raw
-    // equirectangular strip in link hover previews). Best-effort.
+    const web = await optimizeToWeb(file).catch((e) => {
+      console.warn("[fs] optimize failed, storing original", file.name, e);
+      return null;
+    });
+    const storedName = web ? webName(file.name) : file.name;
+    const blob = web || file;
+    await writeBlobTo(imagesDir, storedName, blob);
     try {
-      const thumb = await makeSnapshotThumbnail(file);
-      if (thumb) await writeBlobTo(thumbsDir, thumbName(file.name), thumb);
+      const thumb = await makeSnapshotThumbnail(blob);
+      if (thumb) await writeBlobTo(thumbsDir, thumbName(storedName), thumb);
     } catch (e) {
-      console.warn("[fs] thumbnail failed for", file.name, e);
+      console.warn("[fs] thumbnail failed for", storedName, e);
     }
-    added.push(file.name);
+    added.push(storedName);
   }
   added.sort((a, b) => a.localeCompare(b));
   return added;
+}
+
+/** Web filename for an image: same basename, always .jpg. */
+export function webName(imageName) {
+  return imageName.replace(/\.[^.]+$/, "") + ".jpg";
+}
+
+/** Downscale to <= maxWidth and re-encode as JPEG. Returns a Blob (or null). */
+async function optimizeToWeb(file, maxWidth = MAX_PANO_WIDTH) {
+  if (typeof createImageBitmap !== "function") return null;
+  const bmp = await createImageBitmap(file);
+  const scale = bmp.width > maxWidth ? maxWidth / bmp.width : 1;
+  const w = Math.round(bmp.width * scale);
+  const h = Math.round(bmp.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(bmp, 0, 0, w, h);
+  bmp.close?.();
+  return new Promise((resolve) =>
+    canvas.toBlob((b) => resolve(b), "image/jpeg", JPEG_QUALITY)
+  );
+}
+
+/**
+ * Re-process every image already in images/ that's too wide or not a JPEG:
+ * downscale + re-encode to a web .jpg, regenerate its thumbnail, and remove the
+ * stale original if the name changed. Returns { optimized, renames } so the
+ * caller can fix up scene panorama/thumbnail paths.
+ */
+export async function optimizeFolder(dirHandle, maxWidth = MAX_PANO_WIDTH) {
+  let imagesDir;
+  try {
+    imagesDir = await dirHandle.getDirectoryHandle("images");
+  } catch {
+    return { optimized: 0, renames: {} };
+  }
+  const thumbsDir = await imagesDir.getDirectoryHandle("thumbs", { create: true });
+  const names = [];
+  for await (const [name, h] of imagesDir.entries()) {
+    if (h.kind === "file" && IMG_RE.test(name)) names.push(name);
+  }
+  let optimized = 0;
+  const renames = {};
+  for (const name of names) {
+    const file = await (await imagesDir.getFileHandle(name)).getFile();
+    const bmp = await createImageBitmap(file).catch(() => null);
+    if (!bmp) continue;
+    const tooWide = bmp.width > maxWidth;
+    const isJpg = /\.jpe?g$/i.test(name);
+    bmp.close?.();
+    if (!tooWide && isJpg) continue; // already web-friendly
+    const out = webName(name);
+    const web = await optimizeToWeb(file, maxWidth);
+    if (!web) continue;
+    await writeBlobTo(imagesDir, out, web);
+    try {
+      const thumb = await makeSnapshotThumbnail(web);
+      if (thumb) await writeBlobTo(thumbsDir, thumbName(out), thumb);
+    } catch (e) {
+      console.warn("[fs] thumb regen failed", out, e);
+    }
+    if (out !== name) {
+      await imagesDir.removeEntry(name).catch(() => {});
+      renames[name] = out;
+    }
+    optimized++;
+  }
+  return { optimized, renames };
 }
 
 async function writeBlobTo(dir, name, blob) {

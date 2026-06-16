@@ -148,13 +148,14 @@
             <button id="btn-add-images" class="btn" type="button">Add images…</button>
             <input id="file-images" type="file" accept="image/*" multiple hidden />
             <button id="btn-add-all-scenes" class="btn" type="button">Add all as scenes</button>
+            <button id="btn-optimize" class="btn" type="button">Optimize images</button>
           </div>
-          <p class="muted image-panel__hint">Drag 360 photos here, or click “Add images”. Click a thumbnail to use it in the selected scene.</p>
+          <p class="muted image-panel__hint">Drag 360 photos here, or click “Add images” — each becomes a new scene (auto-resized to 4096px web JPEGs). “Optimize images” re-processes anything copied in via Finder.</p>
           <div id="image-grid" class="image-grid"></div>
         </div>
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=16"></script>
+    <script type="module" src="builder.js?v=17"></script>
   </body>
 </html>

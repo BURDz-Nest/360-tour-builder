@@ -97,6 +97,27 @@ export function createWorkspace(ctx) {
     const names = await fs.listImageNames(state.dirHandle);
     fs.renderImageGrid($("image-grid"), names, $("preview-base").value, assignImageToScene);
   }
+  /** Downscale/re-encode every oversized image in the folder, fix scene paths. */
+  async function handleOptimize() {
+    if (!state.dirHandle) return toast("Open or bind a tour folder first.", true);
+    try {
+      toast("Optimizing images\u2026 this can take a moment.");
+      const { optimized, renames } = await fs.optimizeFolder(state.dirHandle);
+      // Repoint any scenes whose image was renamed (e.g. .png -> .jpg).
+      for (const s of state.tour.scenes) {
+        const m = /^images\/(.+)$/.exec(s.panorama || "");
+        if (m && renames[m[1]]) {
+          s.panorama = `images/${renames[m[1]]}`;
+          s.thumbnail = `images/thumbs/${fs.thumbName(renames[m[1]])}`;
+        }
+      }
+      renderAll();
+      await refreshImageGrid();
+      toast(optimized ? `Optimized ${optimized} image(s) to web size.` : "All images already web-optimized.");
+    } catch (e) {
+      toast(`Couldn't optimize: ${e.message}`, true);
+    }
+  }
 
   /** Link an EXISTING tour's folder without wiping the in-memory tour. */
   async function bindFolder() {
@@ -162,5 +183,5 @@ export function createWorkspace(ctx) {
     toast(`Created ${created} new scene(s) from images.`);
   }
 
-  return { handleNewTour, handleOpenTour, handleAddImages, addAllImagesAsScenes, bindFolder, refreshImageGrid };
+  return { handleNewTour, handleOpenTour, handleAddImages, addAllImagesAsScenes, bindFolder, refreshImageGrid, handleOptimize };
 }

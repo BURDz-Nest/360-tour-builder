@@ -77,6 +77,7 @@ function init() {
       closeImageModal();
     });
     $("btn-bind-folder").addEventListener("click", ws.bindFolder);
+    $("btn-optimize").addEventListener("click", ws.handleOptimize);
     fs.setupDropZone($("image-panel"), ws.handleAddImages);
 
     // Images modal open/close.
