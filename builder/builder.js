@@ -44,6 +44,9 @@ function init() {
   bindInput("meta-title", (v) => (state.tour.meta.title = v));
   bindInput("meta-description", (v) => (state.tour.meta.description = v));
   bindInput("meta-author", (v) => (state.tour.meta.author = v));
+  $("meta-show-thumbnails").addEventListener("change", (e) => {
+    state.tour.meta.showThumbnails = e.target.checked;
+  });
 
   // Preview base path (authoring-only; reload current scene when it changes)
   $("preview-base").addEventListener("input", () => {
@@ -372,6 +375,7 @@ function renderAll() {
   $("meta-title").value = state.tour.meta.title;
   $("meta-description").value = state.tour.meta.description;
   $("meta-author").value = state.tour.meta.author;
+  $("meta-show-thumbnails").checked = state.tour.meta.showThumbnails !== false;
   renderSceneList();
   renderSceneEditor();
 }
@@ -384,6 +388,29 @@ function renderSceneList() {
   state.tour.scenes.forEach((scene, idx) => {
     const li = document.createElement("li");
     li.className = "scene-item" + (scene.id === state.currentSceneId ? " is-active" : "");
+    li.draggable = true;
+    li.addEventListener("dragstart", (e) => {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(idx));
+      li.classList.add("is-dragging");
+    });
+    li.addEventListener("dragend", () => li.classList.remove("is-dragging"));
+    li.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      li.classList.add("is-drop-target");
+    });
+    li.addEventListener("dragleave", () => li.classList.remove("is-drop-target"));
+    li.addEventListener("drop", (e) => {
+      e.preventDefault();
+      li.classList.remove("is-drop-target");
+      reorderScenes(Number(e.dataTransfer.getData("text/plain")), idx);
+    });
+
+    const handle = document.createElement("span");
+    handle.className = "scene-item__handle";
+    handle.setAttribute("aria-hidden", "true");
+    handle.title = "Drag to reorder";
+    handle.textContent = "\u2630"; // trigram / grip glyph
 
     const isStart = scene.id === state.tour.meta.startSceneId;
     const name = document.createElement("button");
@@ -399,9 +426,23 @@ function renderSceneList() {
     controls.className = "scene-item__controls";
     controls.append(up, down);
 
-    li.append(name, controls);
+    li.append(handle, name, controls);
     list.append(li);
   });
+}
+
+/** Reorder scenes via drag-and-drop (keeps selection + start scene intact). */
+function reorderScenes(from, to) {
+  const scenes = state.tour.scenes;
+  if (
+    !Number.isInteger(from) || !Number.isInteger(to) || from === to ||
+    from < 0 || to < 0 || from >= scenes.length || to >= scenes.length
+  ) {
+    return;
+  }
+  const [moved] = scenes.splice(from, 1);
+  scenes.splice(to, 0, moved);
+  renderSceneList();
 }
 
 function renderSceneEditor() {

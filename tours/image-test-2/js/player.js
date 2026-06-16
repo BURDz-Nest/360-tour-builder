@@ -100,15 +100,16 @@ function initViewer(tour) {
           nodes,
           startNodeId,
           arrowStyle: waypointArrowStyle(),
-          // On the FIRST load, animate to the scene's saved view. On link
-          // navigation, keep PSV's natural "face the way you're heading"
-          // behaviour so we never take the long way around the sphere.
-          transitionOptions: (node, fromNode, fromLink) => {
-            if (fromLink) return {};
+          // Cross-fade into every scene already FACING its saved view, with no
+          // rotation animation (rotation:false) -> no spin, and back/forth
+          // always lands on the saved view. Applies on first load too.
+          transitionOptions: (node) => {
             const scene = getScene(activeTour, node.id);
-            if (!scene) return {};
+            if (!scene) return { effect: "fade", rotation: false };
             const view = sceneInitialView(scene);
             return {
+              effect: "fade",
+              rotation: false,
               rotateTo: { yaw: view.yaw, pitch: view.pitch },
               zoomTo: view.zoom,
             };

@@ -57,6 +57,7 @@ export function createEmptyTour() {
       description: "",
       author: "",
       startSceneId: "",
+      showThumbnails: true,
       createdAt: new Date().toISOString(),
     },
     scenes: [],
@@ -130,6 +131,7 @@ export function validateTour(raw) {
   tour.meta.title = String(meta.title || "Untitled Tour");
   tour.meta.description = String(meta.description || "");
   tour.meta.author = String(meta.author || "");
+  tour.meta.showThumbnails = meta.showThumbnails !== false; // default on
   tour.meta.createdAt = String(meta.createdAt || tour.meta.createdAt);
 
   // ---- scenes ----

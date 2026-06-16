@@ -50,6 +50,7 @@ export function linkMarkerToConfig(marker) {
  * @returns {{ nodes: object[], startNodeId: string }}
  */
 export function toViewerNodes(tour) {
+  const showThumbnails = tour.meta?.showThumbnails !== false;
   const nodes = (tour.scenes || []).map((scene) => {
     const links = [];
     const markers = [];
@@ -65,7 +66,9 @@ export function toViewerNodes(tour) {
     return {
       id: scene.id,
       panorama: scene.panorama,
-      thumbnail: scene.thumbnail || scene.panorama,
+      // Only attach a thumbnail when the tour wants them in link popups;
+      // otherwise the popup shows just the scene name.
+      thumbnail: showThumbnails ? scene.thumbnail || scene.panorama : undefined,
       name: scene.name,
       caption: scene.caption || undefined,
       links,

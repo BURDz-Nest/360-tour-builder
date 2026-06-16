@@ -153,6 +153,25 @@ textarea.field__input { resize: vertical; }
   font-weight: 600;
 }
 .scene-item__controls { display: flex; gap: 0.2rem; padding-right: 0.35rem; }
+.scene-item__handle {
+  cursor: grab;
+  padding: 0 0.15rem 0 0.45rem;
+  color: #9aa0a6;
+  font-size: 0.9rem;
+  user-select: none;
+}
+.scene-item.is-dragging { opacity: 0.5; }
+.scene-item.is-drop-target { border-color: var(--accent); box-shadow: 0 -2px 0 var(--accent); }
+
+/* Checkbox field (e.g. “show thumbnails” toggle) */
+.field--check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+.field--check input { width: 1rem; height: 1rem; }
+.field--check .field__label { margin: 0; }
 
 /* ============ Preview ============ */
 .preview-wrap { position: relative; height: 100%; min-height: 360px; }
