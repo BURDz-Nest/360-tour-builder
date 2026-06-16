@@ -65,7 +65,7 @@ function init() {
   if (fs.fsSupported()) {
     const ws = createWorkspace({
       state, $, toast, getScene,
-      createEmptyTour, createScene, createMarker, MARKER_TYPES,
+      createEmptyTour, createScene,
       updateScene, renderAll, selectScene, loadCurrentPreview, cancelPlacing,
     });
     $("btn-new-tour").addEventListener("click", ws.handleNewTour);

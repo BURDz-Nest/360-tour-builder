@@ -10,7 +10,7 @@ import * as fs from "./fs-workspace.js";
 export function createWorkspace(ctx) {
   const {
     state, $, toast, getScene,
-    createEmptyTour, createScene, createMarker, MARKER_TYPES,
+    createEmptyTour, createScene,
     updateScene, renderAll, selectScene, loadCurrentPreview, cancelPlacing,
   } = ctx;
 
@@ -67,8 +67,11 @@ export function createWorkspace(ctx) {
     try {
       const added = await fs.addImages(state.dirHandle, files);
       if (!added.length) return toast("No image files found to add.", true);
+      const { created, firstId } = appendScenesForImages(added);
+      renderAll();
+      if (firstId) selectScene(firstId);
       await refreshImageGrid();
-      toast(`Added ${added.length} image(s). Click a thumbnail to use it in a scene.`);
+      toast(`Added ${added.length} image(s) as ${created} new scene(s) at the bottom.`);
     } catch (e) {
       toast(`Couldn't add images: ${e.message}`, true);
     }
@@ -117,28 +120,46 @@ export function createWorkspace(ctx) {
     toast(`Scene \u201c${scene.name}\u201d now uses ${name}.`);
   }
 
-  /** One click: a scene per image in the folder, auto-linked Next/Back. */
+  /** Image filenames already used as a scene's panorama ("images/<name>"). */
+  function usedImageNames() {
+    const used = new Set();
+    for (const s of state.tour.scenes) {
+      const m = /^images\/(.+)$/.exec(s.panorama || "");
+      if (m) used.add(m[1]);
+    }
+    return used;
+  }
+
+  /** Append a new scene (at the bottom) for each image not already used. */
+  function appendScenesForImages(names) {
+    const used = usedImageNames();
+    const fresh = names.filter((n) => !used.has(n));
+    let firstId = null;
+    fresh.forEach((n, i) => {
+      const s = createScene({
+        name: `Scene ${state.tour.scenes.length + 1}`,
+        panorama: `images/${n}`,
+      });
+      s.thumbnail = `images/thumbs/${fs.thumbName(n)}`;
+      state.tour.scenes.push(s);
+      if (i === 0) firstId = s.id;
+    });
+    if (fresh.length && !state.tour.meta.startSceneId) {
+      state.tour.meta.startSceneId = state.tour.scenes[0].id;
+    }
+    return { created: fresh.length, firstId };
+  }
+
+  /** Create scenes for any folder images that aren't used yet (non-destructive). */
   async function addAllImagesAsScenes() {
     if (!state.dirHandle) return toast("Create or open a tour folder first.", true);
     const names = await fs.listImageNames(state.dirHandle);
     if (!names.length) return toast("No images in this tour yet \u2014 add some first.", true);
-    const scenes = names.map((n, i) => {
-      const s = createScene({ name: `Scene ${i + 1}`, panorama: `images/${n}` });
-      s.thumbnail = `images/thumbs/${fs.thumbName(n)}`;
-      return s;
-    });
-    scenes.forEach((s, i) => {
-      if (i < scenes.length - 1)
-        s.markers.push(createMarker({ type: MARKER_TYPES.LINK, yaw: 90, label: "Next", targetSceneId: scenes[i + 1].id }));
-      if (i > 0)
-        s.markers.push(createMarker({ type: MARKER_TYPES.LINK, yaw: -90, label: "Back", targetSceneId: scenes[i - 1].id }));
-    });
-    state.tour.scenes = scenes;
-    state.tour.meta.startSceneId = scenes[0].id;
-    state.currentSceneId = scenes[0].id;
+    const { created, firstId } = appendScenesForImages(names);
+    if (!created) return toast("All images are already used by scenes.");
     renderAll();
-    selectScene(scenes[0].id);
-    toast(`Created ${scenes.length} auto-linked scenes. Tweak names + nudge hotspots, then Save.`);
+    if (firstId) selectScene(firstId);
+    toast(`Created ${created} new scene(s) from images.`);
   }
 
   return { handleNewTour, handleOpenTour, handleAddImages, addAllImagesAsScenes, bindFolder, refreshImageGrid };
