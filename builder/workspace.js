@@ -6,23 +6,38 @@
 // cohesive place instead of bloating builder.js.
 
 import * as fs from "./fs-workspace.js";
+import { rememberProject } from "./project-store.js";
 
 export function createWorkspace(ctx) {
   const {
-    state, $, toast, getScene,
+    state, $, toast, getScene, validateTour,
     createEmptyTour, createScene,
     updateScene, renderAll, selectScene, loadCurrentPreview, cancelPlacing,
   } = ctx;
 
-  /** Adopt a tour folder: remember handles, auto-set preview base, refresh grid. */
-  function adoptWorkspace(dirHandle, name) {
+  /** Adopt a tour folder: remember handles, auto-load tour.json, set preview
+   *  base, refresh grid. Async because it reads the folder's tour.json. */
+  async function adoptWorkspace(dirHandle, name) {
     state.dirHandle = dirHandle;
     state.fileHandle = null; // we now save via the directory handle instead
-    $("preview-base").value = `../tours/${fs.slugify(name)}/`;
-    if (name && !state.tour.meta.title) {
-      state.tour.meta.title = name;
-      $("meta-title").value = name;
+    state.previewBase = `../tours/${dirHandle.name}/`;
+    // Pull in an existing tour.json if the folder already has one.
+    try {
+      const raw = await fs.readTourJson(dirHandle);
+      if (raw) {
+        const { ok, tour } = validateTour(raw);
+        if (ok) {
+          state.tour = tour;
+          state.currentSceneId = tour.scenes[0]?.id || null;
+        }
+      }
+    } catch (e) {
+      toast(`Folder opened, but its tour.json looks invalid: ${e.message}`, true);
     }
+    if (name && !state.tour.meta.title) state.tour.meta.title = name;
+    renderAll();
+    if (state.currentSceneId) selectScene(state.currentSceneId);
+    rememberProject(dirHandle.name, dirHandle);
     refreshImageGrid();
   }
 
@@ -37,16 +52,18 @@ export function createWorkspace(ctx) {
 
   async function handleNewTour() {
     const name = (prompt("Name your new tour (e.g. \u201cStore 1234 Frontend\u201d):") || "").trim();
-    if (!name) return;
+    if (!name) return false;
     try {
       toast("Creating tour folder + copying runtime\u2026");
       const { dirHandle } = await fs.newTour(name, (d, t) => toast(`Copying runtime ${d}/${t}\u2026`));
       resetTour();
-      adoptWorkspace(dirHandle, name);
+      await adoptWorkspace(dirHandle, name);
       toast(`Created \u201c${name}\u201d. Drag your 360 photos into the Images panel.`);
+      return true;
     } catch (e) {
-      if (e.name === "AbortError") return;
+      if (e.name === "AbortError") return false;
       toast(e.message, true);
+      return false;
     }
   }
 
@@ -54,11 +71,31 @@ export function createWorkspace(ctx) {
     try {
       const { dirHandle, name } = await fs.openTour();
       resetTour();
-      adoptWorkspace(dirHandle, name);
-      toast(`Opened \u201c${name}\u201d. Import its tour.json if you have one.`);
+      await adoptWorkspace(dirHandle, name);
+      toast(`Opened \u201c${name}\u201d.`);
+      return true;
     } catch (e) {
-      if (e.name === "AbortError") return;
+      if (e.name === "AbortError") return false;
       toast(e.message, true);
+      return false;
+    }
+  }
+
+  /** Reopen a remembered project (from the Welcome recents list). */
+  async function openRecent(project) {
+    try {
+      const granted = await fs.verifyPermission(project.dirHandle);
+      if (!granted) {
+        toast("Permission denied for that folder.", true);
+        return false;
+      }
+      resetTour();
+      await adoptWorkspace(project.dirHandle, project.name);
+      toast(`Reopened \u201c${project.name}\u201d.`);
+      return true;
+    } catch (e) {
+      toast(`Couldn't reopen \u201c${project.name}\u201d: ${e.message}`, true);
+      return false;
     }
   }
 
@@ -95,7 +132,7 @@ export function createWorkspace(ctx) {
       console.warn("[workspace] ensureThumbnails failed", e);
     }
     const names = await fs.listImageNames(state.dirHandle);
-    fs.renderImageGrid($("image-grid"), names, $("preview-base").value, assignImageToScene);
+    fs.renderImageGrid($("image-grid"), names, state.previewBase, assignImageToScene);
   }
   /** Downscale/re-encode every oversized image in the folder, fix scene paths. */
   async function handleOptimize() {
@@ -123,7 +160,7 @@ export function createWorkspace(ctx) {
   async function bindFolder() {
     try {
       const { dirHandle, name } = await fs.openTour();
-      adoptWorkspace(dirHandle, name);
+      await adoptWorkspace(dirHandle, name);
       toast(`Linked folder \u201c${name}\u201d \u2014 you can manage images now.`);
     } catch (e) {
       if (e.name === "AbortError") return;
@@ -183,5 +220,5 @@ export function createWorkspace(ctx) {
     toast(`Created ${created} new scene(s) from images.`);
   }
 
-  return { handleNewTour, handleOpenTour, handleAddImages, addAllImagesAsScenes, bindFolder, refreshImageGrid, handleOptimize };
+  return { handleNewTour, handleOpenTour, openRecent, handleAddImages, addAllImagesAsScenes, bindFolder, refreshImageGrid, handleOptimize };
 }

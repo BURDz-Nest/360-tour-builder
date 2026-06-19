@@ -9,7 +9,7 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css?v=6" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=7" />
 
     <script type="importmap">
       {
@@ -30,6 +30,7 @@
         <button id="btn-images" class="btn" type="button">Images…</button>
       </span>
       <span class="topbar__spacer"></span>
+      <button id="btn-help" class="btn" type="button">Help &amp; publishing</button>
       <button id="btn-import" class="btn" type="button">Import tour.json</button>
       <input id="file-import" type="file" accept="application/json,.json" hidden />
       <button id="btn-preview" class="btn" type="button">Preview in player</button>
@@ -56,12 +57,6 @@
         <label class="field field--check">
           <input id="meta-show-thumbnails" type="checkbox" checked />
           <span class="field__label">Show image thumbnails in navigation popups</span>
-        </label>
-
-        <label class="field">
-          <span class="field__label">Preview image base <span class="muted">(authoring only — not saved)</span></span>
-          <input id="preview-base" class="field__input" type="text"
-                 placeholder="../tours/your-tour/" value="../tours/sams-office/" />
         </label>
 
         <h2 class="section-title">Scenes (<span id="scene-count">0</span>)</h2>
@@ -92,14 +87,9 @@
             <input id="scene-name" class="field__input" type="text" />
           </label>
           <label class="field">
-            <span class="field__label">Panorama path or URL (equirectangular)</span>
-            <input id="scene-panorama" class="field__input" type="text"
-                   placeholder="images/frontend.jpg  or  https://account.blob.core.windows.net/tours/frontend.jpg" />
-          </label>
-          <label class="field">
-            <span class="field__label">Thumbnail path or URL (optional)</span>
-            <input id="scene-thumbnail" class="field__input" type="text"
-                   placeholder="defaults to the panorama" />
+            <span class="field__label">Panorama image <span class="muted">(set via the Images dialog)</span></span>
+            <input id="scene-panorama" class="field__input field__input--readonly" type="text"
+                   readonly tabindex="-1" placeholder="No image yet — open “Images…” to add one" />
           </label>
           <label class="field">
             <span class="field__label">Caption (optional)</span>
@@ -156,6 +146,76 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=17"></script>
+    <!-- Welcome screen: project = folder. Shown on load (FS-supported browsers). -->
+    <div id="welcome" class="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+      <div class="welcome__panel">
+        <h1 id="welcome-title" class="welcome__brand">360 Tour Builder</h1>
+        <p class="welcome__tagline">Build a walk-through 360 tour. Start by creating a project or opening an existing one.</p>
+
+        <div class="welcome__actions">
+          <button id="welcome-new" class="btn btn--primary welcome__action" type="button">
+            <span class="welcome__action-title">+ New project</span>
+            <span class="welcome__action-sub">Create a fresh tour folder</span>
+          </button>
+          <button id="welcome-open" class="btn welcome__action" type="button">
+            <span class="welcome__action-title">Open project</span>
+            <span class="welcome__action-sub">Pick an existing tour folder</span>
+          </button>
+        </div>
+
+        <h2 class="welcome__subhead">Recent projects</h2>
+        <ul id="welcome-recent" class="welcome-recent"></ul>
+
+        <p class="welcome__import muted">
+          Have a <code>tour.json</code> but no folder access?
+          <button id="welcome-import" class="linklike" type="button">Import it instead</button>.
+        </p>
+      </div>
+    </div>
+
+    <!-- Help &amp; publishing modal -->
+    <div id="help-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+      <div class="modal__panel modal__panel--wide">
+        <div class="modal__header">
+          <h2 id="help-modal-title" class="section-title">Help &amp; publishing</h2>
+          <button id="help-modal-close" class="btn" type="button" aria-label="Close help dialog">Close</button>
+        </div>
+
+        <div class="help-body">
+          <section class="help-card">
+            <h3>Quick start</h3>
+            <ol>
+              <li><strong>New project</strong> &rarr; name it &rarr; pick the <code>tours/</code> folder.</li>
+              <li>Open <strong>Images&hellip;</strong> and drag in your 360 photos &mdash; each becomes a scene (auto-resized to 4096px web JPEGs).</li>
+              <li>Add <strong>Navigation</strong> / <strong>Info</strong> hotspots by clicking in the preview.</li>
+              <li><strong>Save tour</strong>, then <strong>Preview in player</strong>.</li>
+            </ol>
+          </section>
+
+          <section class="help-card">
+            <h3>Publishing to GitHub &mdash; what you&rsquo;ll need</h3>
+            <ul>
+              <li>A <strong>GitHub account</strong> and a repository</li>
+              <li>Push your project folder to the repo</li>
+              <li>Turn on <strong>GitHub Pages</strong> (Settings &rarr; Pages &rarr; deploy from <code>main</code>, root <code>/</code>)</li>
+              <li>Your live link:<br /><code>https://&lt;user&gt;.github.io/&lt;repo&gt;/tours/&lt;tour&gt;/player.html</code></li>
+            </ul>
+          </section>
+
+          <section class="help-card">
+            <h3>Using Azure for images (big tours) &mdash; what you&rsquo;ll need</h3>
+            <ul>
+              <li>An <strong>Azure Storage account</strong> + a Blob <strong>container</strong></li>
+              <li><strong>CORS enabled</strong> on the container for your Pages domain <span class="muted">(the #1 gotcha &mdash; without it, images load black)</span></li>
+              <li>Public read access <em>or</em> a SAS token</li>
+              <li>Upload your <code>images/</code> files, then reference them by their Azure URL</li>
+            </ul>
+            <p class="muted">Tip: small/medium tours are simplest committed straight to GitHub. Reach for Azure when a tour has lots of high-res photos.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="builder.js?v=18"></script>
   </body>
 </html>

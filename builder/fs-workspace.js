@@ -80,6 +80,28 @@ export async function openTour() {
   return { dirHandle, name: dirHandle.name };
 }
 
+/** Read + parse a folder's tour.json. Returns the parsed object, or null if
+ *  there isn't one yet (a brand-new folder). Throws only on malformed JSON. */
+export async function readTourJson(dirHandle) {
+  let fh;
+  try {
+    fh = await dirHandle.getFileHandle("tour.json");
+  } catch {
+    return null; // no tour.json yet — that's fine for a new folder
+  }
+  const text = await (await fh.getFile()).text();
+  return JSON.parse(text);
+}
+
+/** Ensure we still hold readwrite permission on a stored handle (recents).
+ *  Returns true if granted. Prompts the user if needed. */
+export async function verifyPermission(handle) {
+  if (!handle?.queryPermission) return true;
+  const opts = { mode: "readwrite" };
+  if ((await handle.queryPermission(opts)) === "granted") return true;
+  return (await handle.requestPermission(opts)) === "granted";
+}
+
 /** Copy + web-optimize dropped/selected images into the tour's images/ folder.
  *  Each image is downscaled to <= MAX_PANO_WIDTH and re-encoded as JPEG (we
  *  only ever store the web version). Returns the STORED filenames. */

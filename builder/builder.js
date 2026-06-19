@@ -18,6 +18,7 @@ import { BuilderViewer } from "./builder-viewer.js";
 import { miniBtn, labeledInput, labeledTextarea } from "./ui-dom.js";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
+import { mountOverlays } from "./overlays.js";
 
 const state = {
   tour: createEmptyTour(),
@@ -26,10 +27,12 @@ const state = {
   placing: null, // null | { type, markerId? }
   fileHandle: null, // File System Access handle for one-click re-saving
   dirHandle: null, // tour folder handle (FS workspace mode)
+  previewBase: "", // authoring-only base for resolving relative image paths
 };
 
 const $ = (id) => document.getElementById(id);
 let viewer;
+let overlays;
 let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
 
 init();
@@ -48,12 +51,6 @@ function init() {
     state.tour.meta.showThumbnails = e.target.checked;
   });
 
-  // Preview base path (authoring-only; reload current scene when it changes)
-  $("preview-base").addEventListener("input", () => {
-    const scene = getScene(state.tour, state.currentSceneId);
-    if (scene) loadCurrentPreview(scene);
-  });
-
   // Toolbar
   $("btn-add-scene").addEventListener("click", addScene);
   $("btn-download").addEventListener("click", saveTour);
@@ -61,45 +58,51 @@ function init() {
   $("file-import").addEventListener("change", importTour);
   $("btn-preview").addEventListener("click", previewInPlayer);
 
+  // Help & publishing modal (static content — always available).
+  $("btn-help").addEventListener("click", () => ($("help-modal").hidden = false));
+  $("help-modal-close").addEventListener("click", () => ($("help-modal").hidden = true));
+  $("help-modal").addEventListener("click", (e) => {
+    if (e.target === $("help-modal")) $("help-modal").hidden = true;
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("help-modal").hidden) $("help-modal").hidden = true;
+  });
+
   // Workspace (File System Access — Chrome/Edge). Hide if unsupported.
   if (fs.fsSupported()) {
     const ws = createWorkspace({
-      state, $, toast, getScene,
+      state, $, toast, getScene, validateTour,
       createEmptyTour, createScene,
       updateScene, renderAll, selectScene, loadCurrentPreview, cancelPlacing,
     });
+    // Topbar shortcuts (same actions as the Welcome screen).
     $("btn-new-tour").addEventListener("click", ws.handleNewTour);
     $("btn-open-tour").addEventListener("click", ws.handleOpenTour);
     $("btn-add-images").addEventListener("click", () => $("file-images").click());
     $("file-images").addEventListener("change", (e) => ws.handleAddImages([...e.target.files]));
     $("btn-add-all-scenes").addEventListener("click", async () => {
       await ws.addAllImagesAsScenes();
-      closeImageModal();
+      overlays.closeImageModal();
     });
     $("btn-bind-folder").addEventListener("click", ws.bindFolder);
     $("btn-optimize").addEventListener("click", ws.handleOptimize);
     fs.setupDropZone($("image-panel"), ws.handleAddImages);
 
-    // Images modal open/close.
-    $("btn-images").addEventListener("click", () => {
-      $("image-modal").hidden = false;
-      ws.refreshImageGrid();
+    // Welcome / Help / Images overlays (all dialog chrome lives in overlays.js).
+    overlays = mountOverlays($, {
+      onNew: ws.handleNewTour,
+      onOpen: ws.handleOpenTour,
+      onOpenRecent: ws.openRecent,
+      onImport: () => $("file-import").click(),
+      refreshImageGrid: ws.refreshImageGrid,
     });
-    $("image-modal-close").addEventListener("click", closeImageModal);
-    $("image-modal").addEventListener("click", (e) => {
-      if (e.target === $("image-modal")) closeImageModal();
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !$("image-modal").hidden) closeImageModal();
-    });
+    overlays.showWelcome();
   } else {
     $("workspace-bar").hidden = true;
   }
 
   // Scene editor
   bindInput("scene-name", (v) => updateScene({ name: v }, { relistScene: true }));
-  bindInput("scene-panorama", (v) => updateScene({ panorama: v }, { reloadPreview: true }));
-  bindInput("scene-thumbnail", (v) => updateScene({ thumbnail: v }));
   bindInput("scene-caption", (v) => updateScene({ caption: v }));
   $("btn-capture-view").addEventListener("click", captureView);
   $("btn-set-start").addEventListener("click", setStartScene);
@@ -133,7 +136,7 @@ function addScene() {
 function resolvePreviewUrl(path) {
   if (!path) return "";
   if (/^(https?:|data:|blob:|\/)/i.test(path)) return path;
-  const base = ($("preview-base")?.value || "").trim();
+  const base = (state.previewBase || "").trim();
   if (!base) return path;
   return base.replace(/\/?$/, "/") + path.replace(/^\.?\//, "");
 }
@@ -345,7 +348,7 @@ async function previewInPlayer() {
   // Open the player that lives in the SAME folder as the images (the Preview
   // base), so relative panorama paths resolve. Fall back to the template
   // player when no base is set (only works with absolute/Azure image URLs).
-  const base = ($("preview-base")?.value || "").trim();
+  const base = (state.previewBase || "").trim();
   const playerUrl = base
     ? base.replace(/\/?$/, "/") + "player.html?config=__preview__"
     : "../player-template/player.html?config=__preview__";
@@ -365,6 +368,7 @@ async function importTour(e) {
     state.fileHandle = null; // imported a different file; next Save asks where
     renderAll();
     selectScene(state.currentSceneId);
+    overlays?.hideWelcome();
     toast(` Loaded "${tour.meta.title}".${warnings.length ? ` (${warnings.length} warning(s) — see console)` : ""}`);
     warnings.forEach((w) => console.warn("[import]", w));
   } catch (err) {
@@ -380,10 +384,6 @@ function serializeTour() {
     ...state.tour,
     meta: { ...state.tour.meta, createdAt: new Date().toISOString() },
   };
-}
-
-function closeImageModal() {
-  $("image-modal").hidden = true;
 }
 
 /**
@@ -496,8 +496,7 @@ function renderSceneEditor() {
   if (!scene) return;
 
   $("scene-name").value = scene.name;
-  $("scene-panorama").value = scene.panorama;
-  $("scene-thumbnail").value = scene.thumbnail;
+  $("scene-panorama").value = scene.panorama || "";
   $("scene-caption").value = scene.caption;
   $("start-badge").hidden = scene.id !== state.tour.meta.startSceneId;
   renderViewReadout(scene);
