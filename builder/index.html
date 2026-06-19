@@ -9,7 +9,7 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css?v=7" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=8" />
 
     <script type="importmap">
       {
@@ -68,6 +68,12 @@
       <section class="col col--center" aria-label="Live 360 preview">
         <div class="preview-wrap">
           <div id="preview" class="preview"></div>
+          <div id="preview-empty" class="preview-empty" hidden>
+            <div class="preview-empty__card">
+              <p class="preview-empty__title">Add images to get started!</p>
+              <p class="preview-empty__sub">Open “Images…” and drag in your 360 photos — each one becomes a scene.</p>
+            </div>
+          </div>
           <div id="place-hint" class="place-hint" role="status" hidden></div>
         </div>
       </section>
@@ -216,6 +222,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=18"></script>
+    <script type="module" src="builder.js?v=19"></script>
   </body>
 </html>

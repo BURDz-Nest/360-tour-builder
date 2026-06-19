@@ -19,6 +19,7 @@ import { miniBtn, labeledInput, labeledTextarea } from "./ui-dom.js";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
 import { mountOverlays } from "./overlays.js";
+import { createPreview } from "./preview.js";
 
 const state = {
   tour: createEmptyTour(),
@@ -32,6 +33,7 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 let viewer;
+let preview;
 let overlays;
 let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
 
@@ -42,6 +44,7 @@ function init() {
     onPlace: handlePlace,
     onMarkerClick: (id) => selectMarker(id),
   });
+  preview = createPreview({ state, $, toast, getScene, viewer });
 
   // Meta inputs
   bindInput("meta-title", (v) => (state.tour.meta.title = v));
@@ -73,7 +76,7 @@ function init() {
     const ws = createWorkspace({
       state, $, toast, getScene, validateTour,
       createEmptyTour, createScene,
-      updateScene, renderAll, selectScene, loadCurrentPreview, cancelPlacing,
+      updateScene, renderAll, selectScene, updatePreview: preview.updatePreview, cancelPlacing,
     });
     // Topbar shortcuts (same actions as the Welcome screen).
     $("btn-new-tour").addEventListener("click", ws.handleNewTour);
@@ -113,6 +116,7 @@ function init() {
   $("btn-add-info").addEventListener("click", () => beginPlacing(MARKER_TYPES.INFO));
 
   renderAll();
+  preview.updatePreview();
   toast("New tour started. Add a scene to begin.");
 }
 
@@ -126,36 +130,13 @@ function addScene() {
   renderSceneList();
 }
 
-/**
- * Resolve a panorama path for the LIVE PREVIEW only. Absolute URLs (http,
- * data, blob) and root-relative paths pass through untouched. Relative paths
- * get the "Preview image base" prepended so the builder (served from /builder/)
- * can find images that live in /tours/<name>/. This base is never written to
- * tour.json — the saved paths stay clean and portable.
- */
-function resolvePreviewUrl(path) {
-  if (!path) return "";
-  if (/^(https?:|data:|blob:|\/)/i.test(path)) return path;
-  const base = (state.previewBase || "").trim();
-  if (!base) return path;
-  return base.replace(/\/?$/, "/") + path.replace(/^\.?\//, "");
-}
-
-/** Load a scene into the preview viewer using the resolved preview URL. */
-function loadCurrentPreview(scene) {
-  viewer
-    .loadScene(scene, resolvePreviewUrl(scene.panorama))
-    .catch(() => toast("Couldn't load that panorama URL (check the path / preview base).", true));
-}
-
 function selectScene(id) {
   state.currentSceneId = id;
   state.selectedMarkerId = null;
   cancelPlacing();
-  const scene = getScene(state.tour, id);
   renderSceneList();
   renderSceneEditor();
-  if (scene) loadCurrentPreview(scene);
+  preview.updatePreview();
 }
 
 function deleteScene() {
@@ -193,11 +174,6 @@ function updateScene(patch, opts = {}) {
   if (!scene) return;
   Object.assign(scene, patch);
   if (opts.relistScene) renderSceneList();
-  if (opts.reloadPreview) {
-    viewer.loadScene(scene, resolvePreviewUrl(scene.panorama)).catch(() =>
-      toast("Couldn't load that panorama URL.", true)
-    );
-  }
 }
 
 function captureView() {

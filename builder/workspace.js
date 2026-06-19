@@ -12,7 +12,7 @@ export function createWorkspace(ctx) {
   const {
     state, $, toast, getScene, validateTour,
     createEmptyTour, createScene,
-    updateScene, renderAll, selectScene, loadCurrentPreview, cancelPlacing,
+    updateScene, renderAll, selectScene, updatePreview, cancelPlacing,
   } = ctx;
 
   /** Adopt a tour folder: remember handles, auto-load tour.json, set preview
@@ -36,7 +36,7 @@ export function createWorkspace(ctx) {
     }
     if (name && !state.tour.meta.title) state.tour.meta.title = name;
     renderAll();
-    if (state.currentSceneId) selectScene(state.currentSceneId);
+    selectScene(state.currentSceneId); // null is fine — blanks viewer + shows empty message
     rememberProject(dirHandle.name, dirHandle);
     refreshImageGrid();
   }
@@ -48,6 +48,7 @@ export function createWorkspace(ctx) {
     state.selectedMarkerId = null;
     cancelPlacing();
     renderAll();
+    updatePreview(); // blank the viewfinder + show "Add images" message
   }
 
   async function handleNewTour() {
@@ -174,7 +175,7 @@ export function createWorkspace(ctx) {
     if (!scene) return toast("Add or select a scene first, then click an image.", true);
     updateScene({ panorama: `images/${name}`, thumbnail: `images/thumbs/${fs.thumbName(name)}` });
     $("scene-panorama").value = `images/${name}`;
-    loadCurrentPreview(scene);
+    updatePreview();
     toast(`Scene \u201c${scene.name}\u201d now uses ${name}.`);
   }
 

@@ -52,6 +52,13 @@ export class BuilderViewer {
     this.placeMode = !!on;
   }
 
+  /** Blank the viewer: transparent panorama, no markers (e.g. new/empty tour). */
+  async clear() {
+    this._currentPanorama = null;
+    this.markers.clearMarkers();
+    await this.viewer.setPanorama(transparentPanorama(), { transition: false });
+  }
+
   /**
    * Load a scene's panorama for preview. `panoramaUrl` is the resolved URL to
    * actually fetch (may differ from scene.panorama when a preview base path is
