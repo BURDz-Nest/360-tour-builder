@@ -6,6 +6,10 @@ web server). Built on [Photo-Sphere-Viewer](https://photo-sphere-viewer.js.org/)
 (WebGL), fully vendored — no runtime CDN, no build step, works offline and
 behind corporate proxies.
 
+> **Picking this project back up (dev or AI agent)?** Read
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) first — it's the full
+> file-by-file breakdown, data model, key flows, conventions, and roadmap.
+
 ## Folder structure
 
 ```
