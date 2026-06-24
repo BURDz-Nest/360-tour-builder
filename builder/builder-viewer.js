@@ -22,17 +22,18 @@ const RAD2DEG = 180 / Math.PI;
 export class BuilderViewer {
   /**
    * @param {HTMLElement} container
-   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id) }
+   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id), onMarkerMove(id,yawDeg,pitchDeg) }
    */
   constructor(container, handlers = {}) {
     this.handlers = handlers;
     this.placeMode = false;
+    this.container = container;
     this.viewer = new Viewer({
       container,
       panorama: transparentPanorama(),
       navbar: ["zoom", "move", "fullscreen"],
       keyboard: "always",
-      loadingTxt: "Loading preview…",
+      loadingTxt: "Loading preview\u2026",
       plugins: [[MarkersPlugin, {}]],
     });
     this.markers = this.viewer.getPlugin(MarkersPlugin);
@@ -45,6 +46,12 @@ export class BuilderViewer {
     });
 
     this.markers.addEventListener("select-marker", ({ marker }) => {
+      // Suppress the click that fires at the end of a drag (otherwise every
+      // drop would also re-open the editor / steal focus).
+      if (this._dragJustHappened) {
+        this._dragJustHappened = false;
+        return;
+      }
       this.handlers.onMarkerClick?.(marker.id);
     });
   }
@@ -102,6 +109,76 @@ export class BuilderViewer {
         tooltip: m.label ? { content: escapeHtml(m.label) } : undefined,
       });
     }
+    this._attachDragHandlers(markerList.map((m) => m.id));
+  }
+
+  /**
+   * Wire pointerdown -> pointermove -> pointerup on every marker so dragging
+   * repositions the pin live, and commits via onMarkerMove on release.
+   * PSV's pan-camera gesture is suppressed by stopping propagation on the
+   * marker's pointerdown. A small movement threshold lets a clean click still
+   * register as a select (no accidental drag from a one-pixel jiggle).
+   */
+  _attachDragHandlers(ids) {
+    const DRAG_THRESHOLD_PX = 4;
+    for (const id of ids) {
+      const psvMarker = this.markers.getMarker(id);
+      const el = psvMarker?.element;
+      if (!el) continue;
+      el.style.cursor = "grab";
+      el.addEventListener("pointerdown", (ev) => this._onMarkerDown(ev, id, DRAG_THRESHOLD_PX));
+    }
+  }
+
+  _onMarkerDown(ev, id, threshold) {
+    if (ev.button !== 0) return; // left-click only
+    ev.stopPropagation(); // keep PSV from starting a pan gesture
+    const startX = ev.clientX;
+    const startY = ev.clientY;
+    let dragged = false;
+    const targetEl = ev.currentTarget;
+    targetEl.setPointerCapture?.(ev.pointerId);
+    targetEl.style.cursor = "grabbing";
+
+    const onMove = (e) => {
+      if (!dragged && Math.hypot(e.clientX - startX, e.clientY - startY) < threshold) return;
+      dragged = true;
+      const sph = this._clientToSpherical(e.clientX, e.clientY);
+      if (!sph) return;
+      // Update PSV pin position live (radians).
+      this.markers.updateMarker({
+        id,
+        position: { yaw: sph.yawRad, pitch: sph.pitchRad },
+      }, false);
+    };
+
+    const onUp = (e) => {
+      targetEl.releasePointerCapture?.(e.pointerId);
+      targetEl.style.cursor = "grab";
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      if (!dragged) return; // pure click -> let select-marker handler run
+      this._dragJustHappened = true; // suppress the trailing click
+      const sph = this._clientToSpherical(e.clientX, e.clientY);
+      if (!sph) return;
+      this.handlers.onMarkerMove?.(
+        id,
+        round(normDeg(sph.yawRad * RAD2DEG)),
+        round(sph.pitchRad * RAD2DEG),
+      );
+    };
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  }
+
+  /** Translate page pixel coords to sphere radians via PSV's dataHelper. */
+  _clientToSpherical(clientX, clientY) {
+    const rect = this.container.getBoundingClientRect();
+    const point = { x: clientX - rect.left, y: clientY - rect.top };
+    const sph = this.viewer.dataHelper.viewerCoordsToSphericalCoords(point);
+    if (!sph) return null;
+    return { yawRad: sph.yaw, pitchRad: sph.pitch };
   }
 
   /** Current camera view as DEGREES + zoom (0-100). */

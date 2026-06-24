@@ -51,6 +51,10 @@ function init() {
   viewer = new BuilderViewer($("preview"), {
     onPlace: handlePlace,
     onMarkerClick: (id) => selectMarker(id),
+    onMarkerMove: (id, yaw, pitch) => {
+      updateMarker(id, { yaw, pitch });
+      selectMarker(id); // surface the moved marker in the side panel
+    },
   });
   preview = createPreview({ state, $, toast, getScene, viewer });
   sceneList = createSceneList({
