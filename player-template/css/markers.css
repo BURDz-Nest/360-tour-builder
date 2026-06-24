@@ -8,6 +8,13 @@
 /* PSV's marker wrapper - we just want a clean canvas. */
 .tour-marker-host { background: transparent !important; border: none; padding: 0; }
 
+/* Kill PSV VirtualTour's built-in arrows entirely. We render nav waypoints
+   as PSV markers ourselves (one per icon) so they would otherwise double up.
+   `arrowsRenderer: () => null` in player.js is NOT enough — the plugin still
+   mounts its DOM container. CSS is the bulletproof off-switch. */
+.psv-virtual-tour-arrows,
+.psv-virtual-tour-arrow { display: none !important; }
+
 .tour-marker {
   position: relative;
   display: inline-flex;

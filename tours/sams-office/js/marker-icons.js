@@ -64,6 +64,16 @@ export const NAV_ICONS = Object.freeze({
     body: `<circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2" fill="none"/>
            <path d="M16 9 L22 16 L18 16 L18 22 L14 22 L14 16 L10 16 Z" ${FILL}/>`,
   },
+  chevron_circle: {
+    id: "chevron_circle",
+    label: "Chevron in white disc",
+    anim: ANIMATIONS.RING,
+    // The classic PSV-style nav waypoint: filled white disc + chunky
+    // up-chevron. Renders white-on-anything (uses #fff explicitly, not
+    // currentColor) so it pops on any panorama.
+    body: `<circle cx="16" cy="16" r="13" fill="#ffffff" stroke="rgba(0,0,0,0.25)" stroke-width="1"/>
+           <path d="M9 19 L16 12 L23 19" stroke="#1f2a44" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
+  },
   footsteps: {
     id: "footsteps",
     label: "Footsteps",
