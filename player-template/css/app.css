@@ -394,6 +394,17 @@ textarea.field__input { resize: vertical; }
 /* Builder pins reuse the shared .tour-marker system (see below) —
    .builder-pin is just a host class for the PSV marker element. */
 .builder-pin { background: transparent; border: none; padding: 0; }
+/* Selected pin in the builder gets a glowing ring + grab cursor so the
+   drag-to-move affordance is obvious (Panoee-style highlight). Player
+   tours never set .is-selected, so this is a pure builder concern. */
+.builder-pin.is-selected {
+  outline: 3px solid #5b8cff;
+  outline-offset: 4px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(91, 140, 255, 0.18);
+  cursor: grab;
+}
+.builder-pin.is-selected:active { cursor: grabbing; }
 
 /* ---- Builder: workspace bar + image panel (Chrome/Edge FS workspace) ---- */
 #workspace-bar { display: inline-flex; gap: 0.5rem; }

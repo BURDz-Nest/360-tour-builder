@@ -116,6 +116,11 @@ export class BuilderViewer {
       });
     }
     this._attachDragHandlers(markerList.map((m) => m.id));
+    // renderMarkers wiped the DOM, so re-stamp the selected highlight.
+    if (this._selectedMarkerId) {
+      const m = this.markers.markers?.[this._selectedMarkerId];
+      m?.element?.classList.add("is-selected");
+    }
   }
 
   /**
@@ -148,7 +153,12 @@ export class BuilderViewer {
 
   _onMarkerDown(ev, id, threshold) {
     if (ev.button !== 0) return; // left-click only
+    // Only the SELECTED pin is draggable. First click selects (PSV's
+    // select-marker event fires normally via pointerup); subsequent
+    // press-and-drag on the already-selected pin moves it.
+    if (this._selectedMarkerId !== id) return;
     ev.stopPropagation(); // keep PSV from starting a pan gesture
+    ev.preventDefault();  // and from firing compat mouse events
     const startX = ev.clientX;
     const startY = ev.clientY;
     let dragged = false;
@@ -161,11 +171,14 @@ export class BuilderViewer {
       dragged = true;
       const sph = this._clientToSpherical(e.clientX, e.clientY);
       if (!sph) return;
-      // Update PSV pin position live (radians).
+      // Live PSV update during drag. We DO want render=true here so the pin
+      // actually follows the cursor on screen (renderMarkers just rewrites
+      // CSS transforms - it doesn't rebuild the DOM, so our pointer
+      // listeners on `el` survive the re-paint).
       this.markers.updateMarker({
         id,
         position: { yaw: sph.yawRad, pitch: sph.pitchRad },
-      }, false);
+      });
     };
 
     const onUp = (e) => {
@@ -195,6 +208,24 @@ export class BuilderViewer {
     const sph = this.viewer.dataHelper.viewerCoordsToSphericalCoords(point);
     if (!sph) return null;
     return { yawRad: sph.yaw, pitchRad: sph.pitch };
+  }
+
+  /**
+   * Mark which pin is "selected" so it gets a visible highlight ring and
+   * makes the move-affordance obvious (Panoee-style). Idempotent + cheap:
+   * we just toggle a CSS class on the existing DOM, no full re-render.
+   */
+  setSelectedMarker(id) {
+    if (this._selectedMarkerId === id) return;
+    if (this._selectedMarkerId) {
+      const prev = this.markers.markers?.[this._selectedMarkerId];
+      prev?.element?.classList.remove("is-selected");
+    }
+    this._selectedMarkerId = id || null;
+    if (id) {
+      const next = this.markers.markers?.[id];
+      next?.element?.classList.add("is-selected");
+    }
   }
 
   /** Current camera view as DEGREES + zoom (0-100). */

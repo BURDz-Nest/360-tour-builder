@@ -168,6 +168,7 @@ function addScene() {
 function selectScene(id) {
   state.currentSceneId = id;
   state.selectedMarkerId = null;
+  viewer?.setSelectedMarker(null);
   cancelPlacing();
   renderSceneList();
   renderSceneEditor();
@@ -289,6 +290,7 @@ function handlePlace(yaw, pitch) {
 
 function selectMarker(id) {
   state.selectedMarkerId = id;
+  viewer?.setSelectedMarker(id);
   renderMarkerList();
 }
 
