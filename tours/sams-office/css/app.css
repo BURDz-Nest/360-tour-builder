@@ -291,7 +291,39 @@ textarea.field__input { resize: vertical; }
 }
 
 /* ============ Marker editor ============ */
-.marker-actions { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+.marker-actions { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+
+/* ---- Copy-hotspots popover menu (anchored under its trigger button) ---- */
+.copy-menu {
+  position: absolute;
+  z-index: 80;
+  min-width: 220px;
+  max-width: 360px;
+  max-height: 50vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 0.25rem;
+}
+.copy-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.copy-menu__item:hover,
+.copy-menu__item:focus-visible { background: var(--panel-soft); outline: none; }
 .marker-row {
   border: 1px solid var(--line);
   border-radius: 8px;

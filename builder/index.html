@@ -9,7 +9,7 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css?v=13" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=14" />
     <link rel="stylesheet" href="welcome.css?v=1" />
     <link rel="stylesheet" href="../player-template/css/markers.css?v=4" />
 
@@ -128,12 +128,14 @@
           <div class="marker-actions">
             <button id="btn-add-link" class="btn" type="button">+ Navigation</button>
             <button id="btn-add-info" class="btn" type="button">+ Info</button>
+            <button id="btn-copy-hotspots" class="btn" type="button" title="Copy all hotspots from another scene into this one">Copy hotspots…</button>
           </div>
           <div id="marker-list"></div>
 
           <h2 class="section-title">Scene actions</h2>
           <div class="marker-actions">
             <button id="btn-set-start" class="btn" type="button">Set as start</button>
+            <button id="btn-duplicate-scene" class="btn" type="button" title="Create a copy of this scene right after it">Duplicate scene</button>
             <button id="btn-delete-scene" class="btn btn--danger" type="button">Delete scene</button>
           </div>
         </div>
@@ -238,6 +240,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=27"></script>
+    <script type="module" src="builder.js?v=28"></script>
   </body>
 </html>

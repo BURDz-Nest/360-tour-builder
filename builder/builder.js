@@ -137,11 +137,13 @@ function init() {
   bindInput("scene-caption", (v) => updateScene({ caption: v }));
   $("btn-capture-view").addEventListener("click", captureView);
   $("btn-set-start").addEventListener("click", setStartScene);
+  $("btn-duplicate-scene").addEventListener("click", duplicateCurrentScene);
   $("btn-delete-scene").addEventListener("click", deleteScene);
 
   // Marker buttons
   $("btn-add-link").addEventListener("click", () => beginPlacing(MARKER_TYPES.LINK));
   $("btn-add-info").addEventListener("click", () => beginPlacing(MARKER_TYPES.INFO));
+  $("btn-copy-hotspots").addEventListener("click", openCopyHotspotsMenu);
 
   renderAll();
   preview.updatePreview();
@@ -178,6 +180,103 @@ function deleteScene() {
   state.currentSceneId = state.tour.scenes[0]?.id || null;
   selectScene(state.currentSceneId);
   renderSceneList();
+}
+
+/**
+ * Clone the current scene and place the copy right after it. Everything is
+ * deep-copied (markers, initialView, caption, panorama) but every id is
+ * regenerated so references stay clean. Link-target ids inside copied
+ * markers are PRESERVED — they still point at their original target scenes,
+ * which is what users want when duplicating a similar room.
+ */
+function duplicateCurrentScene() {
+  const src = getScene(state.tour, state.currentSceneId);
+  if (!src) return;
+  // Use createScene to get a fresh id + sensible defaults, then overlay copies.
+  const copy = createScene({ name: `${src.name} (copy)`, panorama: src.panorama });
+  copy.thumbnail = src.thumbnail;
+  copy.caption = src.caption;
+  copy.initialView = { ...src.initialView };
+  copy.markers = src.markers.map(cloneMarkerWithNewId);
+
+  const idx = state.tour.scenes.findIndex((s) => s.id === src.id);
+  state.tour.scenes.splice(idx + 1, 0, copy);
+  selectScene(copy.id);
+  toast(`Duplicated \u201c${src.name}\u201d \u2014 edit the copy as needed.`);
+}
+
+/** Deep-copy a marker but assign a fresh id (so the copy can coexist). */
+function cloneMarkerWithNewId(m) {
+  return createMarker({
+    type: m.type,
+    yaw: m.yaw,
+    pitch: m.pitch,
+    label: m.label,
+    targetSceneId: m.targetSceneId,
+    html: m.html,
+    icon: m.icon,
+  });
+}
+
+/**
+ * Show a small popover menu listing other scenes; picking one APPENDS those
+ * scenes' markers (cloned with fresh ids) onto the current scene. Great for
+ * tours with repetitive nav layouts (e.g. office aisles).
+ */
+function openCopyHotspotsMenu() {
+  const current = getScene(state.tour, state.currentSceneId);
+  if (!current) return;
+  const others = state.tour.scenes.filter(
+    (s) => s.id !== current.id && (s.markers?.length || 0) > 0
+  );
+  if (!others.length) {
+    toast("No other scenes have hotspots to copy yet.");
+    return;
+  }
+  // Close any previously-open menu and build a new one anchored under the button.
+  document.querySelector(".copy-menu")?.remove();
+  const anchor = $("btn-copy-hotspots");
+  const menu = document.createElement("div");
+  menu.className = "copy-menu";
+  menu.setAttribute("role", "menu");
+  others.forEach((s) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "copy-menu__item";
+    item.setAttribute("role", "menuitem");
+    const n = s.markers.length;
+    item.textContent = `${s.name || "(unnamed)"} \u2014 ${n} hotspot${n === 1 ? "" : "s"}`;
+    item.addEventListener("click", () => {
+      copyHotspotsFromScene(current, s);
+      menu.remove();
+    });
+    menu.append(item);
+  });
+  // Position under the button (relative to body, simplest).
+  const r = anchor.getBoundingClientRect();
+  menu.style.top = `${r.bottom + window.scrollY + 4}px`;
+  menu.style.left = `${r.left + window.scrollX}px`;
+  document.body.append(menu);
+  // Dismiss on outside click / Esc.
+  const close = (e) => {
+    if (e.type === "keydown" && e.key !== "Escape") return;
+    if (e.type === "click" && (menu.contains(e.target) || e.target === anchor)) return;
+    menu.remove();
+    document.removeEventListener("click", close, true);
+    document.removeEventListener("keydown", close);
+  };
+  setTimeout(() => {
+    document.addEventListener("click", close, true);
+    document.addEventListener("keydown", close);
+  }, 0);
+}
+
+function copyHotspotsFromScene(target, source) {
+  const cloned = source.markers.map(cloneMarkerWithNewId);
+  target.markers.push(...cloned);
+  renderAll();
+  selectScene(target.id);
+  toast(`Copied ${cloned.length} hotspot${cloned.length === 1 ? "" : "s"} from \u201c${source.name}\u201d.`);
 }
 
 function setStartScene() {
