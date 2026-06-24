@@ -72,9 +72,12 @@ Without a CORS rule, panoramas fail to load with a CORS error in the console.
 
 ## Image tips
 
-- Equirectangular JPGs are big. Use `./scripts/resize-360.sh` to make ~6144px
-  web copies (a good quality/size/GPU-safety balance; use 4096 for locked-down
-  VDI GPUs).
+- The builder **auto-optimizes on import**: every photo you add via the Images
+  dialog is downscaled to a max of **4096px wide** and re-encoded as JPEG (plus a
+  thumbnail). That's GPU-safe (incl. locked-down VDI) and keeps tours fast, so
+  most users never need the CLI script.
+- `./scripts/resize-360.sh` is the CLI alternative for batch-processing raw 360s
+  outside the builder.
 - The aspect ratio must be **2:1** (equirectangular).
 
 ## Troubleshooting
