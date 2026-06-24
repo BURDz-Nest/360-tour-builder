@@ -15,8 +15,8 @@ import {
   MARKER_TYPES,
 } from "../player-template/js/tour-model.js";
 import { BuilderViewer } from "./builder-viewer.js";
-import { miniBtn, labeledInput, labeledTextarea } from "./ui-dom.js";
-import { createIconPicker } from "./icon-picker.js";
+import { miniBtn } from "./ui-dom.js";
+import { renderMarkerRow } from "./marker-row.js";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
 import { mountOverlays } from "./overlays.js";
@@ -511,64 +511,21 @@ function renderMarkerList() {
     return;
   }
 
-  scene.markers.forEach((m) => list.append(renderMarkerRow(scene, m)));
-}
-
-function renderMarkerRow(scene, m) {
-  const row = document.createElement("div");
-  row.className = "marker-row" + (m.id === state.selectedMarkerId ? " is-selected" : "");
-
-  const head = document.createElement("div");
-  head.className = "marker-row__head";
-  const badge = document.createElement("span");
-  badge.className = `marker-badge marker-badge--${m.type}`;
-  badge.textContent = m.type === MARKER_TYPES.LINK ? "Navigation" : "Info";
-  head.append(badge);
-  head.append(miniBtn("Move", "Re-place on sphere", () => replaceMarker(m.id)));
-  head.append(miniBtn("Delete", "Delete hotspot", () => deleteMarker(m.id)));
-
-  const label = labeledInput("Label", m.label, (v) => updateMarker(m.id, { label: v }));
-
-  const iconPicker = createIconPicker({
-    type: m.type,
-    iconId: m.icon,
-    onChange: (id) => updateMarker(m.id, { icon: id }),
-  });
-
-  row.append(head, label, iconPicker);
-
-  if (m.type === MARKER_TYPES.LINK) {
-    row.append(linkTargetSelect(scene, m));
-  } else {
-    row.append(
-      labeledTextarea("Info content (HTML allowed)", m.html, (v) =>
-        updateMarker(m.id, { html: v })
-      )
-    );
-  }
-
-  const pos = document.createElement("p");
-  pos.className = "marker-row__pos muted";
-  pos.textContent = `Position: yaw ${m.yaw}° · pitch ${m.pitch}°`;
-  row.append(pos);
-  return row;
-}
-
-function linkTargetSelect(scene, m) {
-  const wrap = document.createElement("label");
-  wrap.className = "field";
-  wrap.innerHTML = "<span class='field__label'>Go to scene</span>";
-  const select = document.createElement("select");
-  select.className = "field__input";
-  const blank = new Option("— choose target —", "");
-  select.append(blank);
-  state.tour.scenes
-    .filter((s) => s.id !== scene.id)
-    .forEach((s) => select.append(new Option(s.name || s.id, s.id)));
-  select.value = m.targetSceneId || "";
-  select.addEventListener("change", () => updateMarker(m.id, { targetSceneId: select.value }));
-  wrap.append(select);
-  return wrap;
+  scene.markers.forEach((m) =>
+    list.append(
+      renderMarkerRow({
+        scene,
+        marker: m,
+        selectedMarkerId: state.selectedMarkerId,
+        scenes: state.tour.scenes,
+        actions: {
+          onReplace: replaceMarker,
+          onDelete: deleteMarker,
+          onUpdate: updateMarker,
+        },
+      })
+    )
+  );
 }
 
 /* ===================== Small DOM helpers ===================== */
