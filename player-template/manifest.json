@@ -1,5 +1,7 @@
 [
   "css/app.css",
+  "css/markers.css",
+  "js/marker-icons.js",
   "js/player.js",
   "js/psv-adapter.js",
   "js/tour-model.js",

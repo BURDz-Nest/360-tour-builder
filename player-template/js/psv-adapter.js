@@ -5,13 +5,20 @@
  * SHARED by builder preview and the player. This is the ONLY module that
  * knows PSV's specific shapes/quirks (SOLID: isolate the dependency).
  *
- * Mapping:
- *   our "link" markers  -> PSV VirtualTour node.links  (navigation arrows)
- *   our "info" markers  -> PSV node.markers            (info pins -> popups)
- *   angles in DEGREES   -> PSV "<n>deg" strings
+ * Mapping (v2 — per-icon marker library):
+ *   our "link" markers -> PSV markers tagged data.kind="link"
+ *                         (player.js intercepts the click and calls
+ *                         virtualTour.setCurrentNode). We do NOT use
+ *                         VirtualTour's built-in arrows because its
+ *                         global `arrowStyle` can't be customized per-link,
+ *                         which is exactly what the icon library needs.
+ *   our "info" markers -> PSV markers tagged data.kind="info"
+ *                         (player.js opens the info overlay).
+ *   angles in DEGREES  -> PSV "<n>deg" strings
  */
 
 import { MARKER_TYPES } from "./tour-model.js";
+import { renderMarkerHtml } from "./marker-icons.js";
 
 /** PSV wants angles as strings like "30deg" (or radians). We use degrees. */
 export function degStr(value) {
@@ -19,45 +26,56 @@ export function degStr(value) {
   return `${n}deg`;
 }
 
+/** Marker render sizes. Nav waypoints are bigger so they read at a glance. */
+const NAV_SIZE = 56;
+const INFO_SIZE = 40;
+
 /** Build the marker config for a single INFO marker. */
 export function infoMarkerToConfig(marker) {
   return {
     id: marker.id,
     position: { yaw: degStr(marker.yaw), pitch: degStr(marker.pitch) },
-    html: infoPinHtml(),
-    size: { width: 36, height: 36 },
+    html: renderMarkerHtml({ type: "info", iconId: marker.icon, size: INFO_SIZE, variant: "info" }),
+    size: { width: INFO_SIZE + 24, height: INFO_SIZE + 24 }, // +ring padding
     anchor: "center center",
-    className: "tour-info-pin",
+    className: "tour-marker-host tour-marker-host--info",
     tooltip: marker.label ? { content: escapeHtml(marker.label) } : undefined,
     // Stash our payload so the player can render the popup on select.
     data: { kind: "info", label: marker.label, html: marker.html },
   };
 }
 
-/** Build a VirtualTour link object for a single LINK marker. */
+/** Build a navigation marker (info-pin shape but kind=link, drives transitions). */
 export function linkMarkerToConfig(marker) {
   return {
-    nodeId: marker.targetSceneId,
+    id: marker.id,
     position: { yaw: degStr(marker.yaw), pitch: degStr(marker.pitch) },
-    name: marker.label || undefined,
-    // Custom arrow data the link tooltip can use.
-    data: { kind: "link", label: marker.label },
+    html: renderMarkerHtml({ type: "link", iconId: marker.icon, size: NAV_SIZE, variant: "nav" }),
+    size: { width: NAV_SIZE + 32, height: NAV_SIZE + 32 }, // +ring padding
+    anchor: "center center",
+    className: "tour-marker-host tour-marker-host--nav",
+    tooltip: marker.label ? { content: escapeHtml(marker.label) } : undefined,
+    data: { kind: "link", label: marker.label, targetSceneId: marker.targetSceneId },
   };
 }
 
 /**
  * Convert a whole tour into VirtualTour nodes + the starting node id.
+ *
+ * Nav-link markers are rendered as PSV markers (not VirtualTour links) so each
+ * can carry a unique icon. VirtualTour still owns the node graph + transitions;
+ * player.js triggers setCurrentNode() when a kind="link" marker is clicked.
+ *
  * @returns {{ nodes: object[], startNodeId: string }}
  */
 export function toViewerNodes(tour) {
   const showThumbnails = tour.meta?.showThumbnails !== false;
   const nodes = (tour.scenes || []).map((scene) => {
-    const links = [];
     const markers = [];
 
     for (const m of scene.markers || []) {
       if (m.type === MARKER_TYPES.LINK) {
-        if (m.targetSceneId) links.push(linkMarkerToConfig(m));
+        if (m.targetSceneId) markers.push(linkMarkerToConfig(m));
       } else if (m.type === MARKER_TYPES.INFO) {
         markers.push(infoMarkerToConfig(m));
       }
@@ -71,9 +89,17 @@ export function toViewerNodes(tour) {
       thumbnail: showThumbnails ? scene.thumbnail || scene.panorama : undefined,
       name: scene.name,
       caption: scene.caption || undefined,
-      links,
+      // VirtualTour still wants a links array for its node graph (so it knows
+      // which nodes are reachable). We mirror our markers as link entries but
+      // they are NOT rendered — arrowsRenderer is disabled in player.js.
+      links: (scene.markers || [])
+        .filter((m) => m.type === MARKER_TYPES.LINK && m.targetSceneId)
+        .map((m) => ({
+          nodeId: m.targetSceneId,
+          position: { yaw: degStr(m.yaw), pitch: degStr(m.pitch) },
+          name: m.label || undefined,
+        })),
       markers,
-      // VirtualTour reads this when entering the node.
       sphereCorrection: undefined,
     };
   });
@@ -93,38 +119,6 @@ export function sceneInitialView(scene) {
     yaw: degStr(iv.yaw ?? 0),
     pitch: degStr(iv.pitch ?? 0),
     zoom: Number.isFinite(iv.zoom) ? iv.zoom : 50,
-  };
-}
-
-/** SVG/HTML for the floating info pin (neutral styling, themeable via CSS). */
-function infoPinHtml() {
-  return `
-    <svg viewBox="0 0 36 36" width="36" height="36" aria-hidden="true" focusable="false">
-      <circle cx="18" cy="18" r="14" class="tour-info-pin__bg"></circle>
-      <text x="18" y="24" text-anchor="middle" class="tour-info-pin__glyph">i</text>
-    </svg>`;
-}
-
-/**
- * Custom navigation arrow style for the VirtualTour plugin: a floor-anchored
- * waypoint pin instead of PSV's default circle + up-arrow. Returns the
- * { element, size } shape PSV expects (element is a factory function).
- */
-export function waypointArrowStyle() {
-  return {
-    element: () => {
-      const btn = document.createElement("button");
-      btn.className = "psv-virtual-tour-arrow tour-waypoint";
-      btn.setAttribute("aria-label", "Go to linked scene");
-      btn.innerHTML = `
-        <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true" focusable="false">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                class="tour-waypoint__body"></path>
-          <circle cx="12" cy="9" r="2.6" class="tour-waypoint__dot"></circle>
-        </svg>`;
-      return btn;
-    },
-    size: { width: 60, height: 60 },
   };
 }
 

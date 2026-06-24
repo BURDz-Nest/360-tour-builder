@@ -83,6 +83,7 @@ export function createMarker({
   label = "",
   targetSceneId = "",
   html = "",
+  icon = "",
 } = {}) {
   return {
     id: makeId("mk"),
@@ -90,6 +91,10 @@ export function createMarker({
     yaw,
     pitch,
     label,
+    // "" means "use the type's default icon" (resolved by marker-icons.js).
+    // Storing blank instead of the default id keeps old tour.json files small
+    // and lets us change the default later without touching saved data.
+    icon,
     ...(type === MARKER_TYPES.LINK ? { targetSceneId } : { html }),
   };
 }
@@ -216,6 +221,7 @@ function normalizeMarker(raw) {
     label: String(raw.label || ""),
     targetSceneId: String(raw.targetSceneId || ""),
     html: String(raw.html || ""),
+    icon: String(raw.icon || ""),
   });
   if (raw.id) marker.id = String(raw.id);
   return marker;

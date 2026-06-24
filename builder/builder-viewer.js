@@ -15,6 +15,7 @@ import { Viewer } from "@photo-sphere-viewer/core";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
 import { MARKER_TYPES } from "../player-template/js/tour-model.js";
 import { degStr, escapeHtml } from "../player-template/js/psv-adapter.js";
+import { renderMarkerHtml } from "../player-template/js/marker-icons.js";
 
 const RAD2DEG = 180 / Math.PI;
 
@@ -89,11 +90,13 @@ export class BuilderViewer {
   renderMarkers(markerList) {
     this.markers.clearMarkers();
     for (const m of markerList) {
+      const variant = m.type === MARKER_TYPES.LINK ? "nav" : "info";
+      const size = variant === "nav" ? 52 : 38;
       this.markers.addMarker({
         id: m.id,
         position: { yaw: degStr(m.yaw), pitch: degStr(m.pitch) },
-        html: pinHtml(m.type),
-        size: { width: 38, height: 38 },
+        html: renderMarkerHtml({ type: m.type, iconId: m.icon, size, variant }),
+        size: { width: size + 24, height: size + 24 },
         anchor: "center center",
         className: `builder-pin builder-pin--${m.type}`,
         tooltip: m.label ? { content: escapeHtml(m.label) } : undefined,
@@ -124,18 +127,6 @@ export class BuilderViewer {
 }
 
 /* ---------------- helpers ---------------- */
-
-function pinHtml(type) {
-  if (type === MARKER_TYPES.INFO) {
-    return `<svg viewBox="0 0 38 38" width="38" height="38" aria-hidden="true">
-      <circle cx="19" cy="19" r="15" class="builder-pin__bg builder-pin__bg--info"></circle>
-      <text x="19" y="25" text-anchor="middle" class="builder-pin__glyph">i</text></svg>`;
-  }
-  // link / navigation pin (arrow-ish)
-  return `<svg viewBox="0 0 38 38" width="38" height="38" aria-hidden="true">
-    <circle cx="19" cy="19" r="15" class="builder-pin__bg builder-pin__bg--link"></circle>
-    <path d="M12 22 L19 12 L26 22 Z" class="builder-pin__glyph-shape"></path></svg>`;
-}
 
 /** A 1x1 transparent equirectangular placeholder (data URI), so the viewer
  *  has something valid to show before any real panorama is set. */

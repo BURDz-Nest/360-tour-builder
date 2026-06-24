@@ -1,0 +1,203 @@
+/* ============================================================ */
+/* Shared marker library (.tour-marker)                         */
+/* Used by builder preview + player runtime. Driven by          */
+/* renderMarkerHtml() in marker-icons.js. Two variants (nav vs  */
+/* info) + five animations (pulse / ring / bob / spin / twinkle).*/
+/* ============================================================ */
+
+/* PSV's marker wrapper - we just want a clean canvas. */
+.tour-marker-host { background: transparent !important; border: none; padding: 0; }
+
+.tour-marker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  /* drop shadow so icons read on every panorama, light or dark */
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55));
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.tour-marker:hover {
+  transform: scale(1.12);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7));
+}
+.tour-marker:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+
+/* Colour variants - Walmart-aligned: nav uses Walmart Blue, info uses
+   Spark Yellow with dark glyphs for contrast. */
+.tour-marker--nav  { color: #0071dc; }              /* Walmart Blue */
+.tour-marker--info { color: #ffc220; }              /* Spark Yellow */
+.tour-marker--info .tour-marker-icon__svg text { fill: #041e42; }
+
+.tour-marker__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 2px solid currentColor;
+  opacity: 0;
+}
+
+/* Sizing for the SVG itself (animations may transform it separately). */
+.tour-marker-icon__svg { display: block; }
+
+/* ----- animations ----- */
+
+/* PULSE — gentle scale + opacity throb on the icon. */
+.tour-anim--pulse .tour-marker-icon__svg {
+  animation: tour-pulse 2.2s ease-in-out infinite;
+}
+@keyframes tour-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.12); opacity: 0.85; }
+}
+
+/* RING — expanding halo behind the icon (the Panoee classic). */
+.tour-anim--ring .tour-marker__ring {
+  animation: tour-ring 2s ease-out infinite;
+}
+@keyframes tour-ring {
+  0%   { transform: scale(0.55); opacity: 0.75; }
+  100% { transform: scale(1.7);  opacity: 0; }
+}
+
+/* BOB — vertical hover, good for floor arrows / footsteps / stairs. */
+.tour-anim--bob .tour-marker-icon__svg {
+  animation: tour-bob 1.8s ease-in-out infinite;
+}
+@keyframes tour-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* SPIN — slow rotation, great for compass / radar. */
+.tour-anim--spin .tour-marker-icon__svg {
+  animation: tour-spin 6s linear infinite;
+}
+@keyframes tour-spin { to { transform: rotate(360deg); } }
+
+/* TWINKLE — opacity flicker, sparkles / stars / warnings. */
+.tour-anim--twinkle .tour-marker-icon__svg {
+  animation: tour-twinkle 1.8s ease-in-out infinite;
+}
+@keyframes tour-twinkle {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  40%      { opacity: 0.55; transform: scale(0.92); }
+  70%      { opacity: 1;   transform: scale(1.05); }
+}
+
+/* Respect users who don't want motion (WCAG 2.3.3 / 2.2.2). */
+@media (prefers-reduced-motion: reduce) {
+  .tour-marker-icon__svg,
+  .tour-marker__ring {
+    animation: none !important;
+  }
+}
+
+/* ============================================================ */
+/* Icon picker (builder only)                                   */
+/* ============================================================ */
+
+.icon-picker { position: relative; }
+
+.icon-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-picker__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  cursor: pointer;
+  padding: 0.25rem;
+  flex-shrink: 0;
+}
+.icon-picker__trigger:hover { border-color: var(--accent); }
+.icon-picker__trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.icon-picker__trigger .tour-marker {
+  filter: none; /* no drop-shadow inside the chip */
+  transform: none !important;
+  animation: none !important;
+}
+.icon-picker__trigger .tour-marker__ring { display: none; }
+
+.icon-picker__current-label {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.icon-picker__caret { color: var(--muted); font-size: 0.8rem; }
+
+.icon-picker__grid {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
+  gap: 0.4rem;
+  padding: 0.6rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  max-height: 18rem;
+  overflow-y: auto;
+}
+.icon-picker__grid[hidden] { display: none; }
+
+.icon-picker__tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  padding: 0.3rem;
+  transition: border-color 0.12s, background 0.12s, transform 0.12s;
+}
+.icon-picker__tile:hover {
+  border-color: var(--accent);
+  background: #f3f7ff;
+  transform: scale(1.05);
+}
+.icon-picker__tile.is-active {
+  border-color: var(--accent);
+  background: #e8f0ff;
+  box-shadow: 0 0 0 2px rgba(0, 113, 220, 0.18);
+}
+.icon-picker__tile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* In the grid tiles we want the icon to sit still so users can compare them
+   visually \u2014 the live preview pin still animates as authored. */
+.icon-picker__tile .tour-marker {
+  filter: none;
+  transform: none !important;
+  animation: none !important;
+}
+.icon-picker__tile .tour-marker .tour-marker-icon__svg,
+.icon-picker__tile .tour-marker__ring {
+  animation: none !important;
+}
+.icon-picker__tile .tour-marker__ring { display: none; }

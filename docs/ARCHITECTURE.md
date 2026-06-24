@@ -62,6 +62,7 @@ new tour.
 │   ├── preview.js             createPreview() — what the center viewport shows
 │   ├── workspace.js           createWorkspace() — New/Open/Recent/images flows
 │   ├── overlays.js            mountOverlays() — Welcome + Images modal chrome
+│   ├── icon-picker.js         createIconPicker() — inline grid picker for marker icons
 │   ├── project-store.js       IndexedDB "recent projects" (dir handles)
 │   ├── fs-workspace.js        File System Access API: read/write/optimize files
 │   └── ui-dom.js              tiny DOM builder helpers (miniBtn, labeledInput…)
@@ -69,9 +70,12 @@ new tour.
 ├── player-template/           THE RUNTIME (copied into every tour)
 │   ├── player.html            player DOM + import map
 │   ├── manifest.json
-│   ├── css/app.css            SHARED styling (builder + player). Cache-busted ?v=N
+│   ├── css/
+│   │   ├── app.css            SHARED app chrome (builder + player). Cache-busted ?v=N
+│   │   └── markers.css        SHARED marker library + animations + icon-picker UI
 │   ├── js/
 │   │   ├── tour-model.js      tour.json schema, validate, factories (PURE, shared)
+│   │   ├── marker-icons.js    Icon registry (NAV/INFO sets + animations). PURE, shared.
 │   │   ├── psv-adapter.js     tour.json → PSV config (the ONLY PSV-shape file, shared)
 │   │   └── player.js          player bootstrap (fetch config → init Viewer)
 │   └── vendor/                VENDORED libs (list_files hides this — it exists!)
@@ -170,9 +174,25 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   `{ok, tour, errors, warnings}`. Change the schema HERE first.
 
 ### `psv-adapter.js` — **shared**, the ONLY other PSV-aware file
-- `toViewerNodes(tour)` → VirtualTour nodes (`link` markers → node `links`,
-  `info` markers → node `markers`). `sceneInitialView`, `waypointArrowStyle`
-  (the floor pin), `degStr` (degrees → PSV `"<n>deg"`), `escapeHtml`.
+- `toViewerNodes(tour)` → VirtualTour nodes. **Both** `link` and `info` markers
+  become PSV `markers` (not VirtualTour `links`) so each can carry a unique
+  icon from `marker-icons.js`. VirtualTour still owns the node graph (its
+  `links` array is built for reachability), but its built-in arrow rendering
+  is disabled (`arrowsRenderer: () => null` in player.js).
+- `sceneInitialView`, `degStr` (degrees → PSV `"<n>deg"`), `escapeHtml`.
+
+### `marker-icons.js` — **shared**, pure (no DOM, no PSV)
+- The icon library: `NAV_ICONS` (waypoint, arrow, chevrons, footsteps, door,
+  stairs up/down, elevator, exit, compass, parking, …) and `INFO_ICONS` (info,
+  question, star, sparkles, eye, phone, email, camera, video, audio, clock,
+  warning, cart, location). Each entry: `{ id, label, body, anim }`.
+- `ANIMATIONS` tokens: `pulse | ring | bob | spin | twinkle` map to
+  `.tour-anim--<token>` CSS classes in `markers.css`.
+- `getIcon(type, id)` resolves to the chosen icon OR the type's default
+  (`DEFAULT_ICON_ID = { link: "waypoint", info: "info" }`) so blank/missing
+  `marker.icon` always renders something sane (back-compat for old tour.json).
+- `renderMarkerHtml({ type, iconId, size, variant })` is what builder preview,
+  builder picker, and player runtime ALL call — single source of truth.
 
 ### `player.js` (player bootstrap)
 - `?config=` → fetch (or `__preview__` from localStorage) → `validateTour` →
@@ -180,8 +200,9 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
 - **Transition behavior:** `transitionOptions` does `{effect:"fade",
   rotation:false, rotateTo:savedView, zoomTo}` so navigation cross-fades and
   always lands on each scene's saved view with **no spin**.
-- Info markers open an accessible overlay panel. Surfaces `panorama-error`
-  (the CORS/black-image case) with a clear message.
+- **Marker click router:** info markers open the accessible overlay panel;
+  link markers call `virtualTour.setCurrentNode(targetSceneId)` for navigation.
+- Surfaces `panorama-error` (the CORS/black-image case) with a clear message.
 
 ---
 
@@ -200,8 +221,8 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
     "caption": "Checkout area",
     "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },  // DEGREES, zoom 0-100
     "markers": [
-      { "id":"m1","type":"link","yaw":60,"pitch":-5,"label":"To Backroom","targetSceneId":"backroom" },
-      { "id":"m2","type":"info","yaw":-90,"pitch":0,"label":"Desk","html":"<p>Open 8-9</p>" }
+      { "id":"m1","type":"link","yaw":60,"pitch":-5,"label":"To Backroom","icon":"door","targetSceneId":"backroom" },
+      { "id":"m2","type":"info","yaw":-90,"pitch":0,"label":"Desk","icon":"clock","html":"<p>Open 8-9</p>" }
     ]
   }]
 }
@@ -213,6 +234,10 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   (Azure) URLs. Both work in the player. The builder's read-only "Panorama"
   field shows whichever it is; you change it via the **Images** dialog, not by
   typing.
+- **`icon`** (optional, per-marker): id from `marker-icons.js` — `NAV_ICONS`
+  for `type:"link"`, `INFO_ICONS` for `type:"info"`. Blank/missing/unknown
+  ids fall back to the type's default (`waypoint` / `info`). Add new icons in
+  `marker-icons.js`; the picker grid populates automatically.
 
 ---
 
@@ -312,6 +337,11 @@ cd <the folder> && python3 -m http.server 8124   # 8123 for v1
   `index.html`; consume it in `psv-adapter.js`/`player.js` if it affects display.
 - **Change marker behavior:** `psv-adapter.js` (mapping) + `player.js`
   (interaction) + `builder-viewer.js` (preview pins).
+- **Add a marker icon:** add an entry to `NAV_ICONS` or `INFO_ICONS` in
+  `marker-icons.js` (id, label, body=inner SVG, anim=animation token). The
+  picker, preview, and player all pick it up — no other edits needed unless
+  you also need a brand-new animation, in which case add a `@keyframes` + a
+  `.tour-anim--<token>` rule in `markers.css` and an entry in `ANIMATIONS`.
 - **Restyle anything:** `player-template/css/app.css` (shared). Bump `?v=N`.
 - **Add a builder dialog:** follow the `overlays.js` pattern; mount in
   `builder.js` `init()`.

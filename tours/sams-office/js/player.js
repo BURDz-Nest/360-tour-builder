@@ -15,7 +15,6 @@ import { validateTour, getScene } from "./tour-model.js";
 import {
   toViewerNodes,
   sceneInitialView,
-  waypointArrowStyle,
   escapeHtml,
 } from "./psv-adapter.js";
 
@@ -99,7 +98,10 @@ function initViewer(tour) {
           renderMode: "2d",
           nodes,
           startNodeId,
-          arrowStyle: waypointArrowStyle(),
+          // VirtualTour's built-in arrows are disabled — nav waypoints are
+          // rendered as PSV markers so each can carry its own icon from
+          // marker-icons.js. We intercept the click below.
+          arrowsRenderer: () => null,
           // Cross-fade into every scene already FACING its saved view, with no
           // rotation animation (rotation:false) -> no spin, and back/forth
           // always lands on the saved view. Applies on first load too.
@@ -129,10 +131,19 @@ function initViewer(tour) {
     if (scene) setCaption(scene.caption);
   });
 
-  // Info markers -> accessible overlay panel.
+  // Marker click router:
+  //   kind="info" -> open the accessible overlay panel
+  //   kind="link" -> navigate via VirtualTour (preserves transitions/fades)
   markers.addEventListener("select-marker", ({ marker }) => {
     const data = marker.data ?? marker.config?.data;
-    if (data?.kind === "info") openInfo(data.label, data.html);
+    if (!data) return;
+    if (data.kind === "info") {
+      openInfo(data.label, data.html);
+    } else if (data.kind === "link" && data.targetSceneId) {
+      virtualTour.setCurrentNode(data.targetSceneId).catch((err) =>
+        console.warn("[player] nav failed", err)
+      );
+    }
   });
 
   els.overlayClose.addEventListener("click", closeInfo);

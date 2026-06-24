@@ -16,6 +16,7 @@ import {
 } from "../player-template/js/tour-model.js";
 import { BuilderViewer } from "./builder-viewer.js";
 import { miniBtn, labeledInput, labeledTextarea } from "./ui-dom.js";
+import { createIconPicker } from "./icon-picker.js";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
 import { mountOverlays } from "./overlays.js";
@@ -251,7 +252,8 @@ function updateMarker(id, patch) {
   const m = scene?.markers.find((x) => x.id === id);
   if (!m) return;
   Object.assign(m, patch);
-  if ("label" in patch) viewer.renderMarkers(scene.markers);
+  // Anything that changes how the pin looks on the sphere triggers a re-render.
+  if ("label" in patch || "icon" in patch) viewer.renderMarkers(scene.markers);
 }
 
 /* ===================== Import / Export ===================== */
@@ -516,7 +518,13 @@ function renderMarkerRow(scene, m) {
 
   const label = labeledInput("Label", m.label, (v) => updateMarker(m.id, { label: v }));
 
-  row.append(head, label);
+  const iconPicker = createIconPicker({
+    type: m.type,
+    iconId: m.icon,
+    onChange: (id) => updateMarker(m.id, { icon: id }),
+  });
+
+  row.append(head, label, iconPicker);
 
   if (m.type === MARKER_TYPES.LINK) {
     row.append(linkTargetSelect(scene, m));

@@ -91,6 +91,8 @@ button { font: inherit; cursor: pointer; }
   grid-template-columns: 280px 1fr 340px;
   gap: 0;
   height: calc(100vh - 53px);
+  position: relative;
+  z-index: 0; /* own stacking context: child z-indexes can't escape over modals */
 }
 @media (max-width: 980px) {
   .builder-main { grid-template-columns: 1fr; height: auto; overflow: auto; }
@@ -176,6 +178,20 @@ textarea.field__input { resize: vertical; }
 /* ============ Preview ============ */
 .preview-wrap { position: relative; height: 100%; min-height: 360px; }
 .preview { width: 100%; height: 100%; }
+.preview-empty {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem; text-align: center;
+  background: repeating-linear-gradient(45deg, #eef1f5, #eef1f5 12px, #e7ebf0 12px, #e7ebf0 24px);
+}
+.preview-empty[hidden] { display: none; }
+.preview-empty__card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; padding: 1.5rem 1.75rem; box-shadow: var(--shadow);
+  max-width: 360px;
+}
+.preview-empty__title { margin: 0 0 0.4rem; font-size: 1.15rem; font-weight: 700; color: var(--ink); }
+.preview-empty__sub { margin: 0; font-size: 0.9rem; color: var(--muted); }
 .place-hint {
   position: absolute;
   top: 12px; left: 50%;
@@ -258,10 +274,9 @@ textarea.field__input { resize: vertical; }
 .toast.is-error { background: var(--danger); }
 
 /* ============ Builder hotspot pins (preview) ============ */
-.builder-pin__bg--link { fill: #1d4ed8; }
-.builder-pin__bg--info { fill: #0f766e; }
-.builder-pin__glyph { fill: #fff; font-size: 16px; font-weight: 700; font-family: serif; }
-.builder-pin__glyph-shape { fill: #fff; }
+/* Builder pins reuse the shared .tour-marker system (see below) —
+   .builder-pin is just a host class for the PSV marker element. */
+.builder-pin { background: transparent; border: none; padding: 0; }
 
 /* ============ Player ============ */
 .player-body { display: flex; flex-direction: column; height: 100vh; background: #0c0d10; }
@@ -310,23 +325,15 @@ textarea.field__input { resize: vertical; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 
-/* Player info pin */
-.tour-info-pin__bg { fill: #0f766e; }
+/* Player info pin (legacy class kept for tooltip arrow positioning) */
+.tour-info-pin__bg { fill: var(--wm-info, #0f766e); }
 .tour-info-pin__glyph { fill: #fff; font-size: 16px; font-weight: 700; font-family: serif; }
 
-/* Navigation waypoint pin (VirtualTour arrow override) */
-.tour-waypoint {
-  background: none !important;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
-  transition: transform 0.12s ease;
-}
-.tour-waypoint:hover { transform: scale(1.15); }
+/* Old single-style nav waypoint — superseded by .tour-marker (see end of file).
+   These two rules remain only because some older tour.json may still reference
+   the .tour-waypoint class via a custom PSV plugin. Safe to delete eventually. */
+.tour-waypoint { background: none !important; border: none; padding: 0; cursor: pointer; }
 .tour-waypoint:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 6px; }
-.tour-waypoint__body { fill: #0071dc; stroke: #fff; stroke-width: 1.25; }
-.tour-waypoint__dot { fill: #fff; }
 
 /* ============ Info overlay (player) ============ */
 .info-overlay {
@@ -440,3 +447,86 @@ textarea.field__input { resize: vertical; }
   margin-bottom: 0.75rem;
 }
 .bind-note p { margin-top: 0; }
+
+/* ---- Read-only field (derived values: panorama path, etc.) ---- */
+.field__input--readonly {
+  background: var(--bg);
+  color: var(--ink-soft);
+  cursor: default;
+}
+
+/* ---- Wide modal (Help) ---- */
+.modal__panel--wide { width: min(840px, 100%); }
+.help-body { display: grid; gap: 1rem; }
+@media (min-width: 720px) {
+  .help-body { grid-template-columns: 1fr 1fr; }
+  .help-card:first-child { grid-column: 1 / -1; }
+}
+.help-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  background: var(--panel);
+}
+.help-card h3 { margin: 0 0 0.5rem; color: var(--accent); font-size: 1rem; }
+.help-card ul, .help-card ol { margin: 0; padding-left: 1.2rem; }
+.help-card li { margin-bottom: 0.4rem; line-height: 1.5; }
+.help-card code {
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 4px; padding: 1px 5px; font-size: 0.85em; word-break: break-all;
+}
+
+/* ---- Linklike button (inline text actions) ---- */
+.linklike {
+  background: none; border: none; padding: 0;
+  color: var(--accent); text-decoration: underline; font: inherit;
+}
+
+/* ============ Welcome screen ============ */
+.welcome {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #1d4ed8 0%, #0b3aa6 100%);
+}
+.welcome[hidden] { display: none; }
+.welcome__panel {
+  background: var(--panel);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  width: min(560px, 100%);
+  max-height: 88vh; overflow: auto;
+  padding: 2rem;
+}
+.welcome__brand { margin: 0; font-size: 1.7rem; color: var(--ink); }
+.welcome__tagline { margin: 0.4rem 0 1.5rem; color: var(--muted); font-size: 0.95rem; }
+.welcome__actions { display: grid; gap: 0.75rem; grid-template-columns: 1fr 1fr; }
+@media (max-width: 480px) { .welcome__actions { grid-template-columns: 1fr; } }
+.welcome__action {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 1rem 1.1rem; text-align: left; height: auto;
+}
+.welcome__action-title { font-weight: 700; font-size: 1rem; }
+.welcome__action-sub { font-size: 0.8rem; opacity: 0.85; font-weight: 400; }
+.welcome__subhead {
+  margin: 1.75rem 0 0.5rem; font-size: 0.95rem; color: var(--ink-soft);
+  border-bottom: 1px solid var(--line); padding-bottom: 0.4rem;
+}
+.welcome-recent { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.welcome-recent__empty { padding: 0.5rem 0; }
+.welcome-recent__item { display: flex; align-items: stretch; gap: 0.4rem; }
+.welcome-recent__open {
+  flex: 1; display: flex; justify-content: space-between; align-items: center;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.6rem 0.8rem; text-align: left; color: var(--ink);
+}
+.welcome-recent__open:hover { border-color: var(--accent); }
+.welcome-recent__name { font-weight: 600; }
+.welcome-recent__when { font-size: 0.78rem; }
+.welcome-recent__remove {
+  width: 2.2rem; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); color: var(--muted); font-size: 1.1rem; line-height: 1;
+}
+.welcome-recent__remove:hover { color: var(--danger); border-color: var(--danger); }
+.welcome__import { margin: 1.5rem 0 0; }
+

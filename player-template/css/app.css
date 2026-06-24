@@ -274,10 +274,9 @@ textarea.field__input { resize: vertical; }
 .toast.is-error { background: var(--danger); }
 
 /* ============ Builder hotspot pins (preview) ============ */
-.builder-pin__bg--link { fill: #1d4ed8; }
-.builder-pin__bg--info { fill: #0f766e; }
-.builder-pin__glyph { fill: #fff; font-size: 16px; font-weight: 700; font-family: serif; }
-.builder-pin__glyph-shape { fill: #fff; }
+/* Builder pins reuse the shared .tour-marker system (see below) —
+   .builder-pin is just a host class for the PSV marker element. */
+.builder-pin { background: transparent; border: none; padding: 0; }
 
 /* ============ Player ============ */
 .player-body { display: flex; flex-direction: column; height: 100vh; background: #0c0d10; }
@@ -326,23 +325,15 @@ textarea.field__input { resize: vertical; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 
-/* Player info pin */
-.tour-info-pin__bg { fill: #0f766e; }
+/* Player info pin (legacy class kept for tooltip arrow positioning) */
+.tour-info-pin__bg { fill: var(--wm-info, #0f766e); }
 .tour-info-pin__glyph { fill: #fff; font-size: 16px; font-weight: 700; font-family: serif; }
 
-/* Navigation waypoint pin (VirtualTour arrow override) */
-.tour-waypoint {
-  background: none !important;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
-  transition: transform 0.12s ease;
-}
-.tour-waypoint:hover { transform: scale(1.15); }
+/* Old single-style nav waypoint — superseded by .tour-marker (see end of file).
+   These two rules remain only because some older tour.json may still reference
+   the .tour-waypoint class via a custom PSV plugin. Safe to delete eventually. */
+.tour-waypoint { background: none !important; border: none; padding: 0; cursor: pointer; }
 .tour-waypoint:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 6px; }
-.tour-waypoint__body { fill: #0071dc; stroke: #fff; stroke-width: 1.25; }
-.tour-waypoint__dot { fill: #fff; }
 
 /* ============ Info overlay (player) ============ */
 .info-overlay {
@@ -538,3 +529,4 @@ textarea.field__input { resize: vertical; }
 }
 .welcome-recent__remove:hover { color: var(--danger); border-color: var(--danger); }
 .welcome__import { margin: 1.5rem 0 0; }
+
