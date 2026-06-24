@@ -2,7 +2,7 @@
 # launch.command — double-click in Finder to start the 360 Tour Builder.
 # Starts the local web server (if not already running) and opens the builder.
 
-PORT=8123
+PORT=8124  # v2 uses 8124 so it never collides with v1 (8123)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 

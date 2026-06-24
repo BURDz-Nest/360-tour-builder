@@ -128,12 +128,14 @@
         <p style="margin-top:1.25rem;font-weight:600;color:var(--ink)">Manual way (any OS):</p>
         <ol class="steps">
           <li><span class="num">1</span><div>Open a terminal in the project folder and run the local server:
-            <pre><code>python3 -m http.server 8123</code></pre></div></li>
+            <pre><code>python3 -m http.server 8124</code></pre></div></li>
           <li><span class="num">2</span><div>In Chrome or Edge, go to:
-            <pre class="url"><code>http://localhost:8123/builder/index.html</code></pre></div></li>
+            <pre class="url"><code>http://localhost:8124/builder/index.html</code></pre></div></li>
         </ol>
 
         <div class="callout info"><strong>Why Chrome/Edge?</strong> The builder uses the browser's File System Access API to read &amp; write your tour folder directly. Firefox/Safari don't fully support it yet, so the folder/image buttons are hidden there.</div>
+
+        <div class="callout info"><strong>The Welcome screen:</strong> On launch you'll see a Welcome screen with <strong>New project</strong>, <strong>Open project</strong>, and a list of <strong>Recent projects</strong> (one click to reopen a tour you worked on before). Pick one to get started.</div>
       </section>
 
       <!-- 2. CONCEPTS -->
@@ -151,12 +153,12 @@
       <section id="new-tour">
         <h2>3. Creating a New Tour</h2>
         <ol class="steps">
-          <li><span class="num">1</span><div>Click <span class="btn-chip chip-blue">+ New tour</span> at the top.</div></li>
+          <li><span class="num">1</span><div>Click <span class="btn-chip chip-blue">+ New project</span> on the Welcome screen (or <span class="btn-chip chip-blue">+ New tour</span> in the top toolbar at any time).</div></li>
           <li><span class="num">2</span><div>Type a name (e.g. <em>"Store 1234 Frontend"</em>).</div></li>
           <li><span class="num">3</span><div>When prompted, <strong>select the <code class="inline">tours/</code> folder</strong> inside the project, and allow edit access.</div></li>
           <li><span class="num">4</span><div>The builder creates the folder and copies the player runtime automatically. You're ready to add photos.</div></li>
         </ol>
-        <div class="callout info"><strong>Already have a tour?</strong> Use <span class="btn-chip chip-ghost">Open tour folder</span> to keep editing it, or <span class="btn-chip chip-ghost">Import tour.json</span> to load its data (then bind its folder via the Images dialog to manage photos).</div>
+        <div class="callout info"><strong>Already have a tour?</strong> Click it under <strong>Recent projects</strong> to jump straight back in, use <span class="btn-chip chip-ghost">Open project</span> / <span class="btn-chip chip-ghost">Open tour folder</span> to pick its folder (its <code class="inline">tour.json</code> loads automatically), or <span class="btn-chip chip-ghost">Import tour.json</span> to load just its data.</div>
       </section>
 
       <!-- 4. PHOTOS -->
@@ -245,6 +247,7 @@
           <li><span><strong>Send the folder:</strong> zip <code class="inline">tours/&lt;your-tour&gt;/</code> and share it. The recipient opens <code class="inline">player.html</code>.</span></li>
           <li><span><strong>Host it:</strong> upload the tour folder to any static web host or internal site. See <code class="inline">docs/DEPLOY.md</code> for GitHub Pages / Azure Blob steps.</span></li>
         </ul>
+        <div class="callout info"><strong>Need the hosting checklist?</strong> Click <span class="btn-chip chip-ghost">Help &amp; publishing</span> in the builder for an at-a-glance summary of what you need for GitHub Pages and Azure (including the required CORS setting).</div>
         <div class="callout warn"><strong>Before sharing:</strong> make sure photos contain no sensitive/PII content. See <code class="inline">docs/SECURITY.md</code> for data-handling guidance.</div>
       </section>
 
@@ -255,7 +258,7 @@
         <details><summary>The 360 image shows black</summary><p>The image is likely too large for your GPU. Open Images&hellip; and click <strong>Optimize images</strong> to resize everything to a safe 4096px.</p></details>
         <details><summary>Hover previews show a broken image</summary><p>Thumbnails weren't generated yet. Open the tour, then hit <strong>Preview</strong> or <strong>Save</strong> once &mdash; the builder auto-generates any missing thumbnails.</p></details>
         <details><summary>My latest change isn't showing</summary><p>Hard-refresh with <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> on Windows) to clear cached files.</p></details>
-        <details><summary>The server won't start / port in use</summary><p>Something is already using port 8123. Close the old Terminal window, or run the server on another port and adjust the URL.</p></details>
+        <details><summary>The server won't start / port in use</summary><p>Something is already using port 8124. Close the old Terminal window, or run the server on another port and adjust the URL.</p></details>
       </section>
 
     </div>
