@@ -71,6 +71,8 @@ export class BuilderViewer {
    * Load a scene's panorama for preview. `panoramaUrl` is the resolved URL to
    * actually fetch (may differ from scene.panorama when a preview base path is
    * applied); markers still come from the scene. Only reloads if URL changed.
+   * Always re-applies the scene's saved initialView so switching scenes lands
+   * the camera where the author captured it (no "random angle" surprises).
    */
   async loadScene(scene, panoramaUrl = scene?.panorama) {
     if (!panoramaUrl) {
@@ -91,6 +93,10 @@ export class BuilderViewer {
       }
     }
     this.renderMarkers(scene.markers || []);
+    // Apply the saved view AFTER panorama load completes; setPanorama keeps
+    // whatever yaw/pitch was active, so without this we'd land at the last
+    // scene's angle (or 0,0 on first load) instead of the captured view.
+    if (scene.initialView) this.applyView(scene.initialView);
   }
 
   /** Re-paint the marker pins for the current scene. */
@@ -115,17 +121,27 @@ export class BuilderViewer {
   /**
    * Wire pointerdown -> pointermove -> pointerup on every marker so dragging
    * repositions the pin live, and commits via onMarkerMove on release.
-   * PSV's pan-camera gesture is suppressed by stopping propagation on the
-   * marker's pointerdown. A small movement threshold lets a clean click still
-   * register as a select (no accidental drag from a one-pixel jiggle).
+   *
+   * PSV listens for mousedown + touchstart (NOT pointer events) on the
+   * container to start its pan gesture, so we must stop THOSE event types
+   * on the marker too - pointerdown.stopPropagation alone leaves the
+   * compatibility mousedown free to bubble up and start a pan.
+   *
+   * A 4px movement threshold preserves the click-to-select behaviour: a
+   * clean click still opens the marker editor, only a real drag moves it.
    */
   _attachDragHandlers(ids) {
     const DRAG_THRESHOLD_PX = 4;
+    const swallow = (e) => e.stopPropagation();
     for (const id of ids) {
       const psvMarker = this.markers.getMarker(id);
       const el = psvMarker?.element;
       if (!el) continue;
       el.style.cursor = "grab";
+      el.style.touchAction = "none"; // keep mobile from scrolling on touch-drag
+      // Block PSV's pan-gesture starters at the marker boundary.
+      el.addEventListener("mousedown", swallow);
+      el.addEventListener("touchstart", swallow, { passive: true });
       el.addEventListener("pointerdown", (ev) => this._onMarkerDown(ev, id, DRAG_THRESHOLD_PX));
     }
   }
