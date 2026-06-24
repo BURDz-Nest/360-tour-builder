@@ -127,26 +127,34 @@ export class BuilderViewer {
    * Wire pointerdown -> pointermove -> pointerup on every marker so dragging
    * repositions the pin live, and commits via onMarkerMove on release.
    *
-   * PSV listens for mousedown + touchstart (NOT pointer events) on the
-   * container to start its pan gesture, so we must stop THOSE event types
-   * on the marker too - pointerdown.stopPropagation alone leaves the
-   * compatibility mousedown free to bubble up and start a pan.
+   * IMPORTANT: PSV uses ONE mousedown handler on the viewer container that
+   * BOTH starts the pan-camera gesture AND records the click for later
+   * select-marker dispatch on mouseup. So if we blanket-swallow mousedown on
+   * markers, we kill click-to-select too (no select-marker = no highlight =
+   * no way to enter drag mode = total deadlock).
    *
-   * A 4px movement threshold preserves the click-to-select behaviour: a
-   * clean click still opens the marker editor, only a real drag moves it.
+   * The trick: only swallow mousedown on the marker that's ALREADY selected.
+   *   - Unselected pin pressed: mousedown bubbles -> PSV fires select-marker
+   *     -> our onMarkerClick runs -> selectMarker -> setSelectedMarker(id)
+   *     -> the highlight appears.
+   *   - Now-selected pin pressed again: swallow fires -> no pan -> our drag
+   *     handler runs from pointerdown -> pin follows cursor.
+   *
+   * 4px movement threshold preserves clean clicks (no accidental drag).
    */
   _attachDragHandlers(ids) {
     const DRAG_THRESHOLD_PX = 4;
-    const swallow = (e) => e.stopPropagation();
     for (const id of ids) {
       const psvMarker = this.markers.getMarker(id);
       const el = psvMarker?.element;
       if (!el) continue;
       el.style.cursor = "grab";
-      el.style.touchAction = "none"; // keep mobile from scrolling on touch-drag
-      // Block PSV's pan-gesture starters at the marker boundary.
-      el.addEventListener("mousedown", swallow);
-      el.addEventListener("touchstart", swallow, { passive: true });
+      el.style.touchAction = "none"; // mobile: don't scroll the page on touch-drag
+      const swallowIfSelected = (e) => {
+        if (this._selectedMarkerId === id) e.stopPropagation();
+      };
+      el.addEventListener("mousedown", swallowIfSelected);
+      el.addEventListener("touchstart", swallowIfSelected, { passive: true });
       el.addEventListener("pointerdown", (ev) => this._onMarkerDown(ev, id, DRAG_THRESHOLD_PX));
     }
   }
