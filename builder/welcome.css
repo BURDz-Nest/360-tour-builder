@@ -1,6 +1,6 @@
 /* welcome.css - Welcome screen (project chooser) styles.
-   Extracted from app.css to keep both files under the 600-line guideline.
-   Only loaded by the builder (the player has no welcome screen). */
+   Builder-only: lives here (not in player-template/css/) so the sync-runtime
+   script doesn't ship it into every tour folder. */
 
 /* ============ Welcome screen ============ */
 .welcome {
