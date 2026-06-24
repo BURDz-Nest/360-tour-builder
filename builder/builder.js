@@ -54,6 +54,10 @@ function init() {
   $("meta-show-thumbnails").addEventListener("change", (e) => {
     state.tour.meta.showThumbnails = e.target.checked;
   });
+  $("meta-show-waypoint-shadows").addEventListener("change", (e) => {
+    state.tour.meta.showWaypointShadows = e.target.checked;
+    applyShadowPref();
+  });
 
   // Toolbar
   $("btn-add-scene").addEventListener("click", addScene);
@@ -398,6 +402,8 @@ function renderAll() {
   $("meta-description").value = state.tour.meta.description;
   $("meta-author").value = state.tour.meta.author;
   $("meta-show-thumbnails").checked = state.tour.meta.showThumbnails !== false;
+  $("meta-show-waypoint-shadows").checked = state.tour.meta.showWaypointShadows !== false;
+  applyShadowPref();
   renderSceneList();
   renderSceneEditor();
 }
@@ -564,6 +570,12 @@ function linkTargetSelect(scene, m) {
 
 function bindInput(id, onInput) {
   $(id).addEventListener("input", (e) => onInput(e.target.value));
+}
+
+/** Toggle the floating-shadow CSS on the preview viewport based on meta pref. */
+function applyShadowPref() {
+  const on = state.tour.meta.showWaypointShadows !== false;
+  $("preview").classList.toggle("tour-shadows-off", !on);
 }
 
 function toast(message, isError = false) {

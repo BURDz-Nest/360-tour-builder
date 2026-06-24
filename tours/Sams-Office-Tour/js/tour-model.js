@@ -58,6 +58,7 @@ export function createEmptyTour() {
       author: "",
       startSceneId: "",
       showThumbnails: true,
+      showWaypointShadows: true,
       createdAt: new Date().toISOString(),
     },
     scenes: [],
@@ -137,6 +138,8 @@ export function validateTour(raw) {
   tour.meta.description = String(meta.description || "");
   tour.meta.author = String(meta.author || "");
   tour.meta.showThumbnails = meta.showThumbnails !== false; // default on
+  // Floating ground shadow under nav waypoints — default on (the new look).
+  tour.meta.showWaypointShadows = meta.showWaypointShadows !== false;
   tour.meta.createdAt = String(meta.createdAt || tour.meta.createdAt);
 
   // ---- scenes ----

@@ -84,6 +84,13 @@ async function main() {
 function initViewer(tour) {
   const { nodes, startNodeId } = toViewerNodes(tour);
 
+  // Apply tour-wide marker preferences as classes on the viewer container so
+  // CSS can opt out cleanly without touching marker HTML.
+  els.container.classList.toggle(
+    "tour-shadows-off",
+    tour.meta?.showWaypointShadows === false
+  );
+
   const viewer = new Viewer({
     container: els.container,
     loadingTxt: "Loading 360 scene…",

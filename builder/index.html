@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
     <link rel="stylesheet" href="../player-template/css/app.css?v=10" />
-    <link rel="stylesheet" href="../player-template/css/markers.css?v=3" />
+    <link rel="stylesheet" href="../player-template/css/markers.css?v=4" />
 
     <script type="importmap">
       {
@@ -58,6 +58,11 @@
         <label class="field field--check">
           <input id="meta-show-thumbnails" type="checkbox" checked />
           <span class="field__label">Show image thumbnails in navigation popups</span>
+        </label>
+
+        <label class="field field--check">
+          <input id="meta-show-waypoint-shadows" type="checkbox" checked />
+          <span class="field__label">Show floating shadow under navigation waypoints</span>
         </label>
 
         <h2 class="section-title">Scenes (<span id="scene-count">0</span>)</h2>
@@ -223,6 +228,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=20"></script>
+    <script type="module" src="builder.js?v=21"></script>
   </body>
 </html>

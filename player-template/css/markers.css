@@ -169,6 +169,11 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* When meta.showWaypointShadows is false, the viewer container gets the
+   .tour-shadows-off class (set by player.js / builder.js). One opt-out rule
+   kills both the static shadow and its bob animation. */
+.tour-shadows-off .tour-marker--nav::after { display: none; }
+
 /* In picker tiles, kill the ground shadow too — looks weird in a tight chip. */
 .icon-picker__trigger .tour-marker--nav::after,
 .icon-picker__tile .tour-marker--nav::after { display: none; }
