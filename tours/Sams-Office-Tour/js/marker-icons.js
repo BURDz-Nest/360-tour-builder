@@ -10,13 +10,16 @@
  *     resolves the same way: getIcon(type, marker.icon) -> the chosen icon, or
  *     the type's default if the id is unknown / blank (back-compat).
  *
- * Each icon entry: { id, label, body, anim }
+ * Each icon entry: { id, label, body, anim, plate? }
  *   id    - stable string written to tour.json (don't rename without migration)
  *   label - human-readable name shown in the builder picker
  *   body  - inner SVG (no <svg> wrapper; we wrap at render time so the
  *           viewBox and size live in one place)
  *   anim  - one of ANIMATIONS keys; the CSS class applied to the wrapping
  *           <span> so animations are themable in app.css
+ *   plate - if true, a white circular backing is rendered behind the artwork
+ *           so line/stroke icons read clearly against any panorama. Flip on
+ *           for any icon that's mostly outlines (envelope, door, stairs, ...).
  */
 
 /** Animation tokens. Renderer maps to "tour-anim--<token>" CSS classes. */
@@ -54,6 +57,7 @@ export const NAV_ICONS = Object.freeze({
     id: "chevrons",
     label: "Chevrons forward",
     anim: ANIMATIONS.BOB,
+    plate: true,
     body: `<path d="M8 8 L16 16 L8 24" ${STROKE}/>
            <path d="M16 8 L24 16 L16 24" ${STROKE}/>`,
   },
@@ -61,6 +65,7 @@ export const NAV_ICONS = Object.freeze({
     id: "circle_arrow",
     label: "Arrow in ring",
     anim: ANIMATIONS.RING,
+    plate: true,
     body: `<circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2" fill="none"/>
            <path d="M16 9 L22 16 L18 16 L18 22 L14 22 L14 16 L10 16 Z" ${FILL}/>`,
   },
@@ -91,6 +96,7 @@ export const NAV_ICONS = Object.freeze({
     id: "door",
     label: "Door",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<rect x="8" y="4" width="16" height="24" rx="1.5" ${STROKE}/>
            <circle cx="20" cy="17" r="1.4" ${FILL}/>`,
   },
@@ -98,6 +104,7 @@ export const NAV_ICONS = Object.freeze({
     id: "stairs_up",
     label: "Stairs up",
     anim: ANIMATIONS.BOB,
+    plate: true,
     body: `<path d="M4 26 L11 26 L11 21 L17 21 L17 16 L23 16 L23 11 L28 11" ${STROKE}/>
            <path d="M22 6 L28 6 L28 12" ${STROKE}/>`,
   },
@@ -105,6 +112,7 @@ export const NAV_ICONS = Object.freeze({
     id: "stairs_down",
     label: "Stairs down",
     anim: ANIMATIONS.BOB,
+    plate: true,
     body: `<path d="M4 6 L11 6 L11 11 L17 11 L17 16 L23 16 L23 21 L28 21" ${STROKE}/>
            <path d="M22 26 L28 26 L28 20" ${STROKE}/>`,
   },
@@ -112,6 +120,7 @@ export const NAV_ICONS = Object.freeze({
     id: "elevator",
     label: "Elevator",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<rect x="6" y="4" width="20" height="24" rx="1.5" ${STROKE}/>
            <path d="M16 4 L16 28" ${STROKE}/>
            <path d="M11 12 L11 8 L13 10 Z" ${FILL}/>
@@ -121,6 +130,7 @@ export const NAV_ICONS = Object.freeze({
     id: "exit",
     label: "Exit",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<path d="M18 4 L26 4 L26 28 L18 28" ${STROKE}/>
            <path d="M4 16 L20 16" ${STROKE}/>
            <path d="M14 10 L20 16 L14 22" ${STROKE}/>`,
@@ -129,6 +139,7 @@ export const NAV_ICONS = Object.freeze({
     id: "compass",
     label: "Compass",
     anim: ANIMATIONS.SPIN,
+    plate: true,
     body: `<circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2" fill="none"/>
            <path d="M16 7 L19 16 L16 25 L13 16 Z" ${FILL}/>`,
   },
@@ -136,6 +147,7 @@ export const NAV_ICONS = Object.freeze({
     id: "parking",
     label: "Parking / area",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<rect x="5" y="5" width="22" height="22" rx="3" stroke="currentColor" stroke-width="2" fill="none"/>
            <path d="M13 23 L13 9 L18 9 a4 4 0 1 1 0 8 L13 17" ${STROKE}/>`,
   },
@@ -177,6 +189,7 @@ export const INFO_ICONS = Object.freeze({
     id: "eye",
     label: "Look at this",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<path d="M2 16 C 7 8, 25 8, 30 16 C 25 24, 7 24, 2 16 Z" ${STROKE}/>
            <circle cx="16" cy="16" r="4" ${FILL}/>`,
   },
@@ -190,6 +203,7 @@ export const INFO_ICONS = Object.freeze({
     id: "email",
     label: "Email",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<rect x="3" y="7" width="26" height="18" rx="2" ${STROKE}/>
            <path d="M3 9 L16 18 L29 9" ${STROKE}/>`,
   },
@@ -197,6 +211,7 @@ export const INFO_ICONS = Object.freeze({
     id: "camera",
     label: "Photo",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<path d="M5 9 L11 9 L13 6 L19 6 L21 9 L27 9 a2 2 0 0 1 2 2 v13 a2 2 0 0 1 -2 2 H5 a2 2 0 0 1 -2 -2 V11 a2 2 0 0 1 2 -2 Z" ${STROKE}/>
            <circle cx="16" cy="17" r="5" ${STROKE}/>`,
   },
@@ -204,6 +219,7 @@ export const INFO_ICONS = Object.freeze({
     id: "video",
     label: "Video",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<rect x="3" y="8" width="20" height="16" rx="2" ${STROKE}/>
            <path d="M23 14 L29 10 L29 22 L23 18 Z" ${STROKE}/>
            <path d="M11 12 L11 20 L17 16 Z" ${FILL}/>`,
@@ -212,6 +228,7 @@ export const INFO_ICONS = Object.freeze({
     id: "audio",
     label: "Audio",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<path d="M5 12 L11 12 L17 7 L17 25 L11 20 L5 20 Z" ${FILL}/>
            <path d="M21 11 a7 7 0 0 1 0 10" ${STROKE}/>
            <path d="M24 8 a11 11 0 0 1 0 16" ${STROKE}/>`,
@@ -220,6 +237,7 @@ export const INFO_ICONS = Object.freeze({
     id: "clock",
     label: "Hours / time",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<circle cx="16" cy="16" r="13" ${STROKE}/>
            <path d="M16 8 L16 16 L22 19" ${STROKE}/>`,
   },
@@ -235,6 +253,7 @@ export const INFO_ICONS = Object.freeze({
     id: "cart",
     label: "Shopping",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<path d="M3 5 L7 5 L10 22 L26 22 L29 10 L9 10" ${STROKE}/>
            <circle cx="12" cy="27" r="2" ${FILL}/>
            <circle cx="24" cy="27" r="2" ${FILL}/>`,
@@ -243,6 +262,7 @@ export const INFO_ICONS = Object.freeze({
     id: "location",
     label: "Location",
     anim: ANIMATIONS.PULSE,
+    plate: true,
     body: `<path d="M16 2 C 10 2, 6 7, 6 12 c 0 7 10 18 10 18 s 10 -11 10 -18 c 0 -5 -4 -10 -10 -10 Z" ${STROKE}/>
            <circle cx="16" cy="12" r="3.5" ${FILL}/>`,
   },
@@ -271,10 +291,15 @@ export function listIcons(type) {
  * Render an icon to a complete <svg> element string.
  *  - `size` is the rendered px size (also viewBox is 32x32 internally).
  *  - `extraClass` lets callers add e.g. "tour-info-pin" / "tour-waypoint".
+ *  - If `icon.plate` is true, a white circular backing is prepended so
+ *    stroke-only icons read clearly against any panorama background.
  */
 export function renderIconSvg(icon, size = 36, extraClass = "") {
   const cls = ["tour-marker-icon__svg", extraClass].filter(Boolean).join(" ");
-  return `<svg viewBox="0 0 32 32" width="${size}" height="${size}" class="${cls}" aria-hidden="true" focusable="false">${icon.body}</svg>`;
+  const plate = icon.plate
+    ? `<circle cx="16" cy="16" r="14" fill="#ffffff"/>`
+    : "";
+  return `<svg viewBox="0 0 32 32" width="${size}" height="${size}" class="${cls}" aria-hidden="true" focusable="false">${plate}${icon.body}</svg>`;
 }
 
 /**
