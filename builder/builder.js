@@ -15,12 +15,12 @@ import {
   MARKER_TYPES,
 } from "../player-template/js/tour-model.js";
 import { BuilderViewer } from "./builder-viewer.js";
-import { miniBtn } from "./ui-dom.js";
 import { renderMarkerRow } from "./marker-row.js";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
 import { mountOverlays } from "./overlays.js";
 import { createPreview } from "./preview.js";
+import { createSceneList } from "./scene-list.js";
 import { resolveInitialTheme, applyTheme, bindThemeToggle } from "./theme.js";
 
 // Apply theme BEFORE first paint to avoid the flash-of-light-mode dance.
@@ -40,6 +40,7 @@ const $ = (id) => document.getElementById(id);
 const QUALITY_STORAGE_KEY = "tour-builder.imageQualityPreset";
 let viewer;
 let preview;
+let sceneList;
 let overlays;
 let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
 
@@ -51,6 +52,18 @@ function init() {
     onMarkerClick: (id) => selectMarker(id),
   });
   preview = createPreview({ state, $, toast, getScene, viewer });
+  sceneList = createSceneList({
+    listEl: $("scene-list"),
+    countEl: $("scene-count"),
+    getTour: () => state.tour,
+    getCurrentSceneId: () => state.currentSceneId,
+    resolveThumbUrl: (p) => preview.resolvePreviewUrl(p),
+    actions: {
+      onSelect: selectScene,
+      onMove: moveScene,
+      onReorder: reorderScenes,
+    },
+  });
   bindThemeToggle($("btn-theme"), $("btn-theme-icon"));
 
   // Meta inputs
@@ -419,54 +432,7 @@ function renderAll() {
 }
 
 function renderSceneList() {
-  const list = $("scene-list");
-  list.innerHTML = "";
-  $("scene-count").textContent = String(state.tour.scenes.length);
-
-  state.tour.scenes.forEach((scene, idx) => {
-    const li = document.createElement("li");
-    li.className = "scene-item" + (scene.id === state.currentSceneId ? " is-active" : "");
-    li.draggable = true;
-    li.addEventListener("dragstart", (e) => {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", String(idx));
-      li.classList.add("is-dragging");
-    });
-    li.addEventListener("dragend", () => li.classList.remove("is-dragging"));
-    li.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      li.classList.add("is-drop-target");
-    });
-    li.addEventListener("dragleave", () => li.classList.remove("is-drop-target"));
-    li.addEventListener("drop", (e) => {
-      e.preventDefault();
-      li.classList.remove("is-drop-target");
-      reorderScenes(Number(e.dataTransfer.getData("text/plain")), idx);
-    });
-
-    const handle = document.createElement("span");
-    handle.className = "scene-item__handle";
-    handle.setAttribute("aria-hidden", "true");
-    handle.title = "Drag to reorder";
-    handle.textContent = "\u2630"; // trigram / grip glyph
-
-    const isStart = scene.id === state.tour.meta.startSceneId;
-    const name = document.createElement("button");
-    name.type = "button";
-    name.className = "scene-item__name";
-    name.textContent = (isStart ? "[start] " : "") + (scene.name || "(unnamed)");
-    name.addEventListener("click", () => selectScene(scene.id));
-
-    const up = miniBtn("Up", "Move up", () => moveScene(scene.id, -1), idx === 0);
-    const down = miniBtn("Down", "Move down", () => moveScene(scene.id, 1), idx === state.tour.scenes.length - 1);
-
-    const controls = document.createElement("span");
-    controls.className = "scene-item__controls";
-    controls.append(up, down);
-
-    li.append(handle, name, controls);
-    list.append(li);
-  });
+  sceneList.render();
 }
 
 /** Reorder scenes via drag-and-drop (keeps selection + start scene intact). */
