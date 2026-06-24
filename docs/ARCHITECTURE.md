@@ -276,9 +276,12 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   viewport.
 - Both are **git worktrees** of the same repo, so they run side-by-side.
   `git worktree list` shows them.
-- **AI agents:** when editing v2, file tools default to the *main* repo root.
-  **Use absolute `…/360TourAp-v2/…` paths** for all file operations, or you'll
-  edit v1 by accident.
+- **AI agents — the golden rule:** check your CWD first (`pwd`).
+  - If your terminal/CWD is **`360TourAp-v2/`** (the normal case for v2 work),
+    relative file paths stay inside v2 — you're safe, just work normally.
+  - If your CWD is the **main `360TourAp/`** folder, file tools default there, so
+    you must use absolute `…/360TourAp-v2/…` paths or you'll edit v1 by accident.
+  - Either way: confirm `git branch --show-current` says **`v2`** before editing.
 
 To start a server for whichever you're working on:
 ```bash
