@@ -33,6 +33,7 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
+const QUALITY_STORAGE_KEY = "tour-builder.imageQualityPreset";
 let viewer;
 let preview;
 let overlays;
@@ -58,6 +59,10 @@ function init() {
     state.tour.meta.showWaypointShadows = e.target.checked;
     applyShadowPref();
   });
+
+  // Image quality preset (authoring preference, persisted to localStorage —
+  // it's about how you import images, not about a specific tour).
+  populateQualityPicker();
 
   // Toolbar
   $("btn-add-scene").addEventListener("click", addScene);
@@ -576,6 +581,31 @@ function bindInput(id, onInput) {
 function applyShadowPref() {
   const on = state.tour.meta.showWaypointShadows !== false;
   $("preview").classList.toggle("tour-shadows-off", !on);
+}
+
+/** Build the quality dropdown options from fs.QUALITY_PRESETS and restore
+ *  the user's saved choice (or the registry default). Persists on change. */
+function populateQualityPicker() {
+  const sel = $("image-quality");
+  if (!sel) return; // workspace-bar hidden (browser without FS API) — no-op
+  sel.innerHTML = "";
+  for (const [key, preset] of Object.entries(fs.QUALITY_PRESETS)) {
+    const opt = new Option(preset.label, key);
+    sel.append(opt);
+  }
+  const saved = localStorage.getItem(QUALITY_STORAGE_KEY);
+  if (saved && fs.setQualityPreset(saved)) {
+    sel.value = saved;
+  } else {
+    sel.value = fs.getQualityPreset().key;
+  }
+  sel.addEventListener("change", () => {
+    if (fs.setQualityPreset(sel.value)) {
+      localStorage.setItem(QUALITY_STORAGE_KEY, sel.value);
+      const p = fs.getQualityPreset();
+      toast(`Image quality set to "${p.label}" (${p.maxWidth}px, q=${p.quality}).`);
+    }
+  });
 }
 
 function toast(message, isError = false) {

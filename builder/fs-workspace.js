@@ -7,8 +7,41 @@
 
 const TEMPLATE_BASE = "../player-template/";
 const IMG_RE = /\.(jpe?g|png|webp)$/i;
-const MAX_PANO_WIDTH = 4096; // GPU-safe (incl. locked-down work laptops/VDI)
-const JPEG_QUALITY = 0.82;
+
+/**
+ * Image quality presets for panorama import. These are the only knobs we
+ * expose to authors — each tunes max width + JPEG quality together so people
+ * don't have to think in megapixels and 0.0–1.0 floats.
+ *
+ * Why these numbers:
+ *   - 4096 is the "safe everywhere" width (locked-down VDI / older laptops
+ *     start failing above this for textures). 6144 / 8192 are fine on real
+ *     hardware but big files; warn in the UI.
+ *   - 0.82 was the v1 default — fast and small but visibly soft on detail.
+ *   - 0.90 is the sweet spot: ~25-40% bigger than 0.82, dramatically sharper.
+ *   - 0.95 is for hero scenes (text/logo readability) and costs ~2-3x size.
+ */
+export const QUALITY_PRESETS = Object.freeze({
+  web:      { label: "Web optimized (smallest)",  maxWidth: 4096, quality: 0.82 },
+  balanced: { label: "Balanced (recommended)",    maxWidth: 4096, quality: 0.90 },
+  high:     { label: "High quality (sharper)",    maxWidth: 6144, quality: 0.92 },
+  max:      { label: "Maximum (largest files)",   maxWidth: 8192, quality: 0.95 },
+});
+const DEFAULT_PRESET_KEY = "balanced";
+
+// Mutable module state so the builder can tweak the preset at runtime without
+// threading options through every fs call. Single source of truth.
+let currentPresetKey = DEFAULT_PRESET_KEY;
+
+export function getQualityPreset() {
+  return { key: currentPresetKey, ...QUALITY_PRESETS[currentPresetKey] };
+}
+
+export function setQualityPreset(key) {
+  if (!QUALITY_PRESETS[key]) return false;
+  currentPresetKey = key;
+  return true;
+}
 
 export function fsSupported() {
   return typeof window.showDirectoryPicker === "function";
@@ -135,11 +168,16 @@ export function webName(imageName) {
   return imageName.replace(/\.[^.]+$/, "") + ".jpg";
 }
 
-/** Downscale to <= maxWidth and re-encode as JPEG. Returns a Blob (or null). */
-async function optimizeToWeb(file, maxWidth = MAX_PANO_WIDTH) {
+/** Downscale to <= the active preset's max width and re-encode as JPEG.
+ *  Returns a Blob (or null if unsupported). Pass explicit overrides only
+ *  for the rare case you don't want the current preset. */
+async function optimizeToWeb(file, maxWidth, quality) {
   if (typeof createImageBitmap !== "function") return null;
+  const preset = QUALITY_PRESETS[currentPresetKey];
+  const w_max = Number.isFinite(maxWidth) ? maxWidth : preset.maxWidth;
+  const q = Number.isFinite(quality) ? quality : preset.quality;
   const bmp = await createImageBitmap(file);
-  const scale = bmp.width > maxWidth ? maxWidth / bmp.width : 1;
+  const scale = bmp.width > w_max ? w_max / bmp.width : 1;
   const w = Math.round(bmp.width * scale);
   const h = Math.round(bmp.height * scale);
   const canvas = document.createElement("canvas");
@@ -148,17 +186,24 @@ async function optimizeToWeb(file, maxWidth = MAX_PANO_WIDTH) {
   canvas.getContext("2d").drawImage(bmp, 0, 0, w, h);
   bmp.close?.();
   return new Promise((resolve) =>
-    canvas.toBlob((b) => resolve(b), "image/jpeg", JPEG_QUALITY)
+    canvas.toBlob((b) => resolve(b), "image/jpeg", q)
   );
 }
 
 /**
- * Re-process every image already in images/ that's too wide or not a JPEG:
- * downscale + re-encode to a web .jpg, regenerate its thumbnail, and remove the
- * stale original if the name changed. Returns { optimized, renames } so the
- * caller can fix up scene panorama/thumbnail paths.
+ * Re-process every image in images/ at the CURRENT quality preset:
+ * downscale + re-encode to a web .jpg, regenerate its thumbnail, and remove
+ * the stale original if the name changed. Returns { optimized, renames } so
+ * the caller can fix up scene panorama/thumbnail paths.
+ *
+ * Note: we used to skip files already <= maxWidth and ending in .jpg as a
+ * speed win. With mutable quality presets that's actively wrong — it would
+ * mean changing the preset has no effect on existing images. So we always
+ * re-encode. Re-encoding the same JPG twice adds a touch of compression
+ * noise, but the user pressed the button intentionally to apply a setting.
  */
-export async function optimizeFolder(dirHandle, maxWidth = MAX_PANO_WIDTH) {
+export async function optimizeFolder(dirHandle, maxWidth) {
+  const w_max = Number.isFinite(maxWidth) ? maxWidth : QUALITY_PRESETS[currentPresetKey].maxWidth;
   let imagesDir;
   try {
     imagesDir = await dirHandle.getDirectoryHandle("images");
@@ -174,14 +219,8 @@ export async function optimizeFolder(dirHandle, maxWidth = MAX_PANO_WIDTH) {
   const renames = {};
   for (const name of names) {
     const file = await (await imagesDir.getFileHandle(name)).getFile();
-    const bmp = await createImageBitmap(file).catch(() => null);
-    if (!bmp) continue;
-    const tooWide = bmp.width > maxWidth;
-    const isJpg = /\.jpe?g$/i.test(name);
-    bmp.close?.();
-    if (!tooWide && isJpg) continue; // already web-friendly
     const out = webName(name);
-    const web = await optimizeToWeb(file, maxWidth);
+    const web = await optimizeToWeb(file, w_max);
     if (!web) continue;
     await writeBlobTo(imagesDir, out, web);
     try {

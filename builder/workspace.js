@@ -135,9 +135,15 @@ export function createWorkspace(ctx) {
     const names = await fs.listImageNames(state.dirHandle);
     fs.renderImageGrid($("image-grid"), names, state.previewBase, assignImageToScene);
   }
-  /** Downscale/re-encode every oversized image in the folder, fix scene paths. */
+  /** Re-encode every image in the folder at the current quality preset. */
   async function handleOptimize() {
     if (!state.dirHandle) return toast("Open or bind a tour folder first.", true);
+    const p = fs.getQualityPreset();
+    if (!confirm(
+      `Re-encode every image in this tour at "${p.label}"\n` +
+      `(max ${p.maxWidth}px, JPEG quality ${p.quality})?\n\n` +
+      `This will overwrite existing files. Larger tours can take a minute.`
+    )) return;
     try {
       toast("Optimizing images\u2026 this can take a moment.");
       const { optimized, renames } = await fs.optimizeFolder(state.dirHandle);
@@ -151,7 +157,9 @@ export function createWorkspace(ctx) {
       }
       renderAll();
       await refreshImageGrid();
-      toast(optimized ? `Optimized ${optimized} image(s) to web size.` : "All images already web-optimized.");
+      toast(optimized
+        ? `Re-encoded ${optimized} image(s) at "${p.label}".`
+        : "No images found to optimize.");
     } catch (e) {
       toast(`Couldn't optimize: ${e.message}`, true);
     }
