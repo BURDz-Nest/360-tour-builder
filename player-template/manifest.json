@@ -1,9 +1,11 @@
 [
   "css/app.css",
   "css/markers.css",
+  "css/player.css",
   "js/marker-icons.js",
   "js/player.js",
   "js/psv-adapter.js",
+  "js/share.js",
   "js/tour-model.js",
   "player.html",
   "vendor/psv-core.css",
@@ -14,5 +16,6 @@
   "vendor/psv-markers.module.js",
   "vendor/psv-virtual-tour.css",
   "vendor/psv-virtual-tour.module.js",
+  "vendor/qrcode.js",
   "vendor/three.module.js"
 ]

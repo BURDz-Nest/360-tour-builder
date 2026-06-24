@@ -17,6 +17,7 @@ import {
   sceneInitialView,
   escapeHtml,
 } from "./psv-adapter.js";
+import { readSceneFromUrl, writeSceneToUrl, mountShareUI } from "./share.js";
 
 const DEFAULT_CONFIG = "tour.json";
 const PREVIEW_SENTINEL = "__preview__";
@@ -36,6 +37,7 @@ const els = {
 };
 
 let activeTour = null;
+let currentSceneId = null;
 
 // Log unexpected errors for debugging, but DON'T tear down a working viewer.
 // (Libraries can emit benign rejections, e.g. interrupted animations.)
@@ -83,6 +85,13 @@ async function main() {
 
 function initViewer(tour) {
   const { nodes, startNodeId } = toViewerNodes(tour);
+  // Deep-link override: if the URL carries ?scene=<id> and it matches a real
+  // scene, start there instead of the tour's default start scene.
+  const requested = readSceneFromUrl();
+  const effectiveStart =
+    requested && tour.scenes.some((s) => s.id === requested)
+      ? requested
+      : startNodeId;
 
   // Apply tour-wide marker preferences as classes on the viewer container so
   // CSS can opt out cleanly without touching marker HTML.
@@ -104,7 +113,7 @@ function initViewer(tour) {
           positionMode: "manual",
           renderMode: "2d",
           nodes,
-          startNodeId,
+          startNodeId: effectiveStart,
           // VirtualTour's built-in arrows are disabled — nav waypoints are
           // rendered as PSV markers so each can carry its own icon from
           // marker-icons.js. We intercept the click below.
@@ -132,10 +141,13 @@ function initViewer(tour) {
   const virtualTour = viewer.getPlugin(VirtualTourPlugin);
 
   // The transition already moved us to the saved view; here we only update the
-  // caption text (no rotate/zoom -> no jump).
+  // caption text (no rotate/zoom -> no jump). Also keep the URL's ?scene= in
+  // sync so the address bar always reflects what you're looking at.
   virtualTour.addEventListener("node-changed", ({ node }) => {
     const scene = getScene(activeTour, node.id);
     if (scene) setCaption(scene.caption);
+    writeSceneToUrl(node.id);
+    currentSceneId = node.id;
   });
 
   // Marker click router:
@@ -162,6 +174,9 @@ function initViewer(tour) {
   });
 
   viewer.addEventListener("ready", () => hide(els.loading), { once: true });
+
+  // Wire the share button + modal (uses window.qrcode from vendor/qrcode.js).
+  mountShareUI({ getCurrentSceneId: () => currentSceneId });
 
   // Surface any panorama load failure with a clear message.
   viewer.addEventListener("panorama-error", (e) => {
