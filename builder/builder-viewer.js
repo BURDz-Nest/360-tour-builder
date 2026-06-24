@@ -156,7 +156,11 @@ export class BuilderViewer {
     // Only the SELECTED pin is draggable. First click selects (PSV's
     // select-marker event fires normally via pointerup); subsequent
     // press-and-drag on the already-selected pin moves it.
-    if (this._selectedMarkerId !== id) return;
+    if (this._selectedMarkerId !== id) {
+      console.log(`[drag] pointerdown on ${id} but selected=${this._selectedMarkerId} - ignoring (select first)`);
+      return;
+    }
+    console.log(`[drag] start on ${id}`);
     ev.stopPropagation(); // keep PSV from starting a pan gesture
     ev.preventDefault();  // and from firing compat mouse events
     const startX = ev.clientX;
@@ -168,9 +172,10 @@ export class BuilderViewer {
 
     const onMove = (e) => {
       if (!dragged && Math.hypot(e.clientX - startX, e.clientY - startY) < threshold) return;
+      if (!dragged) console.log(`[drag] threshold crossed, moving ${id}`);
       dragged = true;
       const sph = this._clientToSpherical(e.clientX, e.clientY);
-      if (!sph) return;
+      if (!sph) { console.warn("[drag] viewerCoordsToSphericalCoords returned null"); return; }
       // Live PSV update during drag. We DO want render=true here so the pin
       // actually follows the cursor on screen (renderMarkers just rewrites
       // CSS transforms - it doesn't rebuild the DOM, so our pointer
@@ -179,6 +184,10 @@ export class BuilderViewer {
         id,
         position: { yaw: sph.yawRad, pitch: sph.pitchRad },
       });
+      // PSV's marker.update() rewrites the class attribute, stripping our
+      // .is-selected highlight. Re-stamp it so the ring stays visible during
+      // the drag (purely cosmetic, but jarring otherwise).
+      targetEl.classList.add("is-selected");
     };
 
     const onUp = (e) => {
@@ -186,15 +195,14 @@ export class BuilderViewer {
       targetEl.style.cursor = "grab";
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
-      if (!dragged) return; // pure click -> let select-marker handler run
+      if (!dragged) { console.log(`[drag] no movement - treating as click`); return; }
       this._dragJustHappened = true; // suppress the trailing click
       const sph = this._clientToSpherical(e.clientX, e.clientY);
       if (!sph) return;
-      this.handlers.onMarkerMove?.(
-        id,
-        round(normDeg(sph.yawRad * RAD2DEG)),
-        round(sph.pitchRad * RAD2DEG),
-      );
+      const yawDeg = round(normDeg(sph.yawRad * RAD2DEG));
+      const pitchDeg = round(sph.pitchRad * RAD2DEG);
+      console.log(`[drag] drop ${id} -> yaw=${yawDeg} pitch=${pitchDeg}`);
+      this.handlers.onMarkerMove?.(id, yawDeg, pitchDeg);
     };
 
     document.addEventListener("pointermove", onMove);
@@ -217,6 +225,7 @@ export class BuilderViewer {
    */
   setSelectedMarker(id) {
     if (this._selectedMarkerId === id) return;
+    console.log(`[drag] selection: ${this._selectedMarkerId} -> ${id}`);
     if (this._selectedMarkerId) {
       const prev = this.markers.markers?.[this._selectedMarkerId];
       prev?.element?.classList.remove("is-selected");
@@ -224,7 +233,11 @@ export class BuilderViewer {
     this._selectedMarkerId = id || null;
     if (id) {
       const next = this.markers.markers?.[id];
-      next?.element?.classList.add("is-selected");
+      if (!next?.element) {
+        console.warn(`[drag] no DOM element for marker ${id}!`);
+        return;
+      }
+      next.element.classList.add("is-selected");
     }
   }
 

@@ -14,7 +14,13 @@ import {
   validateTour,
   MARKER_TYPES,
 } from "../player-template/js/tour-model.js";
-import { BuilderViewer } from "./builder-viewer.js";
+// NOTE on cache: ES module imports use the URL as the cache key, so adding
+// ?v= here forces a fresh fetch when builder-viewer.js changes. The parent
+// <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
+// imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
+// behaviour-changing edits so users don't run stale modules from cache.
+const BUILDER_BUILD = "33";
+import { BuilderViewer } from "./builder-viewer.js?v=33";
 import { renderMarkerRow } from "./marker-row.js";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
@@ -48,6 +54,10 @@ let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
 init();
 
 function init() {
+  // Loud breadcrumb so you can confirm in DevTools which build is actually
+  // running. If you see an older number here after editing, the browser is
+  // serving stale modules from cache - hard refresh (Cmd+Shift+R / Ctrl+F5).
+  console.log(`[builder] init - BUILDER_BUILD ${BUILDER_BUILD}`);
   viewer = new BuilderViewer($("preview"), {
     onPlace: handlePlace,
     onMarkerClick: (id) => selectMarker(id),
