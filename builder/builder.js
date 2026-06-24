@@ -21,6 +21,10 @@ import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
 import { mountOverlays } from "./overlays.js";
 import { createPreview } from "./preview.js";
+import { resolveInitialTheme, applyTheme, bindThemeToggle } from "./theme.js";
+
+// Apply theme BEFORE first paint to avoid the flash-of-light-mode dance.
+applyTheme(resolveInitialTheme());
 
 const state = {
   tour: createEmptyTour(),
@@ -47,6 +51,7 @@ function init() {
     onMarkerClick: (id) => selectMarker(id),
   });
   preview = createPreview({ state, $, toast, getScene, viewer });
+  bindThemeToggle($("btn-theme"), $("btn-theme-icon"));
 
   // Meta inputs
   bindInput("meta-title", (v) => (state.tour.meta.title = v));

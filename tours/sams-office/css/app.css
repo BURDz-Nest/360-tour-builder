@@ -1,21 +1,52 @@
 /* app.css — shared neutral styling for builder + player.
    Brand-later friendly: swap the CSS variables below for Walmart tokens.
-   Contrast ratios target WCAG 2.2 AA. */
+   Contrast ratios target WCAG 2.2 AA.
+
+   THEMING: set <html data-theme="dark"> to flip the builder palette. The
+   player viewport (.col--center / .player-body) is intentionally dark in
+   both modes — 360 panoramas need a black surround to feel immersive. */
 
 :root {
   --bg: #f4f5f7;
   --panel: #ffffff;
+  --panel-soft: #eef1f5;       /* hover/inset backgrounds */
   --ink: #1a1d21;        /* ~15:1 on white */
   --ink-soft: #4a4f57;   /* ~8:1 on white  */
   --muted: #6b7280;      /* ~4.7:1 on white */
   --line: #d6dae0;
   --accent: #1d4ed8;     /* link/nav, 6.4:1 on white */
   --accent-ink: #ffffff;
+  --accent-hover: #1740b8;
   --info: #0f766e;       /* info hotspot */
   --danger: #b42318;
+  --danger-bg: #fdf2f0;        /* hover bg for danger buttons */
+  --danger-border: #e7b9b4;
   --shadow: 0 2px 10px rgba(16, 24, 40, 0.12);
   --radius: 10px;
   --focus: 3px solid #0b5cd6;
+}
+
+/* Dark builder theme. Activated by JS via <html data-theme="dark">. The
+   palette keeps the same semantic tokens so every existing rule "just works";
+   we only re-pick the values. Contrast targets preserved: --ink hits ~16:1
+   on --bg, --ink-soft ~9:1, --muted ~4.6:1. */
+[data-theme="dark"] {
+  --bg: #0f1115;
+  --panel: #1a1d23;
+  --panel-soft: #242830;
+  --ink: #e8eaed;
+  --ink-soft: #b4b8c1;
+  --muted: #8a90a0;
+  --line: #2a2e36;
+  --accent: #5b8cff;
+  --accent-ink: #0b1020;
+  --accent-hover: #3d72f0;
+  --info: #2dd4bf;
+  --danger: #f87171;
+  --danger-bg: #2a1517;
+  --danger-border: #6b2a2a;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  --focus: 3px solid #7aa8ff;
 }
 
 * { box-sizing: border-box; }
@@ -46,18 +77,29 @@ button { font: inherit; cursor: pointer; }
   border-radius: var(--radius);
   font-weight: 600;
 }
-.btn:hover { background: #eef1f5; }
+.btn:hover { background: var(--panel-soft); }
 .btn--primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
 }
-.btn--primary:hover { background: #1740b8; }
+.btn--primary:hover { background: var(--accent-hover); }
 .btn--danger {
   color: var(--danger);
-  border-color: #e7b9b4;
+  border-color: var(--danger-border);
 }
-.btn--danger:hover { background: #fbeae8; }
+.btn--danger:hover { background: var(--danger-bg); }
+
+/* Icon-only button (theme toggle, etc.). Uses currentColor so the inner SVG
+   inherits theme. Square, accessible hit target (>=32x32). */
+.btn--icon {
+  width: 36px;
+  padding: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn--icon svg { width: 18px; height: 18px; display: block; }
 
 .mini-btn {
   border: 1px solid var(--line);
@@ -68,7 +110,7 @@ button { font: inherit; cursor: pointer; }
   font-size: 0.75rem;
   line-height: 1.4;
 }
-.mini-btn:hover:not(:disabled) { background: #eef1f5; }
+.mini-btn:hover:not(:disabled) { background: var(--panel-soft); }
 .mini-btn:disabled { opacity: 0.4; cursor: default; }
 
 /* ============ Builder layout ============ */
@@ -134,7 +176,7 @@ button { font: inherit; cursor: pointer; }
   padding: 0.45rem 0.55rem;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--panel);
   color: var(--ink);
 }
 textarea.field__input { resize: vertical; }
@@ -148,7 +190,7 @@ textarea.field__input { resize: vertical; }
   border: 1px solid var(--line);
   border-radius: 8px;
   margin-bottom: 0.35rem;
-  background: #fff;
+  background: var(--panel);
 }
 .scene-item.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .scene-item__name {
@@ -164,7 +206,7 @@ textarea.field__input { resize: vertical; }
 .scene-item__handle {
   cursor: grab;
   padding: 0 0.15rem 0 0.45rem;
-  color: #9aa0a6;
+  color: var(--muted);
   font-size: 0.9rem;
   user-select: none;
 }
@@ -218,7 +260,7 @@ textarea.field__input { resize: vertical; }
   border-radius: 8px;
   padding: 0.6rem;
   margin-bottom: 0.6rem;
-  background: #fff;
+  background: var(--panel);
 }
 .marker-row.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .marker-row__head {
@@ -405,13 +447,13 @@ textarea.field__input { resize: vertical; }
 }
 .img-thumb {
   display: flex; flex-direction: column; align-items: stretch;
-  border: 1px solid var(--border, #c9ccd2);
+  border: 1px solid var(--border, var(--line));
   border-radius: 8px; overflow: hidden; cursor: pointer;
-  background: #fff; padding: 0; font: inherit; text-align: left;
+  background: var(--panel); padding: 0; font: inherit; text-align: left;
 }
-.img-thumb:hover { border-color: #0071dc; }
-.img-thumb:focus-visible { outline: 2px solid #0071dc; outline-offset: 1px; }
-.img-thumb img { width: 100%; height: 56px; object-fit: cover; display: block; background: #eee; }
+.img-thumb:hover { border-color: var(--accent); }
+.img-thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.img-thumb img { width: 100%; height: 56px; object-fit: cover; display: block; background: var(--panel-soft); }
 .img-thumb.is-broken img { visibility: hidden; }
 .img-thumb.is-broken { background: repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 6px, #e5e7eb 6px, #e5e7eb 12px); }
 .img-thumb span {
@@ -432,7 +474,7 @@ textarea.field__input { resize: vertical; }
 }
 .modal[hidden] { display: none; }
 .modal__panel {
-  background: #fff;
+  background: var(--panel);
   border-radius: 12px;
   width: min(680px, 100%);
   max-height: 85vh;

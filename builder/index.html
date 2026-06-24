@@ -9,7 +9,7 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css?v=11" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=12" />
     <link rel="stylesheet" href="../player-template/css/markers.css?v=4" />
 
     <script type="importmap">
@@ -31,6 +31,9 @@
         <button id="btn-images" class="btn" type="button">Images…</button>
       </span>
       <span class="topbar__spacer"></span>
+      <button id="btn-theme" class="btn btn--icon" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <span id="btn-theme-icon" aria-hidden="true"></span>
+      </button>
       <button id="btn-help" class="btn" type="button">Help &amp; publishing</button>
       <button id="btn-import" class="btn" type="button">Import tour.json</button>
       <input id="file-import" type="file" accept="application/json,.json" hidden />
@@ -234,6 +237,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=24"></script>
+    <script type="module" src="builder.js?v=25"></script>
   </body>
 </html>
