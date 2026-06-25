@@ -22,7 +22,7 @@ const RAD2DEG = 180 / Math.PI;
 export class BuilderViewer {
   /**
    * @param {HTMLElement} container
-   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id), onMarkerMove(id,yawDeg,pitchDeg) }
+   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id), onMarkerMove(id,yawDeg,pitchDeg), onMarkerDeselect() }
    */
   constructor(container, handlers = {}) {
     this.handlers = handlers;
@@ -53,6 +53,14 @@ export class BuilderViewer {
         return;
       }
       this.handlers.onMarkerClick?.(marker.id);
+    });
+
+    // PSV fires this when you click empty panorama (or a different marker)
+    // while one is selected. Use it to deselect so the highlight + side-panel
+    // selection clear when you click away.
+    this.markers.addEventListener("unselect-marker", () => {
+      if (this._dragJustHappened) return; // a drop isn't a deselect
+      this.handlers.onMarkerDeselect?.();
     });
   }
 

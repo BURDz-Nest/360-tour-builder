@@ -19,8 +19,8 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "34";
-import { BuilderViewer } from "./builder-viewer.js?v=34";
+const BUILDER_BUILD = "35";
+import { BuilderViewer } from "./builder-viewer.js?v=35";
 import { renderMarkerRow } from "./marker-row.js";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
@@ -65,6 +65,7 @@ function init() {
       updateMarker(id, { yaw, pitch });
       selectMarker(id); // surface the moved marker in the side panel
     },
+    onMarkerDeselect: () => selectMarker(null), // click empty space -> deselect
   });
   preview = createPreview({ state, $, toast, getScene, viewer });
   sceneList = createSceneList({
