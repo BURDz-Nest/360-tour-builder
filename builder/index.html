@@ -9,7 +9,7 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css?v=18" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=19" />
     <link rel="stylesheet" href="welcome.css?v=1" />
     <link rel="stylesheet" href="help-modal.css?v=1" />
     <link rel="stylesheet" href="../player-template/css/markers.css?v=4" />
@@ -44,41 +44,61 @@
     </header>
 
     <div class="builder-main">
-      <!-- LEFT: tour meta + scene list -->
+      <!-- LEFT: tour settings + scene list, split into tabs so long scene
+           lists get their own breathing room. -->
       <section class="col" aria-label="Tour settings and scenes">
-        <h2 class="section-title">Tour details</h2>
-        <label class="field">
-          <span class="field__label">Title</span>
-          <input id="meta-title" class="field__input" type="text" />
-        </label>
-        <label class="field">
-          <span class="field__label">Description</span>
-          <textarea id="meta-description" class="field__input" rows="2"></textarea>
-        </label>
-        <label class="field">
-          <span class="field__label">Author</span>
-          <input id="meta-author" class="field__input" type="text" />
-        </label>
+        <div class="tabs" role="tablist" aria-label="Left panel sections">
+          <button id="tab-scenes" class="tab is-active" type="button"
+                  role="tab" aria-selected="true" aria-controls="panel-scenes">
+            Scenes
+          </button>
+          <button id="tab-settings" class="tab" type="button"
+                  role="tab" aria-selected="false" aria-controls="panel-settings" tabindex="-1">
+            Tour settings
+          </button>
+        </div>
 
-        <label class="field field--check">
-          <input id="meta-show-thumbnails" type="checkbox" checked />
-          <span class="field__label">Show image thumbnails in navigation popups</span>
-        </label>
+        <!-- SCENES tab -->
+        <div id="panel-scenes" class="tab-panel" role="tabpanel" aria-labelledby="tab-scenes">
+          <h2 class="section-title">Scenes (<span id="scene-count">0</span>)</h2>
+          <ul id="scene-list" class="scene-list"></ul>
+          <button id="btn-add-scene" class="btn" type="button">+ Add scene</button>
+        </div>
 
-        <label class="field field--check">
-          <input id="meta-show-waypoint-shadows" type="checkbox" checked />
-          <span class="field__label">Show floating shadow under navigation waypoints</span>
-        </label>
+        <!-- TOUR SETTINGS tab -->
+        <div id="panel-settings" class="tab-panel" role="tabpanel"
+             aria-labelledby="tab-settings" hidden>
+          <h2 class="section-title">Tour details</h2>
+          <label class="field">
+            <span class="field__label">Title</span>
+            <input id="meta-title" class="field__input" type="text" />
+          </label>
+          <label class="field">
+            <span class="field__label">Description</span>
+            <textarea id="meta-description" class="field__input" rows="2"></textarea>
+          </label>
+          <label class="field">
+            <span class="field__label">Author</span>
+            <input id="meta-author" class="field__input" type="text" />
+          </label>
 
-        <label class="field">
-          <span class="field__label">Image quality (applies to new imports)</span>
-          <select id="image-quality" class="field__input"></select>
-          <span class="field__hint muted">Use <em>Optimize images</em> in the Images panel to re-encode existing photos at this setting.</span>
-        </label>
+          <h2 class="section-title">Display</h2>
+          <label class="field field--check">
+            <input id="meta-show-thumbnails" type="checkbox" checked />
+            <span class="field__label">Show image thumbnails in navigation popups</span>
+          </label>
 
-        <h2 class="section-title">Scenes (<span id="scene-count">0</span>)</h2>
-        <ul id="scene-list" class="scene-list"></ul>
-        <button id="btn-add-scene" class="btn" type="button">+ Add scene</button>
+          <label class="field field--check">
+            <input id="meta-show-waypoint-shadows" type="checkbox" checked />
+            <span class="field__label">Show floating shadow under navigation waypoints</span>
+          </label>
+
+          <label class="field">
+            <span class="field__label">Image quality (applies to new imports)</span>
+            <select id="image-quality" class="field__input"></select>
+            <span class="field__hint muted">Use <em>Optimize images</em> in the Images panel to re-encode existing photos at this setting.</span>
+          </label>
+        </div>
       </section>
 
       <!-- CENTER: live preview -->
@@ -241,6 +261,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=35"></script>
+    <script type="module" src="builder.js?v=36"></script>
   </body>
 </html>

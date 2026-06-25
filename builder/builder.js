@@ -19,7 +19,7 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "35";
+const BUILDER_BUILD = "36";
 import { BuilderViewer } from "./builder-viewer.js?v=35";
 import { renderMarkerRow } from "./marker-row.js";
 import * as fs from "./fs-workspace.js";
@@ -29,6 +29,8 @@ import { createPreview } from "./preview.js";
 import { createSceneList } from "./scene-list.js";
 import { duplicateScene, copyHotspots, openSceneCopyMenu } from "./scene-actions.js";
 import { resolveInitialTheme, applyTheme, bindThemeToggle } from "./theme.js";
+import { mountTabs } from "./tabs.js?v=1";
+import { bindDismissibleModal } from "./ui-dom.js?v=2";
 
 // Apply theme BEFORE first paint to avoid the flash-of-light-mode dance.
 applyTheme(resolveInitialTheme());
@@ -54,9 +56,7 @@ let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
 init();
 
 function init() {
-  // Loud breadcrumb so you can confirm in DevTools which build is actually
-  // running. If you see an older number here after editing, the browser is
-  // serving stale modules from cache - hard refresh (Cmd+Shift+R / Ctrl+F5).
+  // Build breadcrumb: if DevTools shows an old number, hard-refresh (stale cache).
   console.log(`[builder] init - BUILDER_BUILD ${BUILDER_BUILD}`);
   viewer = new BuilderViewer($("preview"), {
     onPlace: handlePlace,
@@ -82,20 +82,26 @@ function init() {
   });
   bindThemeToggle($("btn-theme"), $("btn-theme-icon"));
 
+  // Left-panel tabs: Scenes | Tour settings (remembers your last choice).
+  mountTabs({
+    pairs: [
+      { tab: $("tab-scenes"), panel: $("panel-scenes") },
+      { tab: $("tab-settings"), panel: $("panel-settings") },
+    ],
+    storageKey: "builder-left-tab",
+  });
+
   // Meta inputs
   bindInput("meta-title", (v) => (state.tour.meta.title = v));
   bindInput("meta-description", (v) => (state.tour.meta.description = v));
   bindInput("meta-author", (v) => (state.tour.meta.author = v));
-  $("meta-show-thumbnails").addEventListener("change", (e) => {
-    state.tour.meta.showThumbnails = e.target.checked;
-  });
+  $("meta-show-thumbnails").addEventListener("change", (e) => (state.tour.meta.showThumbnails = e.target.checked));
   $("meta-show-waypoint-shadows").addEventListener("change", (e) => {
     state.tour.meta.showWaypointShadows = e.target.checked;
     applyShadowPref();
   });
 
-  // Image quality preset (authoring preference, persisted to localStorage —
-  // it's about how you import images, not about a specific tour).
+  // Image quality preset (authoring preference, persisted to localStorage).
   populateQualityPicker();
 
   // Toolbar
@@ -106,14 +112,8 @@ function init() {
   $("btn-preview").addEventListener("click", previewInPlayer);
 
   // Help & publishing modal (static content — always available).
-  $("btn-help").addEventListener("click", () => ($("help-modal").hidden = false));
-  $("help-modal-close").addEventListener("click", () => ($("help-modal").hidden = true));
-  $("help-modal").addEventListener("click", (e) => {
-    if (e.target === $("help-modal")) $("help-modal").hidden = true;
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !$("help-modal").hidden) $("help-modal").hidden = true;
-  });
+  const helpModal = bindDismissibleModal($("help-modal"), $("help-modal-close"));
+  $("btn-help").addEventListener("click", helpModal.open);
 
   // Workspace (File System Access — Chrome/Edge). Hide if unsupported.
   if (fs.fsSupported()) {

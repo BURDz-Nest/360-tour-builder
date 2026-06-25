@@ -1,6 +1,27 @@
 // ui-dom.js — small pure DOM-factory helpers shared by the builder UI.
 // No app state, no side effects beyond creating elements.
 
+/**
+ * Wire the standard dismiss behaviours for a <div class="modal" hidden> dialog:
+ * a close button, backdrop click, and the Escape key. Returns {open, close}
+ * so callers can trigger it from a toolbar button.
+ *
+ * @param {HTMLElement} modalEl    the modal container (the backdrop)
+ * @param {HTMLElement} closeBtnEl the close button inside it
+ */
+export function bindDismissibleModal(modalEl, closeBtnEl) {
+  const close = () => (modalEl.hidden = true);
+  const open = () => (modalEl.hidden = false);
+  closeBtnEl.addEventListener("click", close);
+  modalEl.addEventListener("click", (e) => {
+    if (e.target === modalEl) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modalEl.hidden) close();
+  });
+  return { open, close };
+}
+
 export function miniBtn(text, title, onClick, disabled = false) {
   const b = document.createElement("button");
   b.type = "button";

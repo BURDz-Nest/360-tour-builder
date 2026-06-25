@@ -148,13 +148,48 @@ button { font: inherit; cursor: pointer; }
 .col:last-child { border-right: none; }
 .col--center { padding: 0; background: #0c0d10; }
 
+/* ============ Tabs (left panel: Scenes | Tour settings) ============ */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: -0.25rem -0.25rem 1rem;
+  padding-bottom: 0;
+  border-bottom: 1px solid var(--line);
+}
+.tab {
+  flex: 1;
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* sit the active underline on the .tabs border */
+  padding: 0.55rem 0.5rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+}
+.tab:hover { color: var(--ink); background: var(--panel-soft); }
+.tab.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tab-panel[hidden] { display: none; }
+
 .section-title {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--muted);
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.6rem;
 }
+/* Give stacked sections within a panel some air (the first one hugs the top). */
+.section-title + .field { margin-top: 0; }
+.field + .section-title,
+.scene-list + .section-title { margin-top: 1.4rem; }
 
 /* ============ Fields ============ */
 .field { display: block; margin-bottom: 0.75rem; }
