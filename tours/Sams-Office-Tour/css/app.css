@@ -394,17 +394,23 @@ textarea.field__input { resize: vertical; }
 /* Builder pins reuse the shared .tour-marker system (see below) —
    .builder-pin is just a host class for the PSV marker element. */
 .builder-pin { background: transparent; border: none; padding: 0; }
-/* Selected pin in the builder gets a glowing ring + grab cursor so the
-   drag-to-move affordance is obvious (Panoee-style highlight). Player
-   tours never set .is-selected, so this is a pure builder concern. */
-.builder-pin.is-selected {
-  outline: 3px solid #5b8cff;
-  outline-offset: 4px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 6px rgba(91, 140, 255, 0.18);
-  cursor: grab;
-}
+.builder-pin.is-selected { cursor: grab; }
 .builder-pin.is-selected:active { cursor: grabbing; }
+/* Selected-pin highlight (Panoee-style): a circular ring centred on the
+   ICON itself rather than the oversized PSV host box. We draw it on the
+   snug .tour-marker wrapper so it hugs the glyph and stays centred for
+   every icon (teardrop, disc, arrow...). Player tours never set
+   .is-selected, so this is purely a builder affordance. */
+.builder-pin.is-selected .tour-marker {
+  outline: 3px solid #5b8cff;
+  outline-offset: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(91, 140, 255, 0.20);
+}
+/* Hold the idle animation still while selected so the ring doesn't wobble
+   with a bobbing/spinning glyph - the thing you're editing should sit put. */
+.builder-pin.is-selected .tour-marker-icon__svg,
+.builder-pin.is-selected .tour-marker__ring { animation-play-state: paused; }
 
 /* ---- Builder: workspace bar + image panel (Chrome/Edge FS workspace) ---- */
 #workspace-bar { display: inline-flex; gap: 0.5rem; }
