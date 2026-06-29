@@ -31,3 +31,10 @@ source-photos/
 # Keep examples/ tracked; ignore a personal scratch folder.
 /local-tours/
 *.local.json
+
+# Tours are local working data — often real-facility imagery that should NOT
+# live in the public repo. Keep the folder present (via .gitkeep) but ignore
+# all tour contents. Author tours locally; publish each tours/<name>/ folder
+# to ITS OWN hosting target, not to this repo.
+/tours/*
+!/tours/.gitkeep

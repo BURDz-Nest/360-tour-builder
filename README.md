@@ -80,9 +80,8 @@ anywhere — the **player** runtime travels with it.
 │   │   ├── player.js          read-only viewer controller
 │   │   └── share.js           Share button + QR modal
 │   └── vendor/                vendored PSV 5.11.5 + three 0.169.0 + qrcode (no CDN)
-├── tours/                     your tours — each a complete, deployable site
-│   ├── Sams-Office-Tour/      a real tour (player.html + css/ js/ vendor/ + tour.json + images/)
-│   └── sams-office/           reference/sample tour
+├── tours/                     your tours live here locally (git-ignored)
+│   └── .gitkeep               each tours/<name>/ is a complete, deployable site
 ├── scripts/
 │   ├── launch.command         double-click: start server + open builder (mac)
 │   ├── new-tour.sh            scaffold a tours/<name>/ folder (CLI alternative)
@@ -97,6 +96,11 @@ The runtime is tiny (~1.6 MB vendored), so the duplication is cheap and the
 portability is worth it. After changing anything in `player-template/`, run
 `./scripts/sync-runtime.sh` to propagate it into existing tours.
 
+> **Tours are local-only.** The `tours/` folder is **git-ignored** — your tours
+> (often real-facility imagery) stay on your machine and are **not** committed to
+> this repo. Author them here, then publish each `tours/<name>/` folder to its
+> own hosting target. See `docs/SECURITY.md` before publishing real facilities.
+
 ## Quick start
 
 ES modules must be served over HTTP (not `file://`). Serve the project root with
@@ -108,7 +112,7 @@ python3 -m http.server 8124
 ```
 
 - **Builder:** http://localhost:8124/builder/index.html
-- **Sample tour:** http://localhost:8124/tours/sams-office/player.html
+- **A tour you've made:** http://localhost:8124/tours/<your-tour>/player.html
 
 On macOS you can also just double-click `scripts/launch.command`, which starts
 the server and opens the builder for you.
