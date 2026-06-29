@@ -173,10 +173,8 @@ export class BuilderViewer {
     // select-marker event fires normally via pointerup); subsequent
     // press-and-drag on the already-selected pin moves it.
     if (this._selectedMarkerId !== id) {
-      console.log(`[drag] pointerdown on ${id} but selected=${this._selectedMarkerId} - ignoring (select first)`);
       return;
     }
-    console.log(`[drag] start on ${id}`);
     ev.stopPropagation(); // keep PSV from starting a pan gesture
     ev.preventDefault();  // and from firing compat mouse events
     const startX = ev.clientX;
@@ -188,10 +186,9 @@ export class BuilderViewer {
 
     const onMove = (e) => {
       if (!dragged && Math.hypot(e.clientX - startX, e.clientY - startY) < threshold) return;
-      if (!dragged) console.log(`[drag] threshold crossed, moving ${id}`);
       dragged = true;
       const sph = this._clientToSpherical(e.clientX, e.clientY);
-      if (!sph) { console.warn("[drag] viewerCoordsToSphericalCoords returned null"); return; }
+      if (!sph) return;
       // Live PSV update during drag. We DO want render=true here so the pin
       // actually follows the cursor on screen (renderMarkers just rewrites
       // CSS transforms - it doesn't rebuild the DOM, so our pointer
@@ -211,13 +208,12 @@ export class BuilderViewer {
       targetEl.style.cursor = "grab";
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
-      if (!dragged) { console.log(`[drag] no movement - treating as click`); return; }
+      if (!dragged) return; // no movement - treat as a plain click
       this._dragJustHappened = true; // suppress the trailing click
       const sph = this._clientToSpherical(e.clientX, e.clientY);
       if (!sph) return;
       const yawDeg = round(normDeg(sph.yawRad * RAD2DEG));
       const pitchDeg = round(sph.pitchRad * RAD2DEG);
-      console.log(`[drag] drop ${id} -> yaw=${yawDeg} pitch=${pitchDeg}`);
       this.handlers.onMarkerMove?.(id, yawDeg, pitchDeg);
     };
 
@@ -241,7 +237,6 @@ export class BuilderViewer {
    */
   setSelectedMarker(id) {
     if (this._selectedMarkerId === id) return;
-    console.log(`[drag] selection: ${this._selectedMarkerId} -> ${id}`);
     if (this._selectedMarkerId) {
       const prev = this.markers.markers?.[this._selectedMarkerId];
       prev?.element?.classList.remove("is-selected");
@@ -249,10 +244,7 @@ export class BuilderViewer {
     this._selectedMarkerId = id || null;
     if (id) {
       const next = this.markers.markers?.[id];
-      if (!next?.element) {
-        console.warn(`[drag] no DOM element for marker ${id}!`);
-        return;
-      }
+      if (!next?.element) return;
       next.element.classList.add("is-selected");
     }
   }

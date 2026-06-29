@@ -19,8 +19,8 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "36";
-import { BuilderViewer } from "./builder-viewer.js?v=35";
+const BUILDER_BUILD = "37";
+import { BuilderViewer } from "./builder-viewer.js?v=37";
 import { renderMarkerRow } from "./marker-row.js";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
