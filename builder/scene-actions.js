@@ -13,12 +13,17 @@ import { createScene, createMarker } from "../player-template/js/tour-model.js";
 export function cloneMarkerWithNewId(m) {
   return createMarker({
     type: m.type,
+    shape: m.shape,
     yaw: m.yaw,
     pitch: m.pitch,
     label: m.label,
     targetSceneId: m.targetSceneId,
     html: m.html,
     icon: m.icon,
+    // Zone fields (ignored for icon markers): clone the polygon + styling.
+    points: Array.isArray(m.points) ? m.points.map((p) => ({ ...p })) : null,
+    idleStroke: m.idleStroke,
+    hoverColor: m.hoverColor,
   });
 }
 

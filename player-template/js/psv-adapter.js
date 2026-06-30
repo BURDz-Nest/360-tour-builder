@@ -17,7 +17,7 @@
  *   angles in DEGREES  -> PSV "<n>deg" strings
  */
 
-import { MARKER_TYPES } from "./tour-model.js";
+import { MARKER_TYPES, isZone, DEFAULT_ZONE_HOVER } from "./tour-model.js";
 import { renderMarkerHtml } from "./marker-icons.js";
 
 /** PSV wants angles as strings like "30deg" (or radians). We use degrees. */
@@ -29,6 +29,39 @@ export function degStr(value) {
 /** Marker render sizes. Nav waypoints are bigger so they read at a glance. */
 const NAV_SIZE = 56;
 const INFO_SIZE = 40;
+
+/** Faint always-on outline color used when a zone opts into idleStroke. */
+const ZONE_IDLE_STROKE = "rgba(255,255,255,0.55)";
+
+/**
+ * Build the config for an INFO ZONE (a polygon hotspot). Idle is transparent
+ * (or a faint outline if idleStroke); hover/reveal styling lives in markers.css
+ * driven by the `--zone-hover` custom property that player.js stamps per zone.
+ * Click routes through the SAME data.kind="info" path as icon info markers.
+ */
+export function zoneMarkerToConfig(marker) {
+  const outlined = marker.idleStroke === true;
+  return {
+    id: marker.id,
+    // PSV polygon: array of [yaw, pitch] pairs as "<n>deg" strings.
+    polygon: (marker.points || []).map((p) => [degStr(p.yaw), degStr(p.pitch)]),
+    className: "tour-zone" + (outlined ? " tour-zone--outlined" : ""),
+    // SVG presentation attributes = the IDLE look. CSS :hover overrides these.
+    svgStyle: {
+      fill: "transparent",
+      stroke: outlined ? ZONE_IDLE_STROKE : "transparent",
+      strokeWidth: outlined ? 2 : 0,
+    },
+    tooltip: marker.label ? { content: escapeHtml(marker.label) } : undefined,
+    data: {
+      kind: "info",
+      zone: true,
+      label: marker.label,
+      html: marker.html,
+      hoverColor: marker.hoverColor || DEFAULT_ZONE_HOVER,
+    },
+  };
+}
 
 /** Build the marker config for a single INFO marker. */
 export function infoMarkerToConfig(marker) {
@@ -77,7 +110,7 @@ export function toViewerNodes(tour) {
       if (m.type === MARKER_TYPES.LINK) {
         if (m.targetSceneId) markers.push(linkMarkerToConfig(m));
       } else if (m.type === MARKER_TYPES.INFO) {
-        markers.push(infoMarkerToConfig(m));
+        markers.push(isZone(m) ? zoneMarkerToConfig(m) : infoMarkerToConfig(m));
       }
     }
 

@@ -384,6 +384,34 @@ textarea.field__input { resize: vertical; }
 }
 .marker-badge--link { background: var(--accent); }
 .marker-badge--info { background: var(--info); }
+.marker-badge--zone { background: #6b3fb5; }
+
+/* Inline field (label + control on one row) - used by the zone color picker. */
+.field--inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.field__color {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+/* Checkbox field (box + trailing text) - used by the zone idle-outline toggle. */
+.field--check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+.field--check input { margin-top: 0.15rem; flex: none; }
 
 .view-row {
   display: flex;

@@ -9,8 +9,14 @@
  * fresh DOM tree.
  */
 
-import { MARKER_TYPES } from "../player-template/js/tour-model.js";
-import { miniBtn, labeledInput, labeledTextarea } from "./ui-dom.js";
+import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js";
+import {
+  miniBtn,
+  labeledInput,
+  labeledTextarea,
+  labeledColor,
+  labeledCheckbox,
+} from "./ui-dom.js";
 import { createIconPicker } from "./icon-picker.js";
 
 /**
@@ -23,6 +29,9 @@ import { createIconPicker } from "./icon-picker.js";
  * @returns {HTMLElement}
  */
 export function renderMarkerRow({ scene, marker: m, selectedMarkerId, scenes, actions }) {
+  // Info zones get a different card (no icon/position; shape + style controls).
+  if (isZone(m)) return renderZoneRow({ m, selectedMarkerId, actions });
+
   const row = document.createElement("div");
   row.className = "marker-row" + (m.id === selectedMarkerId ? " is-selected" : "");
 
@@ -59,6 +68,48 @@ export function renderMarkerRow({ scene, marker: m, selectedMarkerId, scenes, ac
   pos.className = "marker-row__pos muted";
   pos.textContent = `Position: yaw ${m.yaw} deg, pitch ${m.pitch} deg`;
   row.append(pos);
+  return row;
+}
+
+/**
+ * Editor card for an INFO ZONE (polygon hotspot). No icon or single position;
+ * instead: label + info content + idle-outline toggle + hover color, plus an
+ * "Edit shape" button that selects the zone so its corner handles appear in
+ * the preview for dragging.
+ */
+function renderZoneRow({ m, selectedMarkerId, actions }) {
+  const row = document.createElement("div");
+  row.className =
+    "marker-row marker-row--zone" + (m.id === selectedMarkerId ? " is-selected" : "");
+
+  const head = document.createElement("div");
+  head.className = "marker-row__head";
+  const badge = document.createElement("span");
+  badge.className = "marker-badge marker-badge--zone";
+  badge.textContent = "Info zone";
+  head.append(badge);
+  head.append(miniBtn("Edit shape", "Select to drag its corners", () => actions.onEdit(m.id)));
+  head.append(miniBtn("Delete", "Delete hotspot", () => actions.onDelete(m.id)));
+
+  const label = labeledInput("Label", m.label, (v) => actions.onUpdate(m.id, { label: v }));
+  const html = labeledTextarea("Info content (HTML allowed)", m.html, (v) =>
+    actions.onUpdate(m.id, { html: v })
+  );
+  const outline = labeledCheckbox(
+    "Faint outline when idle (otherwise invisible until hover)",
+    m.idleStroke,
+    (on) => actions.onUpdate(m.id, { idleStroke: on })
+  );
+  const color = labeledColor("Hover color", m.hoverColor, (v) =>
+    actions.onUpdate(m.id, { hoverColor: v })
+  );
+
+  const hint = document.createElement("p");
+  hint.className = "marker-row__pos muted";
+  hint.textContent =
+    'Click "Edit shape", then drag the corner dots in the preview to fit the region.';
+
+  row.append(head, label, html, outline, color, hint);
   return row;
 }
 

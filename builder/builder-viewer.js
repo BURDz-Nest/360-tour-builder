@@ -13,7 +13,7 @@
 
 import { Viewer } from "@photo-sphere-viewer/core";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
-import { MARKER_TYPES } from "../player-template/js/tour-model.js";
+import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js";
 import { degStr, escapeHtml } from "../player-template/js/psv-adapter.js";
 import { renderMarkerHtml } from "../player-template/js/marker-icons.js";
 
@@ -22,7 +22,7 @@ const RAD2DEG = 180 / Math.PI;
 export class BuilderViewer {
   /**
    * @param {HTMLElement} container
-   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id), onMarkerMove(id,yawDeg,pitchDeg), onMarkerDeselect() }
+   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id), onMarkerMove(id,yawDeg,pitchDeg), onMarkerDeselect(), onZoneCornerMove(id,cornerIdx,yawDeg,pitchDeg) }
    */
   constructor(container, handlers = {}) {
     this.handlers = handlers;
@@ -46,6 +46,9 @@ export class BuilderViewer {
     });
 
     this.markers.addEventListener("select-marker", ({ marker }) => {
+      // Corner handles are markers too, but clicking one must NOT re-select or
+      // re-open anything - the handle's own pointer logic owns that gesture.
+      if (String(marker.id).includes("::corner::")) return;
       // Suppress the click that fires at the end of a drag (otherwise every
       // drop would also re-open the editor / steal focus).
       if (this._dragJustHappened) {
@@ -109,8 +112,14 @@ export class BuilderViewer {
 
   /** Re-paint the marker pins for the current scene. */
   renderMarkers(markerList) {
+    this._markerList = markerList;
     this.markers.clearMarkers();
+    const iconIds = [];
     for (const m of markerList) {
+      if (isZone(m)) {
+        this._addZone(m);
+        continue;
+      }
       const variant = m.type === MARKER_TYPES.LINK ? "nav" : "info";
       const size = variant === "nav" ? 52 : 38;
       this.markers.addMarker({
@@ -122,13 +131,103 @@ export class BuilderViewer {
         className: `builder-pin builder-pin--${m.type}`,
         tooltip: m.label ? { content: escapeHtml(m.label) } : undefined,
       });
+      iconIds.push(m.id);
     }
-    this._attachDragHandlers(markerList.map((m) => m.id));
-    // renderMarkers wiped the DOM, so re-stamp the selected highlight.
+    this._attachDragHandlers(iconIds);
+    // renderMarkers wiped the DOM, so re-stamp the selected highlight (pins).
     if (this._selectedMarkerId) {
       const m = this.markers.markers?.[this._selectedMarkerId];
       m?.element?.classList.add("is-selected");
     }
+  }
+
+  /**
+   * Add one INFO ZONE polygon. In the BUILDER we always paint a faint fill so
+   * authors can see + click the region (the player can keep it transparent).
+   * When selected, the fill brightens and draggable corner handles appear.
+   */
+  _addZone(m) {
+    const selected = this._selectedMarkerId === m.id;
+    const color = m.hoverColor || "#0071dc";
+    this.markers.addMarker({
+      id: m.id,
+      polygon: (m.points || []).map((p) => [degStr(p.yaw), degStr(p.pitch)]),
+      className: "builder-zone" + (selected ? " is-selected" : ""),
+      svgStyle: {
+        fill: color,
+        fillOpacity: selected ? 0.3 : m.idleStroke ? 0.12 : 0.08,
+        stroke: color,
+        strokeOpacity: selected ? 1 : m.idleStroke ? 0.85 : 0.55,
+        strokeWidth: selected ? 2.5 : 2,
+      },
+      tooltip: m.label ? { content: escapeHtml(m.label) } : undefined,
+    });
+    if (selected) this._addZoneHandles(m, color);
+  }
+
+  /** Drop a draggable dot on each corner of the selected zone. */
+  _addZoneHandles(m, color) {
+    (m.points || []).forEach((p, idx) => {
+      this.markers.addMarker({
+        id: `${m.id}::corner::${idx}`,
+        position: { yaw: degStr(p.yaw), pitch: degStr(p.pitch) },
+        html: `<div class="zone-handle" style="--zone-handle:${escapeHtml(color)}"></div>`,
+        size: { width: 18, height: 18 },
+        anchor: "center center",
+        className: "zone-handle-host",
+      });
+    });
+    (m.points || []).forEach((_p, idx) => {
+      const el = this.markers.getMarker(`${m.id}::corner::${idx}`)?.element;
+      if (!el) return;
+      el.style.cursor = "grab";
+      el.style.touchAction = "none";
+      el.addEventListener("mousedown", (e) => e.stopPropagation());
+      el.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+      el.addEventListener("pointerdown", (ev) => this._onCornerDown(ev, m.id, idx));
+    });
+  }
+
+  _onCornerDown(ev, zoneId, idx) {
+    if (ev.button !== 0) return;
+    ev.stopPropagation();
+    ev.preventDefault();
+    const handleId = `${zoneId}::corner::${idx}`;
+    const targetEl = ev.currentTarget;
+    targetEl.setPointerCapture?.(ev.pointerId);
+    targetEl.style.cursor = "grabbing";
+    let last = null;
+
+    const onMove = (e) => {
+      const sph = this._clientToSpherical(e.clientX, e.clientY);
+      if (!sph) return;
+      last = {
+        yawDeg: round(normDeg(sph.yawRad * RAD2DEG)),
+        pitchDeg: round(sph.pitchRad * RAD2DEG),
+      };
+      this.markers.updateMarker({ id: handleId, position: { yaw: sph.yawRad, pitch: sph.pitchRad } });
+      this._reshapeZoneLive(zoneId, idx, last.yawDeg, last.pitchDeg);
+    };
+    const onUp = (e) => {
+      targetEl.releasePointerCapture?.(e.pointerId);
+      targetEl.style.cursor = "grab";
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      this._dragJustHappened = true; // suppress the trailing select click
+      if (last) this.handlers.onZoneCornerMove?.(zoneId, idx, last.yawDeg, last.pitchDeg);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  }
+
+  /** Live-redraw a zone polygon as one corner is dragged (no commit yet). */
+  _reshapeZoneLive(zoneId, idx, yawDeg, pitchDeg) {
+    const zone = (this._markerList || []).find((x) => x.id === zoneId);
+    if (!zone) return;
+    const pts = zone.points.map((p, i) =>
+      i === idx ? [degStr(yawDeg), degStr(pitchDeg)] : [degStr(p.yaw), degStr(p.pitch)]
+    );
+    this.markers.updateMarker({ id: zoneId, polygon: pts });
   }
 
   /**
@@ -237,11 +336,23 @@ export class BuilderViewer {
    */
   setSelectedMarker(id) {
     if (this._selectedMarkerId === id) return;
-    if (this._selectedMarkerId) {
-      const prev = this.markers.markers?.[this._selectedMarkerId];
+    const prevId = this._selectedMarkerId;
+    this._selectedMarkerId = id || null;
+    // Zones need a real re-render (their corner handles + fill depend on
+    // selection); icon pins only need a cheap CSS class toggle so their drag
+    // listeners survive. If either side of the swap is a zone, re-render all.
+    const list = this._markerList || [];
+    const touchesZone = [prevId, id].some(
+      (mid) => mid && isZone(list.find((m) => m.id === mid))
+    );
+    if (touchesZone) {
+      this.renderMarkers(list);
+      return;
+    }
+    if (prevId) {
+      const prev = this.markers.markers?.[prevId];
       prev?.element?.classList.remove("is-selected");
     }
-    this._selectedMarkerId = id || null;
     if (id) {
       const next = this.markers.markers?.[id];
       if (!next?.element) return;

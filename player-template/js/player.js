@@ -11,7 +11,7 @@ import { Viewer } from "@photo-sphere-viewer/core";
 import { VirtualTourPlugin } from "@photo-sphere-viewer/virtual-tour-plugin";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
 
-import { validateTour, getScene } from "./tour-model.js";
+import { validateTour, getScene, isZone } from "./tour-model.js";
 import {
   toViewerNodes,
   sceneInitialView,
@@ -34,6 +34,7 @@ const els = {
   overlayTitle: document.getElementById("info-title"),
   overlayBody: document.getElementById("info-body"),
   overlayClose: document.getElementById("info-close"),
+  revealZones: document.getElementById("reveal-zones-btn"),
 };
 
 let activeTour = null;
@@ -140,6 +141,14 @@ function initViewer(tour) {
   const markers = viewer.getPlugin(MarkersPlugin);
   const virtualTour = viewer.getPlugin(VirtualTourPlugin);
 
+  // Stamp each zone's chosen hover color onto its SVG element as a CSS custom
+  // property so markers.css can tint it on hover / reveal. Re-runs on every
+  // node change because VirtualTour recreates the markers per scene.
+  markers.addEventListener("set-markers", () => stampZoneColors(markers));
+
+  // Show the "Reveal zones" toggle only when this tour actually has zones.
+  wireRevealZones(tour);
+
   // The transition already moved us to the saved view; here we only update the
   // caption text (no rotate/zoom -> no jump). Also keep the URL's ?scene= in
   // sync so the address bar always reflects what you're looking at.
@@ -182,6 +191,38 @@ function initViewer(tour) {
   viewer.addEventListener("panorama-error", (e) => {
     console.error("[player] panorama-error", e);
     fail("A panorama image failed to load. Check the image URL is reachable (and CORS-enabled if remote).");
+  });
+}
+
+/* ---------------- zones ---------------- */
+
+/** Push each zone's per-marker hover color onto its element for CSS to use. */
+function stampZoneColors(markers) {
+  for (const m of markers.getMarkers()) {
+    const data = m.data ?? m.config?.data;
+    if (data?.zone && m.domElement) {
+      m.domElement.style.setProperty("--zone-hover", data.hoverColor || "#0071dc");
+    }
+  }
+}
+
+/**
+ * Reveal-zones toggle (a11y/discoverability): zones are invisible-until-hover,
+ * which is mouse-only, so offer a button that outlines them all at once.
+ * Only shown when the tour contains at least one zone.
+ */
+function wireRevealZones(tour) {
+  const btn = els.revealZones;
+  if (!btn) return;
+  const hasZones = (tour.scenes || []).some((s) =>
+    (s.markers || []).some((m) => isZone(m))
+  );
+  if (!hasZones) return;
+  btn.hidden = false;
+  btn.addEventListener("click", () => {
+    const on = els.container.classList.toggle("zones-revealed");
+    btn.setAttribute("aria-pressed", String(on));
+    btn.querySelector("span").textContent = on ? "Hide zones" : "Show zones";
   });
 }
 

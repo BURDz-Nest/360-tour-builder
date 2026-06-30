@@ -63,3 +63,33 @@ export function labeledTextarea(label, value, onInput) {
   wrap.append(span, ta);
   return wrap;
 }
+
+/** A label + native color swatch. Returns the wrapper <label>. */
+export function labeledColor(label, value, onInput) {
+  const wrap = document.createElement("label");
+  wrap.className = "field field--inline";
+  const span = document.createElement("span");
+  span.className = "field__label";
+  span.textContent = label;
+  const input = document.createElement("input");
+  input.type = "color";
+  input.className = "field__color";
+  input.value = value || "#0071dc";
+  input.addEventListener("input", () => onInput(input.value));
+  wrap.append(span, input);
+  return wrap;
+}
+
+/** A checkbox + trailing text label. Returns the wrapper <label>. */
+export function labeledCheckbox(label, checked, onChange) {
+  const wrap = document.createElement("label");
+  wrap.className = "field field--check";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = !!checked;
+  input.addEventListener("change", () => onChange(input.checked));
+  const span = document.createElement("span");
+  span.textContent = label;
+  wrap.append(input, span);
+  return wrap;
+}

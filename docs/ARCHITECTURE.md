@@ -58,26 +58,36 @@ new tour.
 ├── builder/                   THE AUTHORING TOOL (local only)
 │   ├── index.html             builder DOM + import map (cache-busted ?v=N)
 │   ├── builder.js             controller: state, render, wiring (keep <600 lines)
-│   ├── builder-viewer.js      BuilderViewer class — PSV preview + place-mode
-│   ├── preview.js             createPreview() — what the center viewport shows
-│   ├── workspace.js           createWorkspace() — New/Open/Recent/images flows
-│   ├── overlays.js            mountOverlays() — Welcome + Images modal chrome
-│   ├── icon-picker.js         createIconPicker() — inline grid picker for marker icons
+│   ├── builder-viewer.js      BuilderViewer class - PSV preview, place-mode, drag, zone editing
+│   ├── marker-actions.js      marker CRUD + placement glue (factory; incl. zones)
+│   ├── marker-row.js          one marker's editor card (icon row OR zone settings)
+│   ├── icon-picker.js         createIconPicker() - inline grid picker for marker icons
+│   ├── scene-list.js          scene list rows (thumbnails + hotspot-count badges)
+│   ├── scene-actions.js       Duplicate scene + Copy hotspots helpers
+│   ├── tabs.js                mountTabs() - accessible WAI-ARIA tab controller (reused)
+│   ├── theme.js               dark/light theme toggle + persistence
+│   ├── preview.js             createPreview() - what the center viewport shows
+│   ├── workspace.js           createWorkspace() - New/Open/Recent/images flows
+│   ├── overlays.js            mountOverlays() - Welcome + Images modal chrome
 │   ├── project-store.js       IndexedDB "recent projects" (dir handles)
 │   ├── fs-workspace.js        File System Access API: read/write/optimize files
-│   └── ui-dom.js              tiny DOM builder helpers (miniBtn, labeledInput…)
+│   ├── ui-dom.js              tiny DOM builder helpers (miniBtn, labeledInput/Color/Checkbox, modal)
+│   ├── welcome.css            Welcome-screen styles (builder-only; NOT synced to tours)
+│   └── help-modal.css         Help/publish modal styles (builder-only)
 │
 ├── player-template/           THE RUNTIME (copied into every tour)
 │   ├── player.html            player DOM + import map
 │   ├── manifest.json
 │   ├── css/
 │   │   ├── app.css            SHARED app chrome (builder + player). Cache-busted ?v=N
-│   │   └── markers.css        SHARED marker library + animations + icon-picker UI
+│   │   ├── markers.css        SHARED marker library + animations + icon-picker + ZONES
+│   │   └── player.css         player-only chrome (.player-*, info overlay, share, spinner)
 │   ├── js/
 │   │   ├── tour-model.js      tour.json schema, validate, factories (PURE, shared)
 │   │   ├── marker-icons.js    Icon registry (NAV/INFO sets + animations). PURE, shared.
-│   │   ├── psv-adapter.js     tour.json → PSV config (the ONLY PSV-shape file, shared)
-│   │   └── player.js          player bootstrap (fetch config → init Viewer)
+│   │   ├── psv-adapter.js     tour.json -> PSV config (the ONLY PSV-shape file, shared)
+│   │   ├── share.js           player Share button + QR modal + ?scene= deep-linking
+│   │   └── player.js          player bootstrap (fetch config -> init Viewer)
 │   └── vendor/                VENDORED libs (list_files hides this — it exists!)
 │       ├── three.module.js                 (three 0.169.0)
 │       ├── psv-core.module.js / .css       (PSV 5.11.5)
@@ -85,9 +95,8 @@ new tour.
 │       ├── psv-virtual-tour.module.js / .css
 │       └── psv-gallery.module.js / .css
 │
-├── tours/                     YOUR TOURS — each a complete deployable site
-│   ├── Sams-Office-Tour/      the real 16-scene tour (images + runtime + tour.json)
-│   └── sams-office/           reference/sample tour
+├── tours/                     YOUR TOURS - local working data, GIT-IGNORED
+│   └── .gitkeep               (each tours/<name>/ is a complete deployable site)
 │
 ├── scripts/
 │   ├── launch.command         double-click: start server + open builder (mac)
@@ -105,23 +114,34 @@ new tour.
 The builder is a small MVC-ish app. `builder.js` is the controller; the other
 modules are injected collaborators (factory functions receiving a `ctx` object).
 
-### `builder.js` (controller, ~572 lines — **keep under 600**)
+### `builder.js` (controller, ~560 lines — **keep under 600**)
 - Holds the single `state` object: `{ tour, currentSceneId, selectedMarkerId,
   placing, fileHandle, dirHandle, previewBase }`.
 - Owns rendering: `renderAll`, `renderSceneList`, `renderSceneEditor`,
   `renderMarkerList`, `renderViewReadout`.
-- Owns scene/marker actions: `addScene`, `deleteScene`, `selectScene`,
-  `updateScene`, `beginPlacing`/`handlePlace`, `captureView`, `setStartScene`.
+- Owns scene actions: `addScene`, `deleteScene`, `selectScene`,
+  `updateScene`, `captureView`, `setStartScene`. **Marker** actions live in
+  `marker-actions.js` (injected as `markerActions`).
 - Owns import/export: `importTour`, `saveTour`, `serializeTour`,
   `prepareThumbnails`, `previewInPlayer` (stages tour to `localStorage` under
   `tour-preview-config`, opens player with `?config=__preview__`).
-- `init()` wires everything. Help modal is wired at **top level** (always
-  available); the File-System features are wired only `if (fs.fsSupported())`.
+- `init()` wires everything (incl. the left-panel tabs AND the Hotspots
+  Navigation/Info sub-tabs via `mountTabs`). Help modal is wired at **top
+  level**; File-System features only `if (fs.fsSupported())`.
+
+### `marker-actions.js` — `createMarkerActions(ctx)`
+- The marker CRUD + placement glue, extracted to keep `builder.js` under 600.
+  Returns `{ beginPlacing, cancelPlacing, handlePlace, selectMarker,
+  deleteMarker, replaceMarker, updateMarker, moveZoneCorner }`. Handles both
+  icon markers and info zones (zone placement drops a default quad;
+  `moveZoneCorner` commits a dragged corner).
 
 ### `builder-viewer.js` — `class BuilderViewer`
 - Wraps ONE PSV `Viewer` + `MarkersPlugin` for the live preview.
-- `loadScene(scene, url)`, `clear()` (blank/transparent), `renderMarkers()`,
-  `setPlaceMode()`, `getCurrentView()` (yaw/pitch deg + zoom), `applyView()`.
+- `loadScene(scene, url)`, `clear()`, `renderMarkers()` (icons AND zone
+  polygons + draggable corner handles), `setPlaceMode()`, `getCurrentView()`,
+  `applyView()`. Drag: selected icon pins reposition; selected zones expose
+  per-corner handles (`onZoneCornerMove`).
 - **This is one of only two files that import PSV directly.**
 
 ### `preview.js` — `createPreview({state,$,toast,getScene,viewer})`
@@ -222,7 +242,10 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
     "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },  // DEGREES, zoom 0-100
     "markers": [
       { "id":"m1","type":"link","yaw":60,"pitch":-5,"label":"To Backroom","icon":"door","targetSceneId":"backroom" },
-      { "id":"m2","type":"info","yaw":-90,"pitch":0,"label":"Desk","icon":"clock","html":"<p>Open 8-9</p>" }
+      { "id":"m2","type":"info","yaw":-90,"pitch":0,"label":"Desk","icon":"clock","html":"<p>Open 8-9</p>" },
+      { "id":"m3","type":"info","shape":"zone","label":"Vase","html":"<p>Ming dynasty</p>",
+        "points":[{"yaw":8,"pitch":14},{"yaw":32,"pitch":14},{"yaw":32,"pitch":-4},{"yaw":8,"pitch":-4}],
+        "idleStroke":false,"hoverColor":"#0071dc" }
     ]
   }]
 }
@@ -238,6 +261,17 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   for `type:"link"`, `INFO_ICONS` for `type:"info"`. Blank/missing/unknown
   ids fall back to the type's default (`waypoint` / `info`). Add new icons in
   `marker-icons.js`; the picker grid populates automatically.
+- **INFO ZONES** (Storyline-style hotspots): an `info` marker with
+  `shape:"zone"`. Instead of a single `yaw`/`pitch` it carries `points` (an
+  array of 3+ `{yaw,pitch}` corners in DEGREES — the builder authors a
+  draggable 4-corner quad). `idleStroke` (bool) = faint always-on outline vs
+  fully transparent until hover; `hoverColor` = the tint shown on hover/reveal.
+  `shape` defaults to `"icon"` and is only stored for zones, so old tour.json
+  files are unaffected. Zones open the SAME info popup as icon info markers
+  (`data.kind="info"`). The player offers a **"Reveal zones"** toggle (shown
+  only when a tour has zones) for keyboard/touch discoverability (a11y).
+  Helpers: `isZone(marker)`, `defaultZonePoints()` in `tour-model.js`;
+  `zoneMarkerToConfig()` in `psv-adapter.js`.
 
 ---
 
@@ -291,27 +325,25 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
 
 ---
 
-## 9. Versioning: v1 vs v2 (git branches + worktrees)
+## 9. Repository / branch state
 
-- **`main` = v1** (tagged `v1.0`): the original working web builder. Stable;
-  the team uses it. Lives in the `360TourAp/` folder, served on **port 8123**.
-- **`v2` branch**: this folder (`360TourAp-v2/`), served on **port 8124**. Adds
-  the Welcome screen, footgun cleanup (read-only panorama, removed preview-base
-  & thumbnail fields), auto-load tour.json, Help/publishing modal, empty-state
-  viewport.
-- Both are **git worktrees** of the same repo, so they run side-by-side.
-  `git worktree list` shows them.
-- **AI agents — the golden rule:** check your CWD first (`pwd`).
-  - If your terminal/CWD is **`360TourAp-v2/`** (the normal case for v2 work),
-    relative file paths stay inside v2 — you're safe, just work normally.
-  - If your CWD is the **main `360TourAp/`** folder, file tools default there, so
-    you must use absolute `…/360TourAp-v2/…` paths or you'll edit v1 by accident.
-  - Either way: confirm `git branch --show-current` says **`v2`** before editing.
+- This project lives on a **single `main` branch** (GitHub:
+  `BURDz-Nest/360-tour-builder`). `main` is the current, canonical version
+  (formerly the "v2" line). The old original build is preserved as the **`v1`
+  git tag** for history only - we do not develop on it.
+- The earlier v1/v2 **git-worktree** setup has been retired: this folder is now
+  a normal standalone clone. (An archived copy of the old v1 working folder may
+  exist locally as `360TourAp-ARCHIVE-v1/` - it is independent and untouched.)
+- Serve locally on **port 8124** (see `scripts/launch.command`):
 
-To start a server for whichever you're working on:
 ```bash
-cd <the folder> && python3 -m http.server 8124   # 8123 for v1
+cd <this folder> && python3 -m http.server 8124
 ```
+
+- **`tours/` is git-ignored** - tours are local working data (often
+  real-facility imagery) and are NOT committed. A tracked `tours/.gitkeep`
+  keeps the folder present. Author tours locally; publish each `tours/<name>/`
+  folder to its own hosting target. See `docs/SECURITY.md`.
 
 ---
 

@@ -13,15 +13,17 @@ import {
   getScene,
   validateTour,
   MARKER_TYPES,
+  MARKER_SHAPES,
 } from "../player-template/js/tour-model.js";
 // NOTE on cache: ES module imports use the URL as the cache key, so adding
 // ?v= here forces a fresh fetch when builder-viewer.js changes. The parent
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "37";
-import { BuilderViewer } from "./builder-viewer.js?v=37";
+const BUILDER_BUILD = "38";
+import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js";
+import { createMarkerActions } from "./marker-actions.js";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
 import { mountOverlays } from "./overlays.js";
@@ -51,6 +53,7 @@ let viewer;
 let preview;
 let sceneList;
 let overlays;
+let markerActions;
 let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
 
 init();
@@ -59,13 +62,17 @@ function init() {
   // Build breadcrumb: if DevTools shows an old number, hard-refresh (stale cache).
   console.log(`[builder] init - BUILDER_BUILD ${BUILDER_BUILD}`);
   viewer = new BuilderViewer($("preview"), {
-    onPlace: handlePlace,
-    onMarkerClick: (id) => selectMarker(id),
+    onPlace: (yaw, pitch) => markerActions.handlePlace(yaw, pitch),
+    onMarkerClick: (id) => markerActions.selectMarker(id),
     onMarkerMove: (id, yaw, pitch) => {
-      updateMarker(id, { yaw, pitch });
-      selectMarker(id); // surface the moved marker in the side panel
+      markerActions.updateMarker(id, { yaw, pitch });
+      markerActions.selectMarker(id); // surface the moved marker in the side panel
     },
-    onMarkerDeselect: () => selectMarker(null), // click empty space -> deselect
+    onMarkerDeselect: () => markerActions.selectMarker(null), // click empty -> deselect
+    onZoneCornerMove: (id, idx, yaw, pitch) => markerActions.moveZoneCorner(id, idx, yaw, pitch),
+  });
+  markerActions = createMarkerActions({
+    state, viewer, $, toast, getScene, createMarker, refresh: renderMarkerList,
   });
   preview = createPreview({ state, $, toast, getScene, viewer });
   sceneList = createSceneList({
@@ -120,7 +127,8 @@ function init() {
     const ws = createWorkspace({
       state, $, toast, getScene, validateTour,
       createEmptyTour, createScene,
-      updateScene, renderAll, selectScene, updatePreview: preview.updatePreview, cancelPlacing,
+      updateScene, renderAll, selectScene, updatePreview: preview.updatePreview,
+      cancelPlacing: () => markerActions.cancelPlacing(),
     });
     // Topbar shortcuts (same actions as the Welcome screen).
     $("btn-new-tour").addEventListener("click", ws.handleNewTour);
@@ -156,10 +164,22 @@ function init() {
   $("btn-duplicate-scene").addEventListener("click", duplicateCurrentScene);
   $("btn-delete-scene").addEventListener("click", deleteScene);
 
-  // Marker buttons
-  $("btn-add-link").addEventListener("click", () => beginPlacing(MARKER_TYPES.LINK));
-  $("btn-add-info").addEventListener("click", () => beginPlacing(MARKER_TYPES.INFO));
+  // Marker buttons (tabbed: Navigation | Info; Info splits into Icon vs Zone).
+  $("btn-add-link").addEventListener("click", () => markerActions.beginPlacing(MARKER_TYPES.LINK));
+  $("btn-add-info").addEventListener("click", () => markerActions.beginPlacing(MARKER_TYPES.INFO));
+  $("btn-add-info-zone").addEventListener("click", () =>
+    markerActions.beginPlacing(MARKER_TYPES.INFO, MARKER_SHAPES.ZONE)
+  );
   $("btn-copy-hotspots").addEventListener("click", openCopyHotspotsMenu);
+
+  // Hotspots sub-tabs (Navigation | Info), styled like the left-panel tabs.
+  mountTabs({
+    pairs: [
+      { tab: $("tab-hs-nav"), panel: $("panel-hs-nav") },
+      { tab: $("tab-hs-info"), panel: $("panel-hs-info") },
+    ],
+    storageKey: "builder-hotspot-tab",
+  });
 
   renderAll();
   preview.updatePreview();
@@ -180,7 +200,7 @@ function selectScene(id) {
   state.currentSceneId = id;
   state.selectedMarkerId = null;
   viewer?.setSelectedMarker(null);
-  cancelPlacing();
+  markerActions?.cancelPlacing();
   renderSceneList();
   renderSceneEditor();
   preview.updatePreview();
@@ -259,78 +279,6 @@ function captureView() {
   scene.initialView = viewer.getCurrentView();
   renderViewReadout(scene);
   toast("Saved this camera angle as the scene's default view.");
-}
-
-/* ===================== Markers ===================== */
-
-function beginPlacing(type) {
-  if (!state.currentSceneId) return toast("Select a scene first.", true);
-  state.placing = { type };
-  viewer.setPlaceMode(true);
-  const label = type === MARKER_TYPES.LINK ? "navigation" : "info";
-  $("place-hint").textContent = ` Click in the preview to drop a ${label} hotspot. (Esc to cancel)`;
-  $("place-hint").hidden = false;
-}
-
-function cancelPlacing() {
-  state.placing = null;
-  viewer.setPlaceMode(false);
-  $("place-hint").hidden = true;
-}
-
-function handlePlace(yaw, pitch) {
-  if (!state.placing) return;
-  const scene = getScene(state.tour, state.currentSceneId);
-  if (!scene) return;
-
-  if (state.placing.markerId) {
-    const m = scene.markers.find((x) => x.id === state.placing.markerId);
-    if (m) {
-      m.yaw = yaw;
-      m.pitch = pitch;
-    }
-  } else {
-    const marker = createMarker({ type: state.placing.type, yaw, pitch });
-    scene.markers.unshift(marker); // newest card on top of the list
-    state.selectedMarkerId = marker.id;
-  }
-  cancelPlacing();
-  viewer.renderMarkers(scene.markers);
-  renderMarkerList();
-}
-
-function selectMarker(id) {
-  state.selectedMarkerId = id;
-  viewer?.setSelectedMarker(id);
-  renderMarkerList();
-}
-
-function deleteMarker(id) {
-  const scene = getScene(state.tour, state.currentSceneId);
-  if (!scene) return;
-  scene.markers = scene.markers.filter((m) => m.id !== id);
-  if (state.selectedMarkerId === id) state.selectedMarkerId = null;
-  viewer.renderMarkers(scene.markers);
-  renderMarkerList();
-}
-
-function replaceMarker(id) {
-  const scene = getScene(state.tour, state.currentSceneId);
-  const m = scene?.markers.find((x) => x.id === id);
-  if (!m) return;
-  state.placing = { type: m.type, markerId: id };
-  viewer.setPlaceMode(true);
-  $("place-hint").textContent = " Click to reposition this hotspot. (Esc to cancel)";
-  $("place-hint").hidden = false;
-}
-
-function updateMarker(id, patch) {
-  const scene = getScene(state.tour, state.currentSceneId);
-  const m = scene?.markers.find((x) => x.id === id);
-  if (!m) return;
-  Object.assign(m, patch);
-  // Anything that changes how the pin looks on the sphere triggers a re-render.
-  if ("label" in patch || "icon" in patch) viewer.renderMarkers(scene.markers);
 }
 
 /* ===================== Import / Export ===================== */
@@ -520,29 +468,39 @@ function renderViewReadout(scene) {
 
 function renderMarkerList() {
   const scene = getScene(state.tour, state.currentSceneId);
-  const list = $("marker-list");
-  list.innerHTML = "";
+  const navList = $("marker-list-nav");
+  const infoList = $("marker-list-info");
+  navList.innerHTML = "";
+  infoList.innerHTML = "";
   if (!scene) return;
 
-  if (!scene.markers.length) {
+  const nav = scene.markers.filter((m) => m.type === MARKER_TYPES.LINK);
+  const info = scene.markers.filter((m) => m.type === MARKER_TYPES.INFO);
+  fillMarkerList(navList, nav, scene, "No navigation hotspots yet.");
+  fillMarkerList(infoList, info, scene, "No info hotspots or zones yet.");
+}
+
+/** Render one filtered set of marker cards into a container (or an empty note). */
+function fillMarkerList(container, markers, scene, emptyMsg) {
+  if (!markers.length) {
     const empty = document.createElement("p");
     empty.className = "muted";
-    empty.textContent = "No hotspots yet. Add a navigation or info hotspot above.";
-    list.append(empty);
+    empty.textContent = emptyMsg;
+    container.append(empty);
     return;
   }
-
-  scene.markers.forEach((m) =>
-    list.append(
+  markers.forEach((m) =>
+    container.append(
       renderMarkerRow({
         scene,
         marker: m,
         selectedMarkerId: state.selectedMarkerId,
         scenes: state.tour.scenes,
         actions: {
-          onReplace: replaceMarker,
-          onDelete: deleteMarker,
-          onUpdate: updateMarker,
+          onReplace: (id) => markerActions.replaceMarker(id),
+          onDelete: (id) => markerActions.deleteMarker(id),
+          onUpdate: (id, patch) => markerActions.updateMarker(id, patch),
+          onEdit: (id) => markerActions.selectMarker(id),
         },
       })
     )
@@ -596,5 +554,5 @@ function toast(message, isError = false) {
 
 // Global Esc cancels placing mode.
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && state.placing) cancelPlacing();
+  if (e.key === "Escape" && state.placing) markerActions.cancelPlacing();
 });

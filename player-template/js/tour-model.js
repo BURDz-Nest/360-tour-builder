@@ -14,12 +14,21 @@
  *       id, name, panorama (URL), thumbnail (URL|""), caption,
  *       initialView: { yaw, pitch, zoom },   // yaw/pitch in DEGREES, zoom 0-100
  *       markers: [
- *         { id, type:"link"|"info", yaw, pitch, label,
- *           targetSceneId (link only), html (info only) }
+ *         // ICON pin (default): glyph at a single yaw/pitch.
+ *         { id, type:"link"|"info", yaw, pitch, label, icon,
+ *           targetSceneId (link only), html (info only) },
+ *         // INFO ZONE: transparent polygon hotspot (Storyline-style).
+ *         { id, type:"info", shape:"zone", label, html,
+ *           points:[{yaw,pitch},...],   // 3+ corners, DEGREES
+ *           idleStroke:false,           // faint always-on outline?
+ *           hoverColor:"#0071dc" }      // tint shown on hover
  *       ]
  *     }
  *   ]
  * }
+ *
+ * `shape` defaults to "icon" and is only stored for zones, so existing
+ * tour.json files load unchanged (back-compat).
  *
  * Angles are stored as human-friendly DEGREES (numbers). The PSV adapter
  * converts them to the "<n>deg" strings Photo-Sphere-Viewer expects.
@@ -31,6 +40,21 @@ export const MARKER_TYPES = Object.freeze({
   LINK: "link",
   INFO: "info",
 });
+
+/**
+ * INFO markers come in two shapes:
+ *   - "icon": a glyph pin (the classic info hotspot)
+ *   - "zone": a transparent polygon region (Storyline-style hotspot) that
+ *     reveals on hover and opens the same info popup on click.
+ * Shape only applies to INFO markers; LINK markers are always icons.
+ */
+export const MARKER_SHAPES = Object.freeze({
+  ICON: "icon",
+  ZONE: "zone",
+});
+
+/** Default hover tint for zones (Walmart Blue, matches nav waypoints). */
+export const DEFAULT_ZONE_HOVER = "#0071dc";
 
 /** Crypto-ish short id good enough for in-tour uniqueness. */
 export function makeId(prefix = "id") {
@@ -79,13 +103,36 @@ export function createScene({ name = "New Scene", panorama = "" } = {}) {
 
 export function createMarker({
   type = MARKER_TYPES.LINK,
+  shape = MARKER_SHAPES.ICON,
   yaw = 0,
   pitch = 0,
   label = "",
   targetSceneId = "",
   html = "",
   icon = "",
+  points = null,
+  idleStroke = false,
+  hoverColor = DEFAULT_ZONE_HOVER,
 } = {}) {
+  // INFO ZONE: a polygon hotspot. No single position - the corners live in
+  // `points` (DEGREES). Falls back to a default quad if given too few points.
+  if (type === MARKER_TYPES.INFO && shape === MARKER_SHAPES.ZONE) {
+    return {
+      id: makeId("mk"),
+      type: MARKER_TYPES.INFO,
+      shape: MARKER_SHAPES.ZONE,
+      label,
+      html,
+      points:
+        Array.isArray(points) && points.length >= 3
+          ? points.map((p) => ({ yaw: num(p.yaw, 0), pitch: num(p.pitch, 0) }))
+          : defaultZonePoints(yaw, pitch),
+      // false -> fully transparent until hover; true -> faint always-on stroke.
+      idleStroke: !!idleStroke,
+      hoverColor: hoverColor || DEFAULT_ZONE_HOVER,
+    };
+  }
+  // ICON marker (link or info): single position + an icon from marker-icons.js.
   return {
     id: makeId("mk"),
     type,
@@ -98,6 +145,24 @@ export function createMarker({
     icon,
     ...(type === MARKER_TYPES.LINK ? { targetSceneId } : { html }),
   };
+}
+
+/**
+ * Build a default 4-corner quad centered on a yaw/pitch (DEGREES), wound
+ * clockwise from the top-left. Authors then drag the corners to fit.
+ */
+export function defaultZonePoints(centerYaw = 0, centerPitch = 0, halfW = 12, halfH = 9) {
+  return [
+    { yaw: centerYaw - halfW, pitch: centerPitch + halfH },
+    { yaw: centerYaw + halfW, pitch: centerPitch + halfH },
+    { yaw: centerYaw + halfW, pitch: centerPitch - halfH },
+    { yaw: centerYaw - halfW, pitch: centerPitch - halfH },
+  ];
+}
+
+/** True if a marker is an info zone (polygon) rather than a glyph pin. */
+export function isZone(marker) {
+  return marker?.type === MARKER_TYPES.INFO && marker?.shape === MARKER_SHAPES.ZONE;
 }
 
 /** Look up a scene by id (or undefined). */
@@ -217,14 +282,19 @@ export function validateTour(raw) {
 function normalizeMarker(raw) {
   if (!raw || typeof raw !== "object") return null;
   const type = raw.type === MARKER_TYPES.INFO ? MARKER_TYPES.INFO : MARKER_TYPES.LINK;
+  const zone = type === MARKER_TYPES.INFO && raw.shape === MARKER_SHAPES.ZONE;
   const marker = createMarker({
     type,
+    shape: zone ? MARKER_SHAPES.ZONE : MARKER_SHAPES.ICON,
     yaw: num(raw.yaw, 0),
     pitch: num(raw.pitch, 0),
     label: String(raw.label || ""),
     targetSceneId: String(raw.targetSceneId || ""),
     html: String(raw.html || ""),
     icon: String(raw.icon || ""),
+    points: Array.isArray(raw.points) ? raw.points : null,
+    idleStroke: !!raw.idleStroke,
+    hoverColor: raw.hoverColor ? String(raw.hoverColor) : undefined,
   });
   if (raw.id) marker.id = String(raw.id);
   return marker;

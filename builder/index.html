@@ -9,10 +9,10 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css?v=19" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=20" />
     <link rel="stylesheet" href="welcome.css?v=1" />
     <link rel="stylesheet" href="help-modal.css?v=1" />
-    <link rel="stylesheet" href="../player-template/css/markers.css?v=4" />
+    <link rel="stylesheet" href="../player-template/css/markers.css?v=5" />
 
     <script type="importmap">
       {
@@ -146,12 +146,34 @@
           </div>
 
           <h2 class="section-title">Hotspots</h2>
-          <div class="marker-actions">
-            <button id="btn-add-link" class="btn" type="button">+ Navigation</button>
-            <button id="btn-add-info" class="btn" type="button">+ Info</button>
-            <button id="btn-copy-hotspots" class="btn" type="button" title="Copy all hotspots from another scene into this one">Copy hotspots…</button>
+          <div class="tabs" role="tablist" aria-label="Hotspot type">
+            <button id="tab-hs-nav" class="tab is-active" type="button"
+                    role="tab" aria-selected="true" aria-controls="panel-hs-nav">
+              Navigation
+            </button>
+            <button id="tab-hs-info" class="tab" type="button"
+                    role="tab" aria-selected="false" aria-controls="panel-hs-info" tabindex="-1">
+              Info
+            </button>
           </div>
-          <div id="marker-list"></div>
+
+          <!-- NAVIGATION hotspots -->
+          <div id="panel-hs-nav" class="tab-panel" role="tabpanel" aria-labelledby="tab-hs-nav">
+            <div class="marker-actions">
+              <button id="btn-add-link" class="btn" type="button">+ Navigation</button>
+              <button id="btn-copy-hotspots" class="btn" type="button" title="Copy all hotspots from another scene into this one">Copy hotspots...</button>
+            </div>
+            <div id="marker-list-nav"></div>
+          </div>
+
+          <!-- INFO hotspots: an icon pin OR a transparent zone -->
+          <div id="panel-hs-info" class="tab-panel" role="tabpanel" aria-labelledby="tab-hs-info" hidden>
+            <div class="marker-actions">
+              <button id="btn-add-info" class="btn" type="button" title="A glyph pin you click for details">+ Info icon</button>
+              <button id="btn-add-info-zone" class="btn" type="button" title="A transparent region that reveals on hover">+ Info zone</button>
+            </div>
+            <div id="marker-list-info"></div>
+          </div>
 
           <h2 class="section-title">Scene actions</h2>
           <div class="marker-actions">
@@ -261,6 +283,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=37"></script>
+    <script type="module" src="builder.js?v=38"></script>
   </body>
 </html>

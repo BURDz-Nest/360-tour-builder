@@ -15,9 +15,9 @@
     <link rel="stylesheet" href="vendor/psv-markers.css" />
     <link rel="stylesheet" href="vendor/psv-virtual-tour.css" />
     <link rel="stylesheet" href="vendor/psv-gallery.css" />
-    <link rel="stylesheet" href="css/app.css?v=9" />
+    <link rel="stylesheet" href="css/app.css?v=10" />
     <link rel="stylesheet" href="css/player.css?v=1" />
-    <link rel="stylesheet" href="css/markers.css?v=4" />
+    <link rel="stylesheet" href="css/markers.css?v=5" />
 
     <script type="importmap">
       {
@@ -35,6 +35,15 @@
     <header class="player-bar">
       <h1 id="tour-title" class="player-bar__title">360 Tour</h1>
       <p id="scene-caption" class="player-bar__caption" hidden></p>
+      <button id="reveal-zones-btn" class="player-bar__share" type="button" hidden
+              aria-pressed="false" aria-label="Show information zones" title="Show information zones">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        <span>Show zones</span>
+      </button>
       <button id="share-btn" class="player-bar__share" type="button"
               aria-label="Share this view" title="Share this view">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none"
@@ -108,6 +117,6 @@
 
     <!-- qrcode-generator 1.4.4 (MIT, Kazuhiko Arase) - vendored, exposes window.qrcode -->
     <script src="vendor/qrcode.js?v=1"></script>
-    <script type="module" src="js/player.js?v=15"></script>
+    <script type="module" src="js/player.js?v=16"></script>
   </body>
 </html>
