@@ -191,6 +191,14 @@ button { font: inherit; cursor: pointer; }
 .field + .section-title,
 .scene-list + .section-title { margin-top: 1.4rem; }
 
+/* Scene-editor section grouping: clear blank space + a faint divider between
+   Scene / Scene actions / Default camera view / Hotspots so they don't crowd. */
+.editor-section + .editor-section {
+  margin-top: 1.6rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--line);
+}
+
 /* ============ Fields ============ */
 .field { display: block; margin-bottom: 0.75rem; }
 .field__label {

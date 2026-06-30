@@ -9,7 +9,7 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css?v=20" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=21" />
     <link rel="stylesheet" href="welcome.css?v=1" />
     <link rel="stylesheet" href="help-modal.css?v=1" />
     <link rel="stylesheet" href="../player-template/css/markers.css?v=5" />
@@ -120,66 +120,74 @@
         <p id="no-scene" class="muted">Select or add a scene to edit it.</p>
 
         <div id="scene-editor" hidden>
-          <div class="view-row">
-            <h2 class="section-title" style="margin:0">Scene</h2>
-            <span id="start-badge" class="start-badge" hidden>Start scene</span>
-          </div>
-
-          <label class="field">
-            <span class="field__label">Name (shown in gallery)</span>
-            <input id="scene-name" class="field__input" type="text" />
-          </label>
-          <label class="field">
-            <span class="field__label">Panorama image <span class="muted">(set via the Images dialog)</span></span>
-            <input id="scene-panorama" class="field__input field__input--readonly" type="text"
-                   readonly tabindex="-1" placeholder="No image yet — open “Images…” to add one" />
-          </label>
-          <label class="field">
-            <span class="field__label">Caption (optional)</span>
-            <input id="scene-caption" class="field__input" type="text" />
-          </label>
-
-          <h2 class="section-title">Default camera view</h2>
-          <div class="view-row">
-            <button id="btn-capture-view" class="btn" type="button">Capture current view</button>
-            <span id="view-readout" class="view-readout"></span>
-          </div>
-
-          <h2 class="section-title">Hotspots</h2>
-          <div class="tabs" role="tablist" aria-label="Hotspot type">
-            <button id="tab-hs-nav" class="tab is-active" type="button"
-                    role="tab" aria-selected="true" aria-controls="panel-hs-nav">
-              Navigation
-            </button>
-            <button id="tab-hs-info" class="tab" type="button"
-                    role="tab" aria-selected="false" aria-controls="panel-hs-info" tabindex="-1">
-              Info
-            </button>
-          </div>
-
-          <!-- NAVIGATION hotspots -->
-          <div id="panel-hs-nav" class="tab-panel" role="tabpanel" aria-labelledby="tab-hs-nav">
-            <div class="marker-actions">
-              <button id="btn-add-link" class="btn" type="button">+ Navigation</button>
-              <button id="btn-copy-hotspots" class="btn" type="button" title="Copy all hotspots from another scene into this one">Copy hotspots...</button>
+          <div class="editor-section">
+            <div class="view-row">
+              <h2 class="section-title" style="margin:0">Scene</h2>
+              <span id="start-badge" class="start-badge" hidden>Start scene</span>
             </div>
-            <div id="marker-list-nav"></div>
+
+            <label class="field">
+              <span class="field__label">Name (shown in gallery)</span>
+              <input id="scene-name" class="field__input" type="text" />
+            </label>
+            <label class="field">
+              <span class="field__label">Panorama image <span class="muted">(set via the Images dialog)</span></span>
+              <input id="scene-panorama" class="field__input field__input--readonly" type="text"
+                     readonly tabindex="-1" placeholder="No image yet — open “Images…” to add one" />
+            </label>
+            <label class="field">
+              <span class="field__label">Caption (optional)</span>
+              <input id="scene-caption" class="field__input" type="text" />
+            </label>
           </div>
 
-          <!-- INFO hotspots: an icon pin OR a transparent zone -->
-          <div id="panel-hs-info" class="tab-panel" role="tabpanel" aria-labelledby="tab-hs-info" hidden>
+          <div class="editor-section">
+            <h2 class="section-title">Scene actions</h2>
             <div class="marker-actions">
-              <button id="btn-add-info" class="btn" type="button" title="A glyph pin you click for details">+ Info icon</button>
-              <button id="btn-add-info-zone" class="btn" type="button" title="A transparent region that reveals on hover">+ Info zone</button>
+              <button id="btn-set-start" class="btn" type="button">Set as start</button>
+              <button id="btn-duplicate-scene" class="btn" type="button" title="Create a copy of this scene right after it">Duplicate scene</button>
+              <button id="btn-delete-scene" class="btn btn--danger" type="button">Delete scene</button>
             </div>
-            <div id="marker-list-info"></div>
           </div>
 
-          <h2 class="section-title">Scene actions</h2>
-          <div class="marker-actions">
-            <button id="btn-set-start" class="btn" type="button">Set as start</button>
-            <button id="btn-duplicate-scene" class="btn" type="button" title="Create a copy of this scene right after it">Duplicate scene</button>
-            <button id="btn-delete-scene" class="btn btn--danger" type="button">Delete scene</button>
+          <div class="editor-section">
+            <h2 class="section-title">Default camera view</h2>
+            <div class="view-row">
+              <button id="btn-capture-view" class="btn" type="button">Capture current view</button>
+              <span id="view-readout" class="view-readout"></span>
+            </div>
+          </div>
+
+          <div class="editor-section">
+            <h2 class="section-title">Hotspots</h2>
+            <div class="tabs" role="tablist" aria-label="Hotspot type">
+              <button id="tab-hs-nav" class="tab is-active" type="button"
+                      role="tab" aria-selected="true" aria-controls="panel-hs-nav">
+                Navigation
+              </button>
+              <button id="tab-hs-info" class="tab" type="button"
+                      role="tab" aria-selected="false" aria-controls="panel-hs-info" tabindex="-1">
+                Info
+              </button>
+            </div>
+
+            <!-- NAVIGATION hotspots -->
+            <div id="panel-hs-nav" class="tab-panel" role="tabpanel" aria-labelledby="tab-hs-nav">
+              <div class="marker-actions">
+                <button id="btn-add-link" class="btn" type="button">+ Navigation</button>
+                <button id="btn-copy-hotspots" class="btn" type="button" title="Copy all hotspots from another scene into this one">Copy hotspots...</button>
+              </div>
+              <div id="marker-list-nav"></div>
+            </div>
+
+            <!-- INFO hotspots: an icon pin OR a transparent zone -->
+            <div id="panel-hs-info" class="tab-panel" role="tabpanel" aria-labelledby="tab-hs-info" hidden>
+              <div class="marker-actions">
+                <button id="btn-add-info" class="btn" type="button" title="A glyph pin you click for details">+ Info icon</button>
+                <button id="btn-add-info-zone" class="btn" type="button" title="A transparent region that reveals on hover">+ Info zone</button>
+              </div>
+              <div id="marker-list-info"></div>
+            </div>
           </div>
         </div>
       </section>
