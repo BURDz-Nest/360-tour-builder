@@ -5,13 +5,17 @@
  * Pure data + logic only — NO DOM, NO Photo-Sphere-Viewer imports here.
  * That separation keeps this testable and keeps us honest (SOLID: SRP).
  *
- * tour.json shape (version 1):
+ * tour.json shape (version 2):
  * {
- *   "version": 1,
+ *   "version": 2,
  *   "meta": { title, description, author, startSceneId, createdAt },
+ *   "groups": [                          // NEW in v2 - ordered "areas"
+ *     { id, name, color, entrySceneId }  // entrySceneId = where you land when
+ *   ],                                   //   you jump to this area ("" = first)
  *   "scenes": [
  *     {
  *       id, name, panorama (URL), thumbnail (URL|""), caption,
+ *       groupId,                          // NEW in v2 - group id or null (ungrouped)
  *       initialView: { yaw, pitch, zoom },   // yaw/pitch in DEGREES, zoom 0-100
  *       markers: [
  *         // ICON pin (default): glyph at a single yaw/pitch.
@@ -27,14 +31,15 @@
  *   ]
  * }
  *
- * `shape` defaults to "icon" and is only stored for zones, so existing
- * tour.json files load unchanged (back-compat).
+ * BACK-COMPAT: v1 files (no `groups`, no `scene.groupId`) load unchanged -
+ * every scene is treated as Ungrouped. `shape` still defaults to "icon" and is
+ * only stored for zones, so old marker data loads as-is too.
  *
  * Angles are stored as human-friendly DEGREES (numbers). The PSV adapter
  * converts them to the "<n>deg" strings Photo-Sphere-Viewer expects.
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const MARKER_TYPES = Object.freeze({
   LINK: "link",
@@ -55,6 +60,9 @@ export const MARKER_SHAPES = Object.freeze({
 
 /** Default hover tint for zones (Walmart Blue, matches nav waypoints). */
 export const DEFAULT_ZONE_HOVER = "#0071dc";
+
+/** Default accent color for a new area/group (Walmart Blue). */
+export const DEFAULT_GROUP_COLOR = "#0071dc";
 
 /** Crypto-ish short id good enough for in-tour uniqueness. */
 export function makeId(prefix = "id") {
@@ -85,17 +93,33 @@ export function createEmptyTour() {
       showWaypointShadows: true,
       createdAt: new Date().toISOString(),
     },
+    groups: [],
     scenes: [],
   };
 }
 
-export function createScene({ name = "New Scene", panorama = "" } = {}) {
+/**
+ * A group ("area") is an ordered, named bucket of scenes for large tours.
+ * `entrySceneId` is where the player lands when a visitor jumps to this area;
+ * "" means "use the first scene of this group" (resolved at read time).
+ */
+export function createGroup({ name = "New Area", color = DEFAULT_GROUP_COLOR } = {}) {
+  return {
+    id: makeId("grp"),
+    name,
+    color: color || DEFAULT_GROUP_COLOR,
+    entrySceneId: "",
+  };
+}
+
+export function createScene({ name = "New Scene", panorama = "", groupId = null } = {}) {
   return {
     id: makeId("scene"),
     name,
     panorama,
     thumbnail: "",
     caption: "",
+    groupId: groupId || null,
     initialView: { yaw: 0, pitch: 0, zoom: 50 },
     markers: [],
   };
@@ -170,6 +194,49 @@ export function getScene(tour, sceneId) {
   return tour?.scenes?.find((s) => s.id === sceneId);
 }
 
+/** Look up a group by id (or undefined). */
+export function getGroup(tour, groupId) {
+  return tour?.groups?.find((g) => g.id === groupId);
+}
+
+/** All scenes belonging to a group, in tour scene order. */
+export function scenesInGroup(tour, groupId) {
+  return (tour?.scenes || []).filter((s) => (s.groupId || null) === (groupId || null));
+}
+
+/**
+ * The scene a visitor lands on when they jump to a group:
+ *   1. the group's explicit entrySceneId (if it's still in that group), else
+ *   2. the first scene of that group (top of the list), else
+ *   3. undefined (empty group).
+ */
+export function resolveGroupEntryScene(tour, groupId) {
+  const members = scenesInGroup(tour, groupId);
+  if (!members.length) return undefined;
+  const group = getGroup(tour, groupId);
+  const explicit = group?.entrySceneId
+    ? members.find((s) => s.id === group.entrySceneId)
+    : undefined;
+  return explicit || members[0];
+}
+
+/**
+ * Render order for grouped UIs (builder list + player Areas menu): each group
+ * in its stored order with its member scenes, then an "Ungrouped" bucket last
+ * if any scenes have no group. Groups with zero scenes are still included so
+ * the author can see/fill them in the builder.
+ * @returns {Array<{group: object|null, scenes: object[]}>}
+ */
+export function listAreas(tour) {
+  const out = (tour?.groups || []).map((group) => ({
+    group,
+    scenes: scenesInGroup(tour, group.id),
+  }));
+  const ungrouped = scenesInGroup(tour, null);
+  if (ungrouped.length) out.push({ group: null, scenes: ungrouped });
+  return out;
+}
+
 /** The scene the player should open first (explicit start, else first scene). */
 export function resolveStartScene(tour) {
   if (!tour?.scenes?.length) return undefined;
@@ -191,10 +258,33 @@ export function validateTour(raw) {
 
   const tour = createEmptyTour();
 
-  if (raw.version && raw.version !== SCHEMA_VERSION) {
+  if (raw.version && raw.version > SCHEMA_VERSION) {
     warnings.push(
-      `Config version ${raw.version} != supported ${SCHEMA_VERSION}; attempting to load anyway.`
+      `Config version ${raw.version} is newer than supported ${SCHEMA_VERSION}; attempting to load anyway.`
     );
+  }
+
+  // ---- groups ("areas") - optional; absent in v1 files ----
+  const groupIds = new Set();
+  if (Array.isArray(raw.groups)) {
+    raw.groups.forEach((rawGroup, idx) => {
+      if (!rawGroup || typeof rawGroup !== "object") {
+        warnings.push(`Group #${idx} is not an object; skipped.`);
+        return;
+      }
+      const group = createGroup();
+      group.id = rawGroup.id ? String(rawGroup.id) : group.id;
+      if (groupIds.has(group.id)) {
+        const fixed = `${group.id}_${idx}`;
+        warnings.push(`Duplicate group id "${group.id}" renamed to "${fixed}".`);
+        group.id = fixed;
+      }
+      groupIds.add(group.id);
+      group.name = String(rawGroup.name || `Area ${idx + 1}`);
+      group.color = rawGroup.color ? String(rawGroup.color) : DEFAULT_GROUP_COLOR;
+      group.entrySceneId = String(rawGroup.entrySceneId || ""); // validated after scenes load
+      tour.groups.push(group);
+    });
   }
 
   // ---- meta ----
@@ -233,6 +323,16 @@ export function validateTour(raw) {
     scene.thumbnail = String(rawScene.thumbnail || "");
     scene.caption = String(rawScene.caption || "");
 
+    // Group membership: keep only references to groups that actually exist,
+    // otherwise fall back to Ungrouped (null). v1 scenes have no groupId.
+    const rawGroupId = rawScene.groupId ? String(rawScene.groupId) : null;
+    if (rawGroupId && !groupIds.has(rawGroupId)) {
+      warnings.push(`Scene "${scene.name}" references missing group "${rawGroupId}"; ungrouped.`);
+      scene.groupId = null;
+    } else {
+      scene.groupId = rawGroupId;
+    }
+
     if (!scene.panorama) {
       warnings.push(`Scene "${scene.name}" has no panorama URL.`);
     }
@@ -263,6 +363,20 @@ export function validateTour(raw) {
     : tour.scenes[0].id;
   if (desiredStart && !seenIds.has(desiredStart)) {
     warnings.push(`startSceneId "${desiredStart}" not found; using first scene.`);
+  }
+
+  // ---- group entry scenes: must be a member of that group, else auto ("") ----
+  for (const group of tour.groups) {
+    if (!group.entrySceneId) continue;
+    const inGroup = tour.scenes.some(
+      (s) => s.id === group.entrySceneId && s.groupId === group.id
+    );
+    if (!inGroup) {
+      warnings.push(
+        `Area "${group.name}" entry scene is not in that area; using its first scene.`
+      );
+      group.entrySceneId = "";
+    }
   }
 
   // ---- referential integrity for link markers ----
