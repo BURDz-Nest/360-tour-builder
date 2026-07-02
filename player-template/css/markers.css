@@ -287,23 +287,3 @@
   stroke-width: 3;
   outline: none;
 }
-
-/* ---- BUILDER-ONLY zone authoring (polygon always visible + corner dots) ---- */
-.builder-zone {
-  cursor: pointer;
-  transition: fill-opacity 0.12s ease, stroke-width 0.12s ease;
-}
-.builder-zone.is-selected {
-  stroke-dasharray: 6 4;
-}
-.zone-handle-host { pointer-events: auto; }
-.zone-handle {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  border: 3px solid var(--zone-handle, #0071dc);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-  box-sizing: border-box;
-}
-.zone-handle:hover { transform: scale(1.15); }

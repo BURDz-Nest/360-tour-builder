@@ -1,0 +1,569 @@
+/* builder-ui.css - BUILDER-ONLY UI chrome (buttons, layout, tabs, fields,
+   scene list, scene editor, marker rows, preview, image modal, toast,
+   builder hotspot pins + zone authoring).
+
+   Split out of the SHARED player-template/css/app.css so (a) app.css stays a
+   lean shared foundation under the 600-line guideline and (b) none of this
+   builder-only CSS ships into published tours/<name>/ runtimes. Relies on the
+   CSS custom properties defined in app.css (loaded first).
+   NOTE: this file lives in builder/ (like welcome.css / help-modal.css) so
+   scripts/sync-runtime.sh never copies it into a tour. */
+
+.muted { color: var(--muted); font-size: 0.85rem; }
+
+/* ============ Buttons ============ */
+.btn {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+.btn:hover { background: var(--panel-soft); }
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn--primary:hover { background: var(--accent-hover); }
+.btn--danger {
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+.btn--danger:hover { background: var(--danger-bg); }
+
+/* Icon-only button (theme toggle, etc.). Uses currentColor so the inner SVG
+   inherits theme. Square, accessible hit target (>=32x32). */
+.btn--icon {
+  width: 36px;
+  padding: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn--icon svg { width: 18px; height: 18px; display: block; }
+
+.mini-btn {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink-soft);
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.mini-btn:hover:not(:disabled) { background: var(--panel-soft); }
+.mini-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ============ Builder layout ============ */
+.builder-body { display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.topbar__brand { font-size: 1.05rem; font-weight: 700; margin: 0; }
+.topbar__brand small { color: var(--muted); font-weight: 500; }
+.topbar__spacer { flex: 1; }
+
+.builder-main {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  gap: 0;
+  height: calc(100vh - 53px);
+  position: relative;
+  z-index: 0; /* own stacking context: child z-indexes can't escape over modals */
+}
+@media (max-width: 980px) {
+  .builder-main { grid-template-columns: 1fr; height: auto; overflow: auto; }
+}
+
+.col {
+  padding: 1rem;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+}
+.col:last-child { border-right: none; }
+.col--center { padding: 0; background: #0c0d10; }
+
+/* ============ Tabs (left panel: Scenes | Tour settings) ============ */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: -0.25rem -0.25rem 1rem;
+  padding-bottom: 0;
+  border-bottom: 1px solid var(--line);
+}
+.tab {
+  flex: 1;
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* sit the active underline on the .tabs border */
+  padding: 0.55rem 0.5rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+}
+.tab:hover { color: var(--ink); background: var(--panel-soft); }
+.tab.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tab-panel[hidden] { display: none; }
+
+.section-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--section-title);
+  margin: 0 0 0.6rem;
+}
+/* Give stacked sections within a panel some air (the first one hugs the top). */
+.section-title + .field { margin-top: 0; }
+.field + .section-title,
+.scene-list + .section-title { margin-top: 1.4rem; }
+
+/* Scene-editor section grouping: clear blank space + a faint divider between
+   the sub-sections (Opening view / Scene details / Scene actions) so they
+   don't crowd together. */
+.editor-section + .editor-section {
+  margin-top: 1.6rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--line);
+}
+/* Separate the capture-view explainer from whatever follows it. */
+.view-row + .field__hint { margin-bottom: 0.9rem; }
+/* Scene details: give each field (label + input + helper text) more breathing
+   room so Name / Panorama / Caption read as distinct settings. */
+#panel-scene-settings .field { margin-bottom: 1.3rem; }
+#panel-scene-settings .field:last-child { margin-bottom: 0; }
+
+/* ---- Editor column: pin the Scene header + top tabs, scroll the panel ----
+   The right column is a fixed-height grid cell, so make it a flex column whose
+   active tab-panel takes the remaining space and scrolls on its own. This
+   gives Hotspots a full, independently-scrollable panel. */
+.editor-header { margin-bottom: 0.75rem; }
+/* The right-panel heading shows the current scene's NAME (truncated if long),
+   so you always know which scene you're editing. */
+.editor-title {
+  margin: 0;
+  min-width: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 981px) {
+  .col--editor { display: flex; flex-direction: column; overflow: hidden; }
+  .col--editor #scene-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .editor-scroll { flex: 1; min-height: 0; overflow-y: auto; padding-right: 0.4rem; }
+}
+
+/* ============ Fields ============ */
+.field { display: block; margin-bottom: 0.75rem; }
+.field__label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 0.25rem;
+}
+.field__hint {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  line-height: 1.35;
+}
+.field__input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+}
+textarea.field__input { resize: vertical; }
+
+/* ============ Scene list ============ */
+.scene-list { list-style: none; margin: 0 0 0.75rem; padding: 0; }
+.scene-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 0.35rem;
+  background: var(--panel);
+}
+.scene-item.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.scene-item__name {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.scene-item__meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 0.1rem;
+}
+.scene-item__body {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.45rem 0.4rem;
+  cursor: pointer;
+  font: inherit;
+  min-width: 0; /* allow text truncation in flex children */
+}
+.scene-item__body .scene-item__name,
+.scene-item__body .scene-item__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scene-item__thumb {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  display: block;
+}
+.scene-item__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scene-item__thumb.is-empty,
+.scene-item__thumb.is-broken {
+  background: repeating-linear-gradient(45deg,
+    var(--panel-soft), var(--panel-soft) 4px,
+    var(--line) 4px, var(--line) 8px);
+}
+.scene-item__thumb.is-broken img { display: none; }
+.scene-item__controls { display: flex; gap: 0.2rem; padding-right: 0.35rem; }
+.scene-item__handle {
+  cursor: grab;
+  padding: 0 0.15rem 0 0.45rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  user-select: none;
+}
+.scene-item.is-dragging { opacity: 0.5; }
+.scene-item.is-drop-target { border-color: var(--accent); box-shadow: 0 -2px 0 var(--accent); }
+
+/* Checkbox field (e.g. “show thumbnails” toggle) */
+.field--check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+.field--check input { width: 1rem; height: 1rem; }
+.field--check .field__label { margin: 0; }
+
+/* ============ Preview ============ */
+.preview-wrap { position: relative; height: 100%; min-height: 360px; }
+.preview { width: 100%; height: 100%; }
+.preview-empty {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem; text-align: center;
+  background: repeating-linear-gradient(45deg, #eef1f5, #eef1f5 12px, #e7ebf0 12px, #e7ebf0 24px);
+}
+.preview-empty[hidden] { display: none; }
+.preview-empty__card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; padding: 1.5rem 1.75rem; box-shadow: var(--shadow);
+  max-width: 360px;
+}
+.preview-empty__title { margin: 0 0 0.4rem; font-size: 1.15rem; font-weight: 700; color: var(--ink); }
+.preview-empty__sub { margin: 0; font-size: 0.9rem; color: var(--muted); }
+.place-hint {
+  position: absolute;
+  top: 12px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  z-index: 90;
+  box-shadow: var(--shadow);
+}
+
+/* ============ Marker editor ============ */
+.marker-actions { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+
+/* ---- Copy-hotspots popover menu (anchored under its trigger button) ---- */
+.copy-menu {
+  position: absolute;
+  z-index: 80;
+  min-width: 220px;
+  max-width: 360px;
+  max-height: 50vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 0.25rem;
+}
+.copy-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.copy-menu__item:hover,
+.copy-menu__item:focus-visible { background: var(--panel-soft); outline: none; }
+.marker-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem;
+  margin-bottom: 0.6rem;
+  background: var(--panel);
+  cursor: pointer; /* the whole card selects the marker (except its buttons) */
+}
+.marker-row:hover { border-color: var(--muted); }
+.marker-row.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* Controls inside a card use the normal text cursor / pointer, not the card's. */
+.marker-row input,
+.marker-row textarea,
+.marker-row select { cursor: auto; }
+.marker-row button,
+.marker-row .field--check,
+.marker-row .field__color { cursor: pointer; }
+.marker-row__head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+.marker-row__head .mini-btn:last-child { margin-left: auto; }
+.marker-row__pos { margin: 0.25rem 0 0; }
+.marker-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 20px;
+  color: #fff;
+}
+.marker-badge--link { background: var(--accent); }
+.marker-badge--info { background: var(--info); }
+.marker-badge--zone { background: #6b3fb5; }
+
+/* Inline field (label + control on one row) - used by the zone color picker. */
+.field--inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.field__color {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+/* Checkbox field (box + trailing text) - used by the zone idle-outline toggle. */
+.field--check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+.field--check input { margin-top: 0.15rem; flex: none; }
+
+.view-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.view-readout {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.start-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  padding: 0.1rem 0.5rem;
+  flex: none; /* never let the badge shrink next to a long scene title */
+}
+/* An explicit display above overrides the browser's [hidden] rule, so the
+   badge would show even when hidden - restore hide-when-hidden behavior. */
+.start-badge[hidden] { display: none; }
+
+/* ============ Toast ============ */
+.toast {
+  position: fixed;
+  bottom: 18px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 200;
+  max-width: 90vw;
+}
+.toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.is-error { background: var(--danger); }
+
+/* ============ Builder hotspot pins (preview) ============ */
+/* Builder pins reuse the shared .tour-marker system (see below) —
+   .builder-pin is just a host class for the PSV marker element. */
+.builder-pin { background: transparent; border: none; padding: 0; }
+.builder-pin.is-selected { cursor: grab; }
+.builder-pin.is-selected:active { cursor: grabbing; }
+/* Selected-pin highlight (Panoee-style): a circular ring centred on the
+   ICON itself rather than the oversized PSV host box. We draw it on the
+   snug .tour-marker wrapper so it hugs the glyph and stays centred for
+   every icon (teardrop, disc, arrow...). Player tours never set
+   .is-selected, so this is purely a builder affordance. */
+.builder-pin.is-selected .tour-marker {
+  outline: 3px solid #5b8cff;
+  outline-offset: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(91, 140, 255, 0.20);
+}
+/* Hold the idle animation still while selected so the ring doesn't wobble
+   with a bobbing/spinning glyph - the thing you're editing should sit put. */
+.builder-pin.is-selected .tour-marker-icon__svg,
+.builder-pin.is-selected .tour-marker__ring { animation-play-state: paused; }
+
+/* ---- Builder: workspace bar + image panel (Chrome/Edge FS workspace) ---- */
+#workspace-bar { display: inline-flex; gap: 0.5rem; }
+.image-panel {
+  border: 2px dashed var(--border, #c9ccd2);
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.image-panel.is-dragover {
+  border-color: #0071dc;
+  background: rgba(0, 113, 220, 0.06);
+}
+.image-panel__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.image-panel__hint { margin: 0 0 0.5rem; font-size: 0.8rem; }
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 0.4rem;
+}
+.img-thumb {
+  display: flex; flex-direction: column; align-items: stretch;
+  border: 1px solid var(--border, var(--line));
+  border-radius: 8px; overflow: hidden; cursor: pointer;
+  background: var(--panel); padding: 0; font: inherit; text-align: left;
+}
+.img-thumb:hover { border-color: var(--accent); }
+.img-thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.img-thumb img { width: 100%; height: 56px; object-fit: cover; display: block; background: var(--panel-soft); }
+.img-thumb.is-broken img { visibility: hidden; }
+.img-thumb.is-broken { background: repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 6px, #e5e7eb 6px, #e5e7eb 12px); }
+.img-thumb span {
+  font-size: 0.6rem; line-height: 1.2; padding: 2px 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---- Images modal ---- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+.modal[hidden] { display: none; }
+.modal__panel {
+  background: var(--panel);
+  border-radius: 12px;
+  width: min(680px, 100%);
+  max-height: 85vh;
+  overflow: auto;
+  padding: 1rem 1.25rem 1.25rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.bind-note {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.bind-note p { margin-top: 0; }
+
+/* ---- Read-only field (derived values: panorama path, etc.) ---- */
+.field__input--readonly {
+  background: var(--bg);
+  color: var(--ink-soft);
+  cursor: default;
+}
+
+
+/* ---- BUILDER-ONLY zone authoring (polygon always visible + corner dots) ---- */
+.builder-zone {
+  cursor: pointer;
+  transition: fill-opacity 0.12s ease, stroke-width 0.12s ease;
+}
+.builder-zone.is-selected {
+  stroke-dasharray: 6 4;
+}
+.zone-handle-host { pointer-events: auto; }
+.zone-handle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--zone-handle, #0071dc);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+}
+.zone-handle:hover { transform: scale(1.15); }
