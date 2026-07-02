@@ -18,7 +18,7 @@ import { createGroup, createScene } from "../player-template/js/tour-model.js?v=
  */
 export function createGroupActions({ state, refresh, selectScene, toast }) {
   const scenes = () => state.tour.scenes;
-  const groups = () => state.tour.groups;
+  const groups = () => (state.tour.groups ||= []); // defensive: older sessions
   const norm = (g) => g || null; // treat "" and undefined as Ungrouped
 
   /** Create a new empty area and re-render (author fills it via + Add / drag). */
@@ -26,6 +26,14 @@ export function createGroupActions({ state, refresh, selectScene, toast }) {
     const group = createGroup({ name: `Area ${groups().length + 1}` });
     groups().push(group);
     refresh();
+    // New areas render at the bottom (below Uncategorized) - bring it into view
+    // and confirm, so it doesn't feel like "nothing happened" on big tours.
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-group-id="${group.id}"]`)
+        ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    toast?.(`Created \u201c${group.name}\u201d \u2014 rename it or add scenes.`);
     return group;
   }
 

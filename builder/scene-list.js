@@ -55,6 +55,7 @@ export function createSceneList({
 
     const section = document.createElement("div");
     section.className = "scene-group" + (isOpen ? "" : " is-collapsed");
+    if (group) section.dataset.groupId = group.id;
 
     section.append(renderHead(group, key, isOpen, members.length));
 

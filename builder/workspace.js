@@ -15,6 +15,17 @@ export function createWorkspace(ctx) {
     updateScene, renderAll, selectScene, updatePreview, cancelPlacing,
   } = ctx;
 
+  // Image-modal mode. ASSIGN (default, opened via "Images…") = clicking a
+  // thumbnail sets the CURRENT scene's panorama. Otherwise we're in "add to
+  // group" mode (opened via a group's + Add scene): clicking / uploading images
+  // creates NEW scenes in `imageTarget` (a group id, or null = Uncategorized).
+  const ASSIGN = Symbol("assign");
+  let imageTarget = ASSIGN;
+  let originalHint;
+  const inAddMode = () => imageTarget !== ASSIGN;
+  function setAssignMode() { imageTarget = ASSIGN; }
+  function setAddTarget(groupId) { imageTarget = groupId ?? null; }
+
   /** Adopt a tour folder: remember handles, auto-load tour.json, set preview
    *  base, refresh grid. Async because it reads the folder's tour.json. */
   async function adoptWorkspace(dirHandle, name) {
@@ -105,7 +116,8 @@ export function createWorkspace(ctx) {
     try {
       const added = await fs.addImages(state.dirHandle, files);
       if (!added.length) return toast("No image files found to add.", true);
-      const { created, firstId } = appendScenesForImages(added);
+      const targetGroup = inAddMode() ? imageTarget : null;
+      const { created, firstId } = appendScenesForImages(added, targetGroup);
       renderAll();
       if (firstId) selectScene(firstId);
       await refreshImageGrid();
@@ -133,7 +145,42 @@ export function createWorkspace(ctx) {
       console.warn("[workspace] ensureThumbnails failed", e);
     }
     const names = await fs.listImageNames(state.dirHandle);
-    fs.renderImageGrid($("image-grid"), names, state.previewBase, assignImageToScene);
+    updateModalChrome();
+    const onClick = inAddMode()
+      ? (name) => addImageAsScene(name, imageTarget)
+      : assignImageToScene;
+    fs.renderImageGrid($("image-grid"), names, state.previewBase, onClick);
+  }
+
+  /** Re-title the images modal + swap its hint depending on the mode. */
+  function updateModalChrome() {
+    const title = $("image-modal-title");
+    const hint = document.querySelector(".image-panel__hint");
+    if (hint && originalHint === undefined) originalHint = hint.innerHTML;
+    if (inAddMode()) {
+      const g = (state.tour.groups || []).find((x) => x.id === imageTarget);
+      const where = g ? `\u201c${g.name}\u201d` : "Uncategorized";
+      if (title) title.textContent = `Add scenes to ${where}`;
+      if (hint) hint.textContent =
+        `Click an image (or use \u201cAdd images\u2026\u201d) to add it as a new scene in ${where}.`;
+    } else {
+      if (title) title.textContent = "Images";
+      if (hint && originalHint !== undefined) hint.innerHTML = originalHint;
+    }
+  }
+
+  /** Add-to-group mode: turn an existing folder image into a new scene. */
+  function addImageAsScene(name, groupId) {
+    const s = createScene({
+      name: `Scene ${state.tour.scenes.length + 1}`,
+      panorama: `images/${name}`,
+      groupId: groupId ?? null,
+    });
+    s.thumbnail = `images/thumbs/${fs.thumbName(name)}`;
+    state.tour.scenes.push(s);
+    if (!state.tour.meta.startSceneId) state.tour.meta.startSceneId = s.id;
+    renderAll();
+    toast(`Added ${name} as a new scene.`); // modal stays open for multi-add
   }
   /** Re-encode every image in the folder at the current quality preset. */
   async function handleOptimize() {
@@ -198,7 +245,7 @@ export function createWorkspace(ctx) {
   }
 
   /** Append a new scene (at the bottom) for each image not already used. */
-  function appendScenesForImages(names) {
+  function appendScenesForImages(names, groupId = null) {
     const used = usedImageNames();
     const fresh = names.filter((n) => !used.has(n));
     let firstId = null;
@@ -206,6 +253,7 @@ export function createWorkspace(ctx) {
       const s = createScene({
         name: `Scene ${state.tour.scenes.length + 1}`,
         panorama: `images/${n}`,
+        groupId: groupId ?? null,
       });
       s.thumbnail = `images/thumbs/${fs.thumbName(n)}`;
       state.tour.scenes.push(s);
@@ -222,12 +270,16 @@ export function createWorkspace(ctx) {
     if (!state.dirHandle) return toast("Create or open a tour folder first.", true);
     const names = await fs.listImageNames(state.dirHandle);
     if (!names.length) return toast("No images in this tour yet \u2014 add some first.", true);
-    const { created, firstId } = appendScenesForImages(names);
+    const { created, firstId } = appendScenesForImages(names, inAddMode() ? imageTarget : null);
     if (!created) return toast("All images are already used by scenes.");
     renderAll();
     if (firstId) selectScene(firstId);
     toast(`Created ${created} new scene(s) from images.`);
   }
 
-  return { handleNewTour, handleOpenTour, openRecent, handleAddImages, addAllImagesAsScenes, bindFolder, refreshImageGrid, handleOptimize };
+  return {
+    handleNewTour, handleOpenTour, openRecent, handleAddImages,
+    addAllImagesAsScenes, bindFolder, refreshImageGrid, handleOptimize,
+    setAssignMode, setAddTarget, hasFolder: () => !!state.dirHandle,
+  };
 }

@@ -74,14 +74,18 @@ export function mountOverlays($, h) {
 
   /* ---------------- Images modal ---------------- */
   $("btn-images").addEventListener("click", () => {
-    imageModal.hidden = false;
-    h.refreshImageGrid();
+    h.setAssignMode?.();      // top-bar entry = assign-to-current-scene mode
+    openImageModal();
   });
   $("image-modal-close").addEventListener("click", closeImageModal);
   imageModal.addEventListener("click", (e) => {
     if (e.target === imageModal) closeImageModal();
   });
 
+  function openImageModal() {
+    imageModal.hidden = false;
+    h.refreshImageGrid();
+  }
   function closeImageModal() { imageModal.hidden = true; }
 
   /* ---------------- Global Escape ---------------- */
@@ -91,7 +95,7 @@ export function mountOverlays($, h) {
     // Welcome stays put — the user picks an action to leave it.
   });
 
-  return { showWelcome, hideWelcome, renderRecent, closeImageModal };
+  return { showWelcome, hideWelcome, renderRecent, openImageModal, closeImageModal };
 }
 
 function relTime(ts) {
