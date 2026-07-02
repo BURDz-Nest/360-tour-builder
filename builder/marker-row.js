@@ -45,7 +45,8 @@ export function renderMarkerRow({ scene, marker: m, selectedMarkerId, scenes, ac
  * the details keeps it selected. Returns the row, the details node to append
  * editors into, and a setTitle() so the summary label can track live edits.
  */
-function makeShell({ id, selected, badgeClass, badgeText, title, actions }) {
+function makeShell({ id, selected, badgeClass, badgeText, title, getFallback, actions }) {
+  const fallback = getFallback || (() => "(no label)");
   const row = document.createElement("div");
   row.className = "marker-row" + (selected ? " is-selected" : "");
   row.dataset.markerId = id;
@@ -61,7 +62,9 @@ function makeShell({ id, selected, badgeClass, badgeText, title, actions }) {
 
   const titleEl = document.createElement("span");
   titleEl.className = "marker-row__title";
-  const setTitle = (t) => { titleEl.textContent = t?.trim() ? t : "(no label)"; };
+  // Empty label falls back to something meaningful (e.g. a nav hotspot shows
+  // the scene it links to) instead of a bare "(no label)".
+  const setTitle = (t) => { titleEl.textContent = t?.trim() ? t : fallback(); };
   setTitle(title);
 
   const chevron = document.createElement("span");
@@ -84,12 +87,18 @@ function makeShell({ id, selected, badgeClass, badgeText, title, actions }) {
 /** Editor for an ICON marker (link/info): label + icon + target/info + position. */
 function renderIconRow({ scene, m, selected, scenes, actions }) {
   const isLink = m.type === MARKER_TYPES.LINK;
+  // Nav hotspots with no label show their target scene's name instead.
+  const targetName = () => {
+    const t = scenes.find((s) => s.id === m.targetSceneId);
+    return t ? (t.name?.trim() || "(unnamed scene)") : "(no label)";
+  };
   const { row, details, setTitle } = makeShell({
     id: m.id,
     selected,
     badgeClass: `marker-badge--${m.type}`,
     badgeText: isLink ? "Navigation" : "Info",
     title: m.label,
+    getFallback: isLink ? targetName : undefined,
     actions,
   });
 
@@ -109,7 +118,7 @@ function renderIconRow({ scene, m, selected, scenes, actions }) {
   );
   details.append(
     isLink
-      ? linkTargetSelect(scene, m, scenes, actions)
+      ? linkTargetSelect(scene, m, scenes, actions, () => setTitle(m.label))
       : labeledTextarea("Info content (HTML allowed)", m.html, (v) =>
           actions.onUpdate(m.id, { html: v })
         )
@@ -177,7 +186,7 @@ function rowActions(m, actions, moveable = true) {
   return bar;
 }
 
-function linkTargetSelect(scene, m, scenes, actions) {
+function linkTargetSelect(scene, m, scenes, actions, onChanged) {
   const wrap = document.createElement("label");
   wrap.className = "field";
   wrap.innerHTML = "<span class='field__label'>Go to scene</span>";
@@ -188,9 +197,10 @@ function linkTargetSelect(scene, m, scenes, actions) {
     .filter((s) => s.id !== scene.id)
     .forEach((s) => select.append(new Option(s.name || s.id, s.id)));
   select.value = m.targetSceneId || "";
-  select.addEventListener("change", () =>
-    actions.onUpdate(m.id, { targetSceneId: select.value })
-  );
+  select.addEventListener("change", () => {
+    actions.onUpdate(m.id, { targetSceneId: select.value });
+    onChanged?.(); // refresh the summary title if it's falling back to the target
+  });
   wrap.append(select);
   return wrap;
 }
