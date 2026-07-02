@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
     <link rel="stylesheet" href="../player-template/css/app.css?v=26" />
     <link rel="stylesheet" href="builder-ui.css?v=5" />
-    <link rel="stylesheet" href="builder-panels.css?v=1" />
+    <link rel="stylesheet" href="builder-panels.css?v=2" />
     <link rel="stylesheet" href="welcome.css?v=1" />
     <link rel="stylesheet" href="help-modal.css?v=1" />
     <link rel="stylesheet" href="../player-template/css/markers.css?v=7" />
@@ -62,9 +62,11 @@
 
         <!-- SCENES tab -->
         <div id="panel-scenes" class="tab-panel" role="tabpanel" aria-labelledby="tab-scenes">
-          <h2 class="section-title">Scenes (<span id="scene-count">0</span>)</h2>
-          <ul id="scene-list" class="scene-list"></ul>
-          <button id="btn-add-scene" class="btn" type="button">+ Add scene</button>
+          <div class="scenes-toolbar">
+            <h2 class="section-title" style="margin:0">Scenes (<span id="scene-count">0</span>)</h2>
+            <button id="btn-new-group" class="mini-btn" type="button" title="Create a new area/group">+ New group</button>
+          </div>
+          <div id="scene-list" class="scene-list"></div>
         </div>
 
         <!-- TOUR SETTINGS tab -->
@@ -316,6 +318,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=43"></script>
+    <script type="module" src="builder.js?v=44"></script>
   </body>
 </html>

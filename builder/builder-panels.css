@@ -152,6 +152,117 @@ textarea.field__input { resize: vertical; }
 .scene-item.is-dragging { opacity: 0.5; }
 .scene-item.is-drop-target { border-color: var(--accent); box-shadow: 0 -2px 0 var(--accent); }
 
+/* ---- Scene groups ("areas") ---- */
+.scenes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.scene-group {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 0.55rem;
+  background: var(--panel-soft);
+}
+.scene-group__head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.15rem;
+}
+.scene-group__toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0.2rem 0.25rem;
+}
+.scene-group__chevron {
+  flex: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+.scene-group:not(.is-collapsed) .scene-group__chevron { transform: rotate(90deg); }
+.scene-group__dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+.scene-group__name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scene-group__count {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.72rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+}
+.scene-group__rename {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.4rem;
+}
+.scene-group__body {
+  padding: 0.15rem 0.4rem 0.4rem;
+  border-radius: 0 0 10px 10px;
+}
+.scene-group__body.is-drop-target {
+  outline: 2px dashed var(--accent);
+  outline-offset: -3px;
+}
+.scene-group__add {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.35rem;
+  cursor: pointer;
+}
+.scene-group__add:hover { border-color: var(--accent); background: var(--panel); }
+.scene-group__empty {
+  font-size: 0.78rem;
+  margin: 0.1rem 0.2rem 0.2rem;
+}
+.scene-item__star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.1rem;
+}
+.scene-item__star.is-entry { color: #f5a623; }
+@media (prefers-reduced-motion: reduce) {
+  .scene-group__chevron { transition: none; }
+}
+
 /* Checkbox field (e.g. “show thumbnails” toggle) */
 .field--check {
   display: flex;

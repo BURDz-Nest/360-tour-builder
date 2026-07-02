@@ -13,7 +13,7 @@
 
 import { Viewer } from "@photo-sphere-viewer/core";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
-import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js";
+import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js?v=2";
 import { degStr, escapeHtml } from "../player-template/js/psv-adapter.js";
 import { renderMarkerHtml } from "../player-template/js/marker-icons.js";
 

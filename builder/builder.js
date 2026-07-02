@@ -14,13 +14,13 @@ import {
   validateTour,
   MARKER_TYPES,
   MARKER_SHAPES,
-} from "../player-template/js/tour-model.js";
+} from "../player-template/js/tour-model.js?v=2";
 // NOTE on cache: ES module imports use the URL as the cache key, so adding
 // ?v= here forces a fresh fetch when builder-viewer.js changes. The parent
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "43";
+const BUILDER_BUILD = "44";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js?v=43";
 import { createMarkerActions } from "./marker-actions.js?v=42";
@@ -28,7 +28,8 @@ import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
 import { mountOverlays } from "./overlays.js";
 import { createPreview } from "./preview.js";
-import { createSceneList } from "./scene-list.js";
+import { createSceneList } from "./scene-list.js?v=2";
+import { createGroupActions } from "./group-actions.js?v=1";
 import { duplicateScene, copyHotspots, openSceneCopyMenu } from "./scene-actions.js";
 import { resolveInitialTheme, applyTheme, bindThemeToggle } from "./theme.js";
 import { mountTabs } from "./tabs.js?v=1";
@@ -52,6 +53,7 @@ const QUALITY_STORAGE_KEY = "tour-builder.imageQualityPreset";
 let viewer;
 let preview;
 let sceneList;
+let groupActions;
 let overlays;
 let markerActions;
 let editorTabs; // top-level right-panel tabs (Scene settings | Hotspots)
@@ -86,9 +88,20 @@ function init() {
     resolveThumbUrl: (p) => preview.resolvePreviewUrl(p),
     actions: {
       onSelect: selectScene,
-      onMove: moveScene,
-      onReorder: reorderScenes,
+      onMove: (id, delta) => groupActions.moveSceneWithinGroup(id, delta),
+      onAddScene: (groupId) => groupActions.addSceneToGroup(groupId),
+      onAddGroup: () => groupActions.addGroup(),
+      onRenameGroup: (id, name) => groupActions.renameGroup(id, name),
+      onDeleteGroup: (id) => groupActions.deleteGroup(id),
+      onMoveToGroup: (sid, gid, before) => groupActions.moveSceneToGroup(sid, gid, before),
+      onSetEntry: (gid, sid) => groupActions.setGroupEntry(gid, sid),
     },
+  });
+  groupActions = createGroupActions({
+    state,
+    refresh: renderSceneList,
+    selectScene,
+    toast,
   });
   bindThemeToggle($("btn-theme"), $("btn-theme-icon"));
 
@@ -115,7 +128,7 @@ function init() {
   populateQualityPicker();
 
   // Toolbar
-  $("btn-add-scene").addEventListener("click", addScene);
+  $("btn-new-group").addEventListener("click", () => groupActions.addGroup());
   $("btn-download").addEventListener("click", saveTour);
   $("btn-import").addEventListener("click", () => $("file-import").click());
   $("file-import").addEventListener("change", importTour);
@@ -200,14 +213,6 @@ function init() {
 
 /* ===================== Scenes ===================== */
 
-function addScene() {
-  const scene = createScene({ name: `Scene ${state.tour.scenes.length + 1}` });
-  state.tour.scenes.push(scene);
-  if (!state.tour.meta.startSceneId) state.tour.meta.startSceneId = scene.id;
-  selectScene(scene.id);
-  renderSceneList();
-}
-
 function selectScene(id) {
   state.currentSceneId = id;
   state.selectedMarkerId = null;
@@ -268,15 +273,6 @@ function setStartScene() {
   renderSceneList();
   renderSceneEditor();
   toast("Set as the starting scene.");
-}
-
-function moveScene(id, delta) {
-  const i = state.tour.scenes.findIndex((s) => s.id === id);
-  const j = i + delta;
-  if (i < 0 || j < 0 || j >= state.tour.scenes.length) return;
-  const arr = state.tour.scenes;
-  [arr[i], arr[j]] = [arr[j], arr[i]];
-  renderSceneList();
 }
 
 function updateScene(patch, opts = {}) {
@@ -447,20 +443,6 @@ function renderAll() {
 
 function renderSceneList() {
   sceneList.render();
-}
-
-/** Reorder scenes via drag-and-drop (keeps selection + start scene intact). */
-function reorderScenes(from, to) {
-  const scenes = state.tour.scenes;
-  if (
-    !Number.isInteger(from) || !Number.isInteger(to) || from === to ||
-    from < 0 || to < 0 || from >= scenes.length || to >= scenes.length
-  ) {
-    return;
-  }
-  const [moved] = scenes.splice(from, 1);
-  scenes.splice(to, 0, moved);
-  renderSceneList();
 }
 
 function renderSceneEditor() {
