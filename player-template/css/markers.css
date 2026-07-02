@@ -251,31 +251,27 @@
 
 /* =================================================================
    INFO ZONES (Storyline-style polygon hotspots)
-   The PSV polygon <path> gets class .tour-zone. Its IDLE look comes from
-   svgStyle presentation attributes (fill/stroke set in psv-adapter.js);
-   these rules override on :hover and when the viewer has .zones-revealed.
-   --zone-hover is stamped per-zone by player.js (the author's chosen color).
+   The PSV polygon <path> gets class .tour-zone. Idle keeps the fill/stroke
+   COLOR (set once in psv-adapter.js from the zone's hoverColor) but at
+   opacity 0, so hover only animates the *opacity* up -> a smooth fade-in with
+   NO solid-color flash.
    ================================================================= */
 .tour-zone {
-  --zone-hover: #0071dc;
   cursor: pointer;
-  transition: fill-opacity 0.15s ease, stroke-opacity 0.15s ease, stroke-width 0.15s ease;
+  transition: fill-opacity 0.28s ease, stroke-opacity 0.28s ease, stroke-width 0.28s ease;
 }
 
-/* Hover (mouse) — paint the author's color as a translucent fill + crisp edge. */
+/* Hover (mouse) - fade the fill/edge in. Color is already set on the element;
+   we ONLY change opacity + width here so there's nothing to flash. */
 .tour-zone:hover {
-  fill: var(--zone-hover);
   fill-opacity: 0.28;
-  stroke: var(--zone-hover);
   stroke-opacity: 1;
   stroke-width: 2.5;
 }
 
-/* Reveal-all toggle (a11y/discoverability) — outline every zone faintly. */
+/* Reveal-all toggle (a11y/discoverability) - outline every zone faintly. */
 .zones-revealed .tour-zone {
-  fill: var(--zone-hover);
   fill-opacity: 0.12;
-  stroke: var(--zone-hover);
   stroke-opacity: 0.9;
   stroke-width: 2;
 }
@@ -284,11 +280,9 @@
   stroke-width: 2.5;
 }
 
-/* Keyboard focus — PSV makes markers focusable; keep zones reachable. */
+/* Keyboard focus - PSV makes markers focusable; keep zones reachable. */
 .tour-zone:focus-visible {
-  fill: var(--zone-hover);
   fill-opacity: 0.28;
-  stroke: var(--zone-hover);
   stroke-opacity: 1;
   stroke-width: 3;
   outline: none;

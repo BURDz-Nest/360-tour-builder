@@ -141,11 +141,6 @@ function initViewer(tour) {
   const markers = viewer.getPlugin(MarkersPlugin);
   const virtualTour = viewer.getPlugin(VirtualTourPlugin);
 
-  // Stamp each zone's chosen hover color onto its SVG element as a CSS custom
-  // property so markers.css can tint it on hover / reveal. Re-runs on every
-  // node change because VirtualTour recreates the markers per scene.
-  markers.addEventListener("set-markers", () => stampZoneColors(markers));
-
   // Show the "Reveal zones" toggle only when this tour actually has zones.
   wireRevealZones(tour);
 
@@ -195,16 +190,6 @@ function initViewer(tour) {
 }
 
 /* ---------------- zones ---------------- */
-
-/** Push each zone's per-marker hover color onto its element for CSS to use. */
-function stampZoneColors(markers) {
-  for (const m of markers.getMarkers()) {
-    const data = m.data ?? m.config?.data;
-    if (data?.zone && m.domElement) {
-      m.domElement.style.setProperty("--zone-hover", data.hoverColor || "#0071dc");
-    }
-  }
-}
 
 /**
  * Reveal-zones toggle (a11y/discoverability): zones are invisible-until-hover,

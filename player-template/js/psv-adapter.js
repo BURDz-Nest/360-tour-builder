@@ -30,27 +30,30 @@ export function degStr(value) {
 const NAV_SIZE = 56;
 const INFO_SIZE = 40;
 
-/** Faint always-on outline color used when a zone opts into idleStroke. */
-const ZONE_IDLE_STROKE = "rgba(255,255,255,0.55)";
-
 /**
- * Build the config for an INFO ZONE (a polygon hotspot). Idle is transparent
- * (or a faint outline if idleStroke); hover/reveal styling lives in markers.css
- * driven by the `--zone-hover` custom property that player.js stamps per zone.
+ * Build the config for an INFO ZONE (a polygon hotspot). Idle is invisible
+ * (fill/stroke opacity 0) or a faint outline in the zone color if idleStroke.
+ * The fill/stroke COLOR is set once here (from marker.hoverColor); markers.css
+ * only animates opacity on hover/reveal, so the fade-in is smooth (no flash).
  * Click routes through the SAME data.kind="info" path as icon info markers.
  */
 export function zoneMarkerToConfig(marker) {
   const outlined = marker.idleStroke === true;
+  const color = marker.hoverColor || DEFAULT_ZONE_HOVER;
   return {
     id: marker.id,
     // PSV polygon: array of [yaw, pitch] pairs as "<n>deg" strings.
     polygon: (marker.points || []).map((p) => [degStr(p.yaw), degStr(p.pitch)]),
     className: "tour-zone" + (outlined ? " tour-zone--outlined" : ""),
-    // SVG presentation attributes = the IDLE look. CSS :hover overrides these.
+    // Idle look. IMPORTANT: keep the fill COLOR constant and only vary the
+    // *opacity* (starting at 0) so the CSS :hover transition fades in smoothly
+    // instead of flashing solid before the fill-opacity animates down.
     svgStyle: {
-      fill: "transparent",
-      stroke: outlined ? ZONE_IDLE_STROKE : "transparent",
-      strokeWidth: outlined ? 2 : 0,
+      fill: color,
+      fillOpacity: 0,
+      stroke: color,
+      strokeOpacity: outlined ? 0.85 : 0,
+      strokeWidth: 2,
     },
     tooltip: marker.label ? { content: escapeHtml(marker.label) } : undefined,
     data: {
@@ -58,7 +61,7 @@ export function zoneMarkerToConfig(marker) {
       zone: true,
       label: marker.label,
       html: marker.html,
-      hoverColor: marker.hoverColor || DEFAULT_ZONE_HOVER,
+      hoverColor: color,
     },
   };
 }
