@@ -122,6 +122,42 @@
 .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .tab-panel[hidden] { display: none; }
 
+/* ---- Segmented control (SECONDARY level, e.g. Hotspots > Navigation|Info) ----
+   Deliberately styled UNLIKE the top-level underline .tabs so the hierarchy
+   reads clearly (underline = primary, filled pill = secondary) and so it
+   doesn't clash with the outlined .btn actions that sit right below it: this
+   is a recessed track with a raised active pill; the buttons are outlined. */
+.segmented {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  margin: 0 0 1rem;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.seg {
+  flex: 1;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+}
+.seg:hover:not(.is-active) { color: var(--ink); }
+.seg.is-active {
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+.seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .section-title {
   font-size: 0.78rem;
   text-transform: uppercase;
