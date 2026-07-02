@@ -125,18 +125,38 @@
 /* ---- Segmented control (SECONDARY level, e.g. Hotspots > Navigation|Info) ----
    Deliberately styled UNLIKE the top-level underline .tabs so the hierarchy
    reads clearly (underline = primary, filled pill = secondary) and so it
-   doesn't clash with the outlined .btn actions that sit right below it: this
-   is a recessed track with a raised active pill; the buttons are outlined. */
+   doesn't clash with the outlined .btn actions that sit right below it.
+   The active pill is a single ::before that SLIDES between the two segments
+   (purple = high contrast in both light & dark modes). Assumes exactly two
+   segments (Navigation | Info). */
 .segmented {
+  position: relative;
   display: flex;
-  gap: 3px;
+  gap: 0; /* segments touch; the sliding pill provides the separation */
   padding: 3px;
   margin: 0 0 1rem;
   background: var(--panel-soft);
   border: 1px solid var(--line);
   border-radius: 9px;
 }
+.segmented::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  background: #6b3fb5; /* purple - matches the .marker-badge--zone accent */
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+/* Slide the pill to the second segment when Info is the active tab. */
+.segmented:has(.seg:nth-child(2).is-active)::before { transform: translateX(100%); }
 .seg {
+  position: relative;
+  z-index: 1; /* label sits above the sliding pill */
   flex: 1;
   appearance: none;
   border: none;
@@ -148,15 +168,14 @@
   padding: 0.4rem 0.5rem;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+  transition: color 0.15s;
 }
 .seg:hover:not(.is-active) { color: var(--ink); }
-.seg.is-active {
-  background: var(--panel);
-  color: var(--ink);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-}
+.seg.is-active { color: #fff; } /* white on purple */
 .seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .segmented::before { transition: none; }
+}
 
 .section-title {
   font-size: 0.78rem;
@@ -190,6 +209,9 @@
    active tab-panel takes the remaining space and scrolls on its own. This
    gives Hotspots a full, independently-scrollable panel. */
 .editor-header { margin-bottom: 0.75rem; }
+/* Breathing room between the top-level tabs and the panel content below (so
+   'Opening view' / the Hotspots segmented control don't hug the tab bar). */
+.editor-scroll { padding-top: 0.85rem; }
 /* The right-panel heading shows the current scene's NAME (truncated if long),
    so you always know which scene you're editing. */
 .editor-title {
