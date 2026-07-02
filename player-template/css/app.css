@@ -13,6 +13,7 @@
   --ink: #1a1d21;        /* ~15:1 on white */
   --ink-soft: #4a4f57;   /* ~8:1 on white  */
   --muted: #6b7280;      /* ~4.7:1 on white */
+  --section-title: var(--muted);  /* light mode: keep the subtle grey */
   --line: #d6dae0;
   --accent: #1d4ed8;     /* link/nav, 6.4:1 on white */
   --accent-ink: #ffffff;
@@ -39,6 +40,7 @@
   --muted: #8a90a0;
   --line: #2a2e36;
   --accent: #5b8cff;
+  --section-title: var(--accent);  /* dark mode: brighter blue so headers pop */
   --accent-ink: #0b1020;
   --accent-hover: #3d72f0;
   --info: #2dd4bf;
@@ -183,7 +185,7 @@ button { font: inherit; cursor: pointer; }
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: var(--section-title);
   margin: 0 0 0.6rem;
 }
 /* Give stacked sections within a panel some air (the first one hugs the top). */
@@ -201,6 +203,10 @@ button { font: inherit; cursor: pointer; }
 }
 /* Separate the capture-view explainer from whatever follows it. */
 .view-row + .field__hint { margin-bottom: 0.9rem; }
+/* Scene details: give each field (label + input + helper text) more breathing
+   room so Name / Panorama / Caption read as distinct settings. */
+#panel-scene-settings .field { margin-bottom: 1.3rem; }
+#panel-scene-settings .field:last-child { margin-bottom: 0; }
 
 /* ---- Editor column: pin the Scene header + top tabs, scroll the panel ----
    The right column is a fixed-height grid cell, so make it a flex column whose
