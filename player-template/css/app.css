@@ -207,6 +207,18 @@ button { font: inherit; cursor: pointer; }
    active tab-panel takes the remaining space and scrolls on its own. This
    gives Hotspots a full, independently-scrollable panel. */
 .editor-header { margin-bottom: 0.75rem; }
+/* The right-panel heading shows the current scene's NAME (truncated if long),
+   so you always know which scene you're editing. */
+.editor-title {
+  margin: 0;
+  min-width: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 @media (min-width: 981px) {
   .col--editor { display: flex; flex-direction: column; overflow: hidden; }
   .col--editor #scene-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -463,7 +475,11 @@ textarea.field__input { resize: vertical; }
   border: 1px solid var(--accent);
   border-radius: 20px;
   padding: 0.1rem 0.5rem;
+  flex: none; /* never let the badge shrink next to a long scene title */
 }
+/* An explicit display above overrides the browser's [hidden] rule, so the
+   badge would show even when hidden - restore hide-when-hidden behavior. */
+.start-badge[hidden] { display: none; }
 
 /* ============ Toast ============ */
 .toast {

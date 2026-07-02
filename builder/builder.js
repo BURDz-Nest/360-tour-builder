@@ -20,7 +20,7 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "40";
+const BUILDER_BUILD = "41";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js?v=39";
 import { createMarkerActions } from "./marker-actions.js?v=39";
@@ -283,6 +283,9 @@ function updateScene(patch, opts = {}) {
   const scene = getScene(state.tour, state.currentSceneId);
   if (!scene) return;
   Object.assign(scene, patch);
+  if ("name" in patch) {
+    $("editor-scene-title").textContent = scene.name || "(unnamed scene)";
+  }
   if (opts.relistScene) renderSceneList();
 }
 
@@ -467,6 +470,7 @@ function renderSceneEditor() {
   if (!scene) return;
 
   $("scene-name").value = scene.name;
+  $("editor-scene-title").textContent = scene.name || "(unnamed scene)";
   $("scene-panorama").value = scene.panorama || "";
   $("scene-caption").value = scene.caption;
   $("start-badge").hidden = scene.id !== state.tour.meta.startSceneId;
