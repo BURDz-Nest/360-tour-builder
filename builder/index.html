@@ -9,7 +9,7 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css?v=22" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=23" />
     <link rel="stylesheet" href="welcome.css?v=1" />
     <link rel="stylesheet" href="help-modal.css?v=1" />
     <link rel="stylesheet" href="../player-template/css/markers.css?v=6" />
@@ -116,48 +116,71 @@
       </section>
 
       <!-- RIGHT: scene + marker editor -->
-      <section class="col" aria-label="Scene editor">
+      <section class="col col--editor" aria-label="Scene editor">
         <p id="no-scene" class="muted">Select or add a scene to edit it.</p>
 
         <div id="scene-editor" hidden>
-          <div class="editor-section">
-            <div class="view-row">
-              <h2 class="section-title" style="margin:0">Scene</h2>
-              <span id="start-badge" class="start-badge" hidden>Start scene</span>
+          <div class="view-row editor-header">
+            <h2 class="section-title" style="margin:0">Scene</h2>
+            <span id="start-badge" class="start-badge" hidden>Start scene</span>
+          </div>
+
+          <!-- Top-level editor tabs: Scene settings | Hotspots -->
+          <div class="tabs" role="tablist" aria-label="Scene editor sections">
+            <button id="tab-scene-settings" class="tab is-active" type="button"
+                    role="tab" aria-selected="true" aria-controls="panel-scene-settings">
+              Scene settings
+            </button>
+            <button id="tab-scene-hotspots" class="tab" type="button"
+                    role="tab" aria-selected="false" aria-controls="panel-scene-hotspots" tabindex="-1">
+              Hotspots
+            </button>
+          </div>
+
+          <!-- ============ SCENE SETTINGS ============ -->
+          <div id="panel-scene-settings" class="tab-panel editor-scroll" role="tabpanel" aria-labelledby="tab-scene-settings">
+            <div class="editor-section">
+              <h2 class="section-title">Opening view</h2>
+              <div class="view-row">
+                <button id="btn-capture-view" class="btn" type="button">Capture current view</button>
+                <span id="view-readout" class="view-readout"></span>
+              </div>
+              <p class="field__hint muted">Rotate and zoom the preview to the angle you want visitors to see first, then click <em>Capture current view</em>. Every time someone enters this scene, the camera starts here.</p>
             </div>
 
-            <!-- 1. Opening camera angle -->
-            <div class="view-row">
-              <button id="btn-capture-view" class="btn" type="button">Capture current view</button>
-              <span id="view-readout" class="view-readout"></span>
+            <div class="editor-section">
+              <h2 class="section-title">Scene details</h2>
+              <label class="field">
+                <span class="field__label">Name</span>
+                <input id="scene-name" class="field__input" type="text" />
+                <span class="field__hint muted">Shown in the tour’s scene gallery and in the scene list on the left. Give each scene a clear, unique name.</span>
+              </label>
+              <label class="field">
+                <span class="field__label">Panorama image</span>
+                <input id="scene-panorama" class="field__input field__input--readonly" type="text"
+                       readonly tabindex="-1" placeholder="No image yet — open “Images…” to add one" />
+                <span class="field__hint muted">The 360° photo for this scene. Add or swap it from the <em>Images…</em> dialog — this field is read-only.</span>
+              </label>
+              <label class="field">
+                <span class="field__label">Caption <span class="muted">(optional)</span></span>
+                <input id="scene-caption" class="field__input" type="text" />
+                <span class="field__hint muted">A short line shown over the panorama in the player — e.g. a room name or a helpful note.</span>
+              </label>
             </div>
-            <p class="field__hint muted">Aim the preview where visitors should look first, then capture it as this scene’s opening angle.</p>
 
-            <!-- 2. Name the scene -->
-            <label class="field">
-              <span class="field__label">Name (shown in gallery)</span>
-              <input id="scene-name" class="field__input" type="text" />
-            </label>
-            <label class="field">
-              <span class="field__label">Panorama image <span class="muted">(set via the Images dialog)</span></span>
-              <input id="scene-panorama" class="field__input field__input--readonly" type="text"
-                     readonly tabindex="-1" placeholder="No image yet — open “Images…” to add one" />
-            </label>
-            <label class="field">
-              <span class="field__label">Caption (optional)</span>
-              <input id="scene-caption" class="field__input" type="text" />
-            </label>
-
-            <!-- 3. Scene actions -->
-            <div class="marker-actions scene-actions-row">
-              <button id="btn-set-start" class="btn" type="button">Set as start</button>
-              <button id="btn-duplicate-scene" class="btn" type="button" title="Create a copy of this scene right after it">Duplicate scene</button>
-              <button id="btn-delete-scene" class="btn btn--danger" type="button">Delete scene</button>
+            <div class="editor-section">
+              <h2 class="section-title">Scene actions</h2>
+              <div class="marker-actions">
+                <button id="btn-set-start" class="btn" type="button">Set as start</button>
+                <button id="btn-duplicate-scene" class="btn" type="button" title="Create a copy of this scene right after it">Duplicate scene</button>
+                <button id="btn-delete-scene" class="btn btn--danger" type="button">Delete scene</button>
+              </div>
+              <p class="field__hint muted"><strong>Set as start</strong> makes this the first scene visitors land on. <strong>Duplicate scene</strong> copies this scene and its hotspots as a new one. <strong>Delete scene</strong> removes it permanently.</p>
             </div>
           </div>
 
-          <div class="editor-section">
-            <h2 class="section-title">Hotspots</h2>
+          <!-- ============ HOTSPOTS ============ -->
+          <div id="panel-scene-hotspots" class="tab-panel editor-scroll" role="tabpanel" aria-labelledby="tab-scene-hotspots" hidden>
             <div class="tabs" role="tablist" aria-label="Hotspot type">
               <button id="tab-hs-nav" class="tab is-active" type="button"
                       role="tab" aria-selected="true" aria-controls="panel-hs-nav">
@@ -175,6 +198,7 @@
                 <button id="btn-add-link" class="btn" type="button">+ Navigation</button>
                 <button id="btn-copy-hotspots" class="btn" type="button" title="Copy all hotspots from another scene into this one">Copy hotspots...</button>
               </div>
+              <p class="field__hint muted">Navigation hotspots are clickable arrows/pins that move visitors to another scene.</p>
               <div id="marker-list-nav"></div>
             </div>
 
@@ -184,6 +208,7 @@
                 <button id="btn-add-info" class="btn" type="button" title="A glyph pin you click for details">+ Info icon</button>
                 <button id="btn-add-info-zone" class="btn" type="button" title="A transparent region that reveals on hover">+ Info zone</button>
               </div>
+              <p class="field__hint muted">Info hotspots show a pop-up when clicked. Use an <em>icon</em> for a point, or a <em>zone</em> to highlight a whole object/area.</p>
               <div id="marker-list-info"></div>
             </div>
           </div>
@@ -289,6 +314,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=39"></script>
+    <script type="module" src="builder.js?v=40"></script>
   </body>
 </html>

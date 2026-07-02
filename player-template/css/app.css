@@ -192,16 +192,26 @@ button { font: inherit; cursor: pointer; }
 .scene-list + .section-title { margin-top: 1.4rem; }
 
 /* Scene-editor section grouping: clear blank space + a faint divider between
-   Scene / Scene actions / Default camera view / Hotspots so they don't crowd. */
+   the sub-sections (Opening view / Scene details / Scene actions) so they
+   don't crowd together. */
 .editor-section + .editor-section {
   margin-top: 1.6rem;
   padding-top: 1.6rem;
   border-top: 1px solid var(--line);
 }
-/* Within the merged Scene section: separate the capture-view explainer from the
-   name field, and float the scene actions a little apart from the fields. */
+/* Separate the capture-view explainer from whatever follows it. */
 .view-row + .field__hint { margin-bottom: 0.9rem; }
-.scene-actions-row { margin-top: 1rem; }
+
+/* ---- Editor column: pin the Scene header + top tabs, scroll the panel ----
+   The right column is a fixed-height grid cell, so make it a flex column whose
+   active tab-panel takes the remaining space and scrolls on its own. This
+   gives Hotspots a full, independently-scrollable panel. */
+.editor-header { margin-bottom: 0.75rem; }
+@media (min-width: 981px) {
+  .col--editor { display: flex; flex-direction: column; overflow: hidden; }
+  .col--editor #scene-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .editor-scroll { flex: 1; min-height: 0; overflow-y: auto; padding-right: 0.4rem; }
+}
 
 /* ============ Fields ============ */
 .field { display: block; margin-bottom: 0.75rem; }

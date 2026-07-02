@@ -20,7 +20,7 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "39";
+const BUILDER_BUILD = "40";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js?v=39";
 import { createMarkerActions } from "./marker-actions.js?v=39";
@@ -54,6 +54,7 @@ let preview;
 let sceneList;
 let overlays;
 let markerActions;
+let editorTabs; // top-level right-panel tabs (Scene settings | Hotspots)
 let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
 
 init();
@@ -174,6 +175,15 @@ function init() {
   );
   $("btn-copy-hotspots").addEventListener("click", openCopyHotspotsMenu);
 
+  // Top-level editor tabs (Scene settings | Hotspots). No storageKey: we want
+  // selecting a scene to always land on Scene settings (see selectScene).
+  editorTabs = mountTabs({
+    pairs: [
+      { tab: $("tab-scene-settings"), panel: $("panel-scene-settings") },
+      { tab: $("tab-scene-hotspots"), panel: $("panel-scene-hotspots") },
+    ],
+  });
+
   // Hotspots sub-tabs (Navigation | Info), styled like the left-panel tabs.
   mountTabs({
     pairs: [
@@ -203,6 +213,7 @@ function selectScene(id) {
   state.selectedMarkerId = null;
   viewer?.setSelectedMarker(null);
   markerActions?.cancelPlacing();
+  editorTabs?.show("tab-scene-settings"); // always land on settings for a new scene
   renderSceneList();
   renderSceneEditor();
   preview.updatePreview();
