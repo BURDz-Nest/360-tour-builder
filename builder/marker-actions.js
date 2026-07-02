@@ -88,6 +88,18 @@ export function createMarkerActions({
     highlight();
   }
 
+  /** Accordion toggle: expand a collapsed card (select) or collapse the open
+   *  one (deselect). Deselecting also clears the preview highlight/handles. */
+  function toggleMarker(id) {
+    if (state.selectedMarkerId === id) {
+      state.selectedMarkerId = null;
+      viewer?.setSelectedMarker(null);
+      highlight();
+    } else {
+      selectMarker(id);
+    }
+  }
+
   function deleteMarker(id) {
     const scene = currentScene();
     if (!scene) return;
@@ -133,6 +145,7 @@ export function createMarkerActions({
     cancelPlacing,
     handlePlace,
     selectMarker,
+    toggleMarker,
     deleteMarker,
     replaceMarker,
     updateMarker,

@@ -20,10 +20,10 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "41";
+const BUILDER_BUILD = "42";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
-import { renderMarkerRow } from "./marker-row.js?v=39";
-import { createMarkerActions } from "./marker-actions.js?v=39";
+import { renderMarkerRow } from "./marker-row.js?v=42";
+import { createMarkerActions } from "./marker-actions.js?v=42";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
 import { mountOverlays } from "./overlays.js";
@@ -504,6 +504,8 @@ function highlightSelectedMarker() {
     .forEach((el) => {
       const on = el.dataset.markerId === state.selectedMarkerId;
       el.classList.toggle("is-selected", on);
+      el.querySelector(".marker-row__summary")
+        ?.setAttribute("aria-expanded", on ? "true" : "false");
       if (on) el.scrollIntoView({ block: "nearest" });
     });
 }
@@ -529,6 +531,7 @@ function fillMarkerList(container, markers, scene, emptyMsg) {
           onDelete: (id) => markerActions.deleteMarker(id),
           onUpdate: (id, patch) => markerActions.updateMarker(id, patch),
           onSelect: (id) => markerActions.selectMarker(id),
+          onToggle: (id) => markerActions.toggleMarker(id),
         },
       })
     )

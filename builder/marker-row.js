@@ -1,8 +1,11 @@
 /**
- * marker-row.js - renders one marker's editor card (the chunk between the
- * marker list header and the next marker). Extracted from builder.js to keep
- * it under 600 lines while staying cohesive: this module knows the marker
- * card's DOM shape, builder.js wires the actions.
+ * marker-row.js - renders one marker's editor card as a COLLAPSIBLE accordion:
+ * a compact summary line (type badge + label + disclosure chevron, sized like
+ * a scene-list row) that expands to reveal the full edit options when selected.
+ *
+ * Expansion is driven by selection (state.selectedMarkerId) - a single source
+ * of truth that also highlights the pin / shows zone handles in the preview.
+ * builder.js toggles the .is-selected class (CSS shows/hides .marker-row__details).
  *
  * Pure factory: callers pass the scene + marker + a small `actions` bag, and
  * get back a fully-wired <div>. No module-level state - every render is a
@@ -23,111 +26,155 @@ import { createIconPicker } from "./icon-picker.js";
  * @param {object} cfg
  * @param {object} cfg.scene     the scene that owns this marker
  * @param {object} cfg.marker    the marker being edited
- * @param {string|null} cfg.selectedMarkerId  for the .is-selected class
+ * @param {string|null} cfg.selectedMarkerId  expanded === selected
  * @param {object[]} cfg.scenes  all scenes (for the link target dropdown)
- * @param {object} cfg.actions   { onReplace, onDelete, onUpdate(patch), onSelect }
+ * @param {object} cfg.actions   { onReplace, onDelete, onUpdate(patch), onSelect, onToggle }
  * @returns {HTMLElement}
  */
 export function renderMarkerRow({ scene, marker: m, selectedMarkerId, scenes, actions }) {
-  // Info zones get a different card (no icon/position; shape + style controls).
-  if (isZone(m)) return renderZoneRow({ m, selectedMarkerId, actions });
+  const selected = m.id === selectedMarkerId;
+  return isZone(m)
+    ? renderZoneRow({ m, selected, actions })
+    : renderIconRow({ scene, m, selected, scenes, actions });
+}
 
+/**
+ * Build the shared accordion shell: a clickable summary (badge + title +
+ * chevron) plus an empty .marker-row__details container to fill. Clicking the
+ * summary toggles expand/collapse (select/deselect); focusing a field inside
+ * the details keeps it selected. Returns the row, the details node to append
+ * editors into, and a setTitle() so the summary label can track live edits.
+ */
+function makeShell({ id, selected, badgeClass, badgeText, title, actions }) {
   const row = document.createElement("div");
-  row.className = "marker-row" + (m.id === selectedMarkerId ? " is-selected" : "");
+  row.className = "marker-row" + (selected ? " is-selected" : "");
+  row.dataset.markerId = id;
 
-  const head = document.createElement("div");
-  head.className = "marker-row__head";
+  const summary = document.createElement("button");
+  summary.type = "button";
+  summary.className = "marker-row__summary";
+  summary.setAttribute("aria-expanded", selected ? "true" : "false");
+
   const badge = document.createElement("span");
-  badge.className = `marker-badge marker-badge--${m.type}`;
-  badge.textContent = m.type === MARKER_TYPES.LINK ? "Navigation" : "Info";
-  head.append(badge);
-  head.append(miniBtn("Move", "Re-place on sphere", () => actions.onReplace(m.id)));
-  head.append(miniBtn("Delete", "Delete hotspot", () => actions.onDelete(m.id)));
+  badge.className = `marker-badge ${badgeClass}`;
+  badge.textContent = badgeText;
 
-  const label = labeledInput("Label", m.label, (v) => actions.onUpdate(m.id, { label: v }));
+  const titleEl = document.createElement("span");
+  titleEl.className = "marker-row__title";
+  const setTitle = (t) => { titleEl.textContent = t?.trim() ? t : "(no label)"; };
+  setTitle(title);
 
-  const iconPicker = createIconPicker({
-    type: m.type,
-    iconId: m.icon,
-    onChange: (id) => actions.onUpdate(m.id, { icon: id }),
+  const chevron = document.createElement("span");
+  chevron.className = "marker-row__chevron";
+  chevron.setAttribute("aria-hidden", "true");
+  chevron.textContent = "\u203A"; // ›  (rotates 90deg when expanded)
+
+  summary.append(badge, titleEl, chevron);
+  summary.addEventListener("click", () => actions.onToggle?.(id));
+
+  const details = document.createElement("div");
+  details.className = "marker-row__details";
+  // Tabbing/clicking into any field selects (and thus keeps expanded).
+  details.addEventListener("focusin", () => actions.onSelect?.(id));
+
+  row.append(summary, details);
+  return { row, details, setTitle };
+}
+
+/** Editor for an ICON marker (link/info): label + icon + target/info + position. */
+function renderIconRow({ scene, m, selected, scenes, actions }) {
+  const isLink = m.type === MARKER_TYPES.LINK;
+  const { row, details, setTitle } = makeShell({
+    id: m.id,
+    selected,
+    badgeClass: `marker-badge--${m.type}`,
+    badgeText: isLink ? "Navigation" : "Info",
+    title: m.label,
+    actions,
   });
 
-  row.append(head, label, iconPicker);
-
-  if (m.type === MARKER_TYPES.LINK) {
-    row.append(linkTargetSelect(scene, m, scenes, actions));
-  } else {
-    row.append(
-      labeledTextarea("Info content (HTML allowed)", m.html, (v) =>
-        actions.onUpdate(m.id, { html: v })
-      )
-    );
-  }
+  details.append(rowActions(m, actions));
+  details.append(
+    labeledInput("Label", m.label, (v) => {
+      actions.onUpdate(m.id, { label: v });
+      setTitle(v);
+    })
+  );
+  details.append(
+    createIconPicker({
+      type: m.type,
+      iconId: m.icon,
+      onChange: (id) => actions.onUpdate(m.id, { icon: id }),
+    })
+  );
+  details.append(
+    isLink
+      ? linkTargetSelect(scene, m, scenes, actions)
+      : labeledTextarea("Info content (HTML allowed)", m.html, (v) =>
+          actions.onUpdate(m.id, { html: v })
+        )
+  );
 
   const pos = document.createElement("p");
   pos.className = "marker-row__pos muted";
   pos.textContent = `Position: yaw ${m.yaw} deg, pitch ${m.pitch} deg`;
-  row.append(pos);
-  wireSelect(row, m.id, actions.onSelect);
+  details.append(pos);
   return row;
 }
 
-/**
- * Make a whole card act as its own "select me" affordance: clicking anywhere
- * on the card (or focusing any field inside it) selects the marker - which
- * highlights it in the preview and, for zones, shows the corner handles.
- * Buttons are excluded so the mini-btns (Move/Delete) still do their own job.
- */
-function wireSelect(row, id, onSelect) {
-  if (!onSelect) return;
-  row.dataset.markerId = id;
-  row.addEventListener("click", (e) => {
-    if (e.target.closest("button")) return;
-    onSelect(id);
+/** Editor for an INFO ZONE (polygon): label + info + idle-outline + hover color. */
+function renderZoneRow({ m, selected, actions }) {
+  const { row, details, setTitle } = makeShell({
+    id: m.id,
+    selected,
+    badgeClass: "marker-badge--zone",
+    badgeText: "Info zone",
+    title: m.label,
+    actions,
   });
-  row.addEventListener("focusin", () => onSelect(id));
-}
+  row.classList.add("marker-row--zone");
 
-/**
- * Editor card for an INFO ZONE (polygon hotspot). No icon or single position;
- * instead: label + info content + idle-outline toggle + hover color. Selecting
- * the card (click anywhere / focus a field) shows the corner handles in the
- * preview so you can drag them to reshape the region.
- */
-function renderZoneRow({ m, selectedMarkerId, actions }) {
-  const row = document.createElement("div");
-  row.className =
-    "marker-row marker-row--zone" + (m.id === selectedMarkerId ? " is-selected" : "");
-
-  const head = document.createElement("div");
-  head.className = "marker-row__head";
-  const badge = document.createElement("span");
-  badge.className = "marker-badge marker-badge--zone";
-  badge.textContent = "Info zone";
-  head.append(badge);
-  head.append(miniBtn("Delete", "Delete hotspot", () => actions.onDelete(m.id)));
-
-  const label = labeledInput("Label", m.label, (v) => actions.onUpdate(m.id, { label: v }));
-  const html = labeledTextarea("Info content (HTML allowed)", m.html, (v) =>
-    actions.onUpdate(m.id, { html: v })
+  details.append(rowActions(m, actions, /*moveable*/ false));
+  details.append(
+    labeledInput("Label", m.label, (v) => {
+      actions.onUpdate(m.id, { label: v });
+      setTitle(v);
+    })
   );
-  const outline = labeledCheckbox(
-    "Faint outline when idle (otherwise invisible until hover)",
-    m.idleStroke,
-    (on) => actions.onUpdate(m.id, { idleStroke: on })
+  details.append(
+    labeledTextarea("Info content (HTML allowed)", m.html, (v) =>
+      actions.onUpdate(m.id, { html: v })
+    )
   );
-  const color = labeledColor("Hover color", m.hoverColor, (v) =>
-    actions.onUpdate(m.id, { hoverColor: v })
+  details.append(
+    labeledCheckbox(
+      "Faint outline when idle (otherwise invisible until hover)",
+      m.idleStroke,
+      (on) => actions.onUpdate(m.id, { idleStroke: on })
+    )
+  );
+  details.append(
+    labeledColor("Hover color", m.hoverColor, (v) =>
+      actions.onUpdate(m.id, { hoverColor: v })
+    )
   );
 
   const hint = document.createElement("p");
   hint.className = "marker-row__pos muted";
-  hint.textContent =
-    "Selected: drag the corner dots in the preview to fit the region.";
-
-  row.append(head, label, html, outline, color, hint);
-  wireSelect(row, m.id, actions.onSelect);
+  hint.textContent = "Selected: drag the corner dots in the preview to fit the region.";
+  details.append(hint);
   return row;
+}
+
+/** Move (icons only) + Delete buttons for the top of a details panel. */
+function rowActions(m, actions, moveable = true) {
+  const bar = document.createElement("div");
+  bar.className = "marker-row__actions";
+  if (moveable) {
+    bar.append(miniBtn("Move", "Re-place on sphere", () => actions.onReplace(m.id)));
+  }
+  bar.append(miniBtn("Delete", "Delete hotspot", () => actions.onDelete(m.id)));
+  return bar;
 }
 
 function linkTargetSelect(scene, m, scenes, actions) {
