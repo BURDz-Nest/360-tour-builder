@@ -25,7 +25,7 @@ import { createIconPicker } from "./icon-picker.js";
  * @param {object} cfg.marker    the marker being edited
  * @param {string|null} cfg.selectedMarkerId  for the .is-selected class
  * @param {object[]} cfg.scenes  all scenes (for the link target dropdown)
- * @param {object} cfg.actions   { onReplace, onDelete, onUpdate(patch) }
+ * @param {object} cfg.actions   { onReplace, onDelete, onUpdate(patch), onSelect }
  * @returns {HTMLElement}
  */
 export function renderMarkerRow({ scene, marker: m, selectedMarkerId, scenes, actions }) {
@@ -68,14 +68,31 @@ export function renderMarkerRow({ scene, marker: m, selectedMarkerId, scenes, ac
   pos.className = "marker-row__pos muted";
   pos.textContent = `Position: yaw ${m.yaw} deg, pitch ${m.pitch} deg`;
   row.append(pos);
+  wireSelect(row, m.id, actions.onSelect);
   return row;
 }
 
 /**
+ * Make a whole card act as its own "select me" affordance: clicking anywhere
+ * on the card (or focusing any field inside it) selects the marker - which
+ * highlights it in the preview and, for zones, shows the corner handles.
+ * Buttons are excluded so the mini-btns (Move/Delete) still do their own job.
+ */
+function wireSelect(row, id, onSelect) {
+  if (!onSelect) return;
+  row.dataset.markerId = id;
+  row.addEventListener("click", (e) => {
+    if (e.target.closest("button")) return;
+    onSelect(id);
+  });
+  row.addEventListener("focusin", () => onSelect(id));
+}
+
+/**
  * Editor card for an INFO ZONE (polygon hotspot). No icon or single position;
- * instead: label + info content + idle-outline toggle + hover color, plus an
- * "Edit shape" button that selects the zone so its corner handles appear in
- * the preview for dragging.
+ * instead: label + info content + idle-outline toggle + hover color. Selecting
+ * the card (click anywhere / focus a field) shows the corner handles in the
+ * preview so you can drag them to reshape the region.
  */
 function renderZoneRow({ m, selectedMarkerId, actions }) {
   const row = document.createElement("div");
@@ -88,7 +105,6 @@ function renderZoneRow({ m, selectedMarkerId, actions }) {
   badge.className = "marker-badge marker-badge--zone";
   badge.textContent = "Info zone";
   head.append(badge);
-  head.append(miniBtn("Edit shape", "Select to drag its corners", () => actions.onEdit(m.id)));
   head.append(miniBtn("Delete", "Delete hotspot", () => actions.onDelete(m.id)));
 
   const label = labeledInput("Label", m.label, (v) => actions.onUpdate(m.id, { label: v }));
@@ -107,9 +123,10 @@ function renderZoneRow({ m, selectedMarkerId, actions }) {
   const hint = document.createElement("p");
   hint.className = "marker-row__pos muted";
   hint.textContent =
-    'Click "Edit shape", then drag the corner dots in the preview to fit the region.';
+    "Selected: drag the corner dots in the preview to fit the region.";
 
   row.append(head, label, html, outline, color, hint);
+  wireSelect(row, m.id, actions.onSelect);
   return row;
 }
 

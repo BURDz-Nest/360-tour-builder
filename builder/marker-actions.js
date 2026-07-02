@@ -22,8 +22,11 @@ import { MARKER_TYPES, MARKER_SHAPES } from "../player-template/js/tour-model.js
  * @param {(tour:object, id:string)=>object} ctx.getScene
  * @param {Function} ctx.createMarker          tour-model factory
  * @param {() => void} ctx.refresh             re-render the side-panel marker list
+ * @param {() => void} ctx.highlight           cheap: re-mark the selected card (no rebuild)
  */
-export function createMarkerActions({ state, viewer, $, toast, getScene, createMarker, refresh }) {
+export function createMarkerActions({
+  state, viewer, $, toast, getScene, createMarker, refresh, highlight,
+}) {
   const currentScene = () => getScene(state.tour, state.currentSceneId);
 
   /** Enter "place mode": the next preview click drops a marker of this kind. */
@@ -77,9 +80,12 @@ export function createMarkerActions({ state, viewer, $, toast, getScene, createM
   }
 
   function selectMarker(id) {
+    if (state.selectedMarkerId === id) return; // no-op keeps input focus intact
     state.selectedMarkerId = id;
     viewer?.setSelectedMarker(id);
-    refresh();
+    // Cheap highlight (toggle .is-selected) instead of a full list rebuild, so
+    // clicking/focusing a card doesn't destroy the field you're editing.
+    highlight();
   }
 
   function deleteMarker(id) {

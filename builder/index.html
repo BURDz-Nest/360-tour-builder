@@ -9,7 +9,7 @@
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
-    <link rel="stylesheet" href="../player-template/css/app.css?v=21" />
+    <link rel="stylesheet" href="../player-template/css/app.css?v=22" />
     <link rel="stylesheet" href="welcome.css?v=1" />
     <link rel="stylesheet" href="help-modal.css?v=1" />
     <link rel="stylesheet" href="../player-template/css/markers.css?v=6" />
@@ -126,6 +126,14 @@
               <span id="start-badge" class="start-badge" hidden>Start scene</span>
             </div>
 
+            <!-- 1. Opening camera angle -->
+            <div class="view-row">
+              <button id="btn-capture-view" class="btn" type="button">Capture current view</button>
+              <span id="view-readout" class="view-readout"></span>
+            </div>
+            <p class="field__hint muted">Aim the preview where visitors should look first, then capture it as this scene’s opening angle.</p>
+
+            <!-- 2. Name the scene -->
             <label class="field">
               <span class="field__label">Name (shown in gallery)</span>
               <input id="scene-name" class="field__input" type="text" />
@@ -139,22 +147,12 @@
               <span class="field__label">Caption (optional)</span>
               <input id="scene-caption" class="field__input" type="text" />
             </label>
-          </div>
 
-          <div class="editor-section">
-            <h2 class="section-title">Scene actions</h2>
-            <div class="marker-actions">
+            <!-- 3. Scene actions -->
+            <div class="marker-actions scene-actions-row">
               <button id="btn-set-start" class="btn" type="button">Set as start</button>
               <button id="btn-duplicate-scene" class="btn" type="button" title="Create a copy of this scene right after it">Duplicate scene</button>
               <button id="btn-delete-scene" class="btn btn--danger" type="button">Delete scene</button>
-            </div>
-          </div>
-
-          <div class="editor-section">
-            <h2 class="section-title">Default camera view</h2>
-            <div class="view-row">
-              <button id="btn-capture-view" class="btn" type="button">Capture current view</button>
-              <span id="view-readout" class="view-readout"></span>
             </div>
           </div>
 
@@ -291,6 +289,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=38"></script>
+    <script type="module" src="builder.js?v=39"></script>
   </body>
 </html>

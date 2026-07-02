@@ -20,10 +20,10 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "38";
+const BUILDER_BUILD = "39";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
-import { renderMarkerRow } from "./marker-row.js";
-import { createMarkerActions } from "./marker-actions.js";
+import { renderMarkerRow } from "./marker-row.js?v=39";
+import { createMarkerActions } from "./marker-actions.js?v=39";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js";
 import { mountOverlays } from "./overlays.js";
@@ -72,7 +72,9 @@ function init() {
     onZoneCornerMove: (id, idx, yaw, pitch) => markerActions.moveZoneCorner(id, idx, yaw, pitch),
   });
   markerActions = createMarkerActions({
-    state, viewer, $, toast, getScene, createMarker, refresh: renderMarkerList,
+    state, viewer, $, toast, getScene, createMarker,
+    refresh: renderMarkerList,
+    highlight: highlightSelectedMarker,
   });
   preview = createPreview({ state, $, toast, getScene, viewer });
   sceneList = createSceneList({
@@ -480,6 +482,17 @@ function renderMarkerList() {
   fillMarkerList(infoList, info, scene, "No info hotspots or zones yet.");
 }
 
+/** Cheap re-highlight of the selected card (no DOM rebuild -> keeps input focus).
+ * Used by selectMarker so clicking/focusing a card doesn't nuke what you type. */
+function highlightSelectedMarker() {
+  document.querySelectorAll("#marker-list-nav .marker-row, #marker-list-info .marker-row")
+    .forEach((el) => {
+      const on = el.dataset.markerId === state.selectedMarkerId;
+      el.classList.toggle("is-selected", on);
+      if (on) el.scrollIntoView({ block: "nearest" });
+    });
+}
+
 /** Render one filtered set of marker cards into a container (or an empty note). */
 function fillMarkerList(container, markers, scene, emptyMsg) {
   if (!markers.length) {
@@ -500,7 +513,7 @@ function fillMarkerList(container, markers, scene, emptyMsg) {
           onReplace: (id) => markerActions.replaceMarker(id),
           onDelete: (id) => markerActions.deleteMarker(id),
           onUpdate: (id, patch) => markerActions.updateMarker(id, patch),
-          onEdit: (id) => markerActions.selectMarker(id),
+          onSelect: (id) => markerActions.selectMarker(id),
         },
       })
     )

@@ -198,6 +198,10 @@ button { font: inherit; cursor: pointer; }
   padding-top: 1.6rem;
   border-top: 1px solid var(--line);
 }
+/* Within the merged Scene section: separate the capture-view explainer from the
+   name field, and float the scene actions a little apart from the fields. */
+.view-row + .field__hint { margin-bottom: 0.9rem; }
+.scene-actions-row { margin-top: 1rem; }
 
 /* ============ Fields ============ */
 .field { display: block; margin-bottom: 0.75rem; }
@@ -373,8 +377,17 @@ textarea.field__input { resize: vertical; }
   padding: 0.6rem;
   margin-bottom: 0.6rem;
   background: var(--panel);
+  cursor: pointer; /* the whole card selects the marker (except its buttons) */
 }
+.marker-row:hover { border-color: var(--muted); }
 .marker-row.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* Controls inside a card use the normal text cursor / pointer, not the card's. */
+.marker-row input,
+.marker-row textarea,
+.marker-row select { cursor: auto; }
+.marker-row button,
+.marker-row .field--check,
+.marker-row .field__color { cursor: pointer; }
 .marker-row__head {
   display: flex;
   align-items: center;
