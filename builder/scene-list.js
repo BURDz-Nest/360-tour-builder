@@ -114,7 +114,9 @@ export function createSceneList({
         dot.className = "scene-group__dot";
         dot.style.background = group.color;
         dot.setAttribute("aria-hidden", "true");
-        head.insertBefore(dot, nameEl);
+        // The name lives inside the toggle button, so insert the dot there
+        // (right before the label), not on `head` (nameEl isn't head's child).
+        toggle.insertBefore(dot, nameEl);
       }
       head.append(
         miniBtn("Rename", "Rename area", () => beginRename(head, nameEl, group)),
