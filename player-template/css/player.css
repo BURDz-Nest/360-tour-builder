@@ -3,6 +3,10 @@
    and so builder-only consumers don't have to ship player chrome. */
 
 /* ============ Player ============ */
+/* Respect the hidden attribute even on elements whose class sets display
+   (e.g. .player-bar__share is inline-flex, which would otherwise win the
+   cascade over the UA [hidden]{display:none} rule and keep it visible). */
+[hidden] { display: none !important; }
 .player-body { display: flex; flex-direction: column; height: 100vh; background: #0c0d10; }
 .player-bar {
   display: flex;
