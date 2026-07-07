@@ -20,7 +20,7 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "49";
+const BUILDER_BUILD = "50";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js?v=43";
 import { createMarkerActions } from "./marker-actions.js?v=42";
@@ -28,8 +28,8 @@ import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js?v=2";
 import { mountOverlays } from "./overlays.js?v=2";
 import { createPreview } from "./preview.js";
-import { createSceneList } from "./scene-list.js?v=7";
-import { createGroupActions } from "./group-actions.js?v=3";
+import { createSceneList } from "./scene-list.js?v=8";
+import { createGroupActions } from "./group-actions.js?v=4";
 import { duplicateScene, copyHotspots, openSceneCopyMenu } from "./scene-actions.js";
 import { resolveInitialTheme, applyTheme, bindThemeToggle } from "./theme.js";
 import { mountTabs } from "./tabs.js?v=1";

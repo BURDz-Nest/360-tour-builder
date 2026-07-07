@@ -115,12 +115,14 @@ export function createGroupActions({ state, refresh, selectScene, toast }) {
     toast?.("Set as this area's entry scene.");
   }
 
-  /** Recolor an area; live-updates its dot + every member row's accent. */
+  /**
+   * Recolor an area (data only - NO refresh). The caller updates the dot +
+   * row accents live, so the native color picker isn't destroyed mid-drag by a
+   * full re-render (that made the picker snap shut on the first click).
+   */
   function setGroupColor(groupId, color) {
     const g = groups().find((x) => x.id === groupId);
-    if (!g) return;
-    g.color = color;
-    refresh();
+    if (g) g.color = color;
   }
 
   return {

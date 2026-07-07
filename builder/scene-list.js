@@ -77,9 +77,19 @@ export function createSceneList({
     add.addEventListener("click", () => actions.onAddScene(group ? group.id : null));
     body.append(add);
 
-    const entryId = group ? resolveGroupEntryScene(tour, group.id)?.id : null;
+    // Entry star has two states so it survives reordering:
+    //   explicitId - the scene the author PINNED (gold star, sticks to that
+    //                scene through any reorder because it's keyed by id)
+    //   defaultId  - the auto fallback (first member) shown only when nothing is
+    //                pinned; a faint marker, moves with whatever is on top.
+    const explicitId =
+      group && group.entrySceneId && members.some((m) => m.id === group.entrySceneId)
+        ? group.entrySceneId
+        : "";
+    const defaultId = group && !explicitId ? resolveGroupEntryScene(tour, group.id)?.id : null;
+    const entry = { explicitId, defaultId };
     members.forEach((scene) =>
-      body.append(renderRow(scene, tour, currentId, group, entryId))
+      body.append(renderRow(scene, tour, currentId, group, entry))
     );
     if (group && !members.length) {
       const empty = document.createElement("p");
@@ -139,7 +149,12 @@ export function createSceneList({
     color.value = group.color || "#0071dc";
     color.title = "Area color";
     color.setAttribute("aria-label", `Color for area ${group.name}`);
-    color.addEventListener("input", () => actions.onSetColor(group.id, color.value));
+    // Live-update the data + visuals IN PLACE. A full re-render here would
+    // destroy this <input> and slam the native picker shut on the first click.
+    color.addEventListener("input", () => {
+      actions.onSetColor(group.id, color.value); // data only (no refresh)
+      applyColorLive(group.id, color.value);
+    });
 
     row.append(
       color,
@@ -147,6 +162,17 @@ export function createSceneList({
       miniBtn("Delete", "Delete area", () => actions.onDeleteGroup(group.id))
     );
     return row;
+  }
+
+  /** Repaint a group's dot + its member rows' accents without re-rendering. */
+  function applyColorLive(groupId, color) {
+    const section = listEl.querySelector(`.scene-group[data-group-id="${groupId}"]`);
+    if (!section) return;
+    const dot = section.querySelector(".scene-group__dot");
+    if (dot) dot.style.background = color;
+    section
+      .querySelectorAll(".scene-item.has-accent")
+      .forEach((row) => row.style.setProperty("--group-accent", color));
   }
 
   /** Inline-edit a group name inside its action row; Enter/blur save, Esc cancels. */
@@ -172,7 +198,7 @@ export function createSceneList({
     input.addEventListener("blur", () => commit(true));
   }
 
-  function renderRow(scene, tour, currentId, group, entryId) {
+  function renderRow(scene, tour, currentId, group, entry) {
     const row = document.createElement("div");
     row.className = "scene-item" + (scene.id === currentId ? " is-active" : "");
     // Tint each row with its area's color (left accent) for at-a-glance grouping.
@@ -192,7 +218,7 @@ export function createSceneList({
       handle,
       renderThumb(scene),
       renderBody(scene, tour),
-      renderControls(scene, group, entryId)
+      renderControls(scene, group, entry)
     );
     return row;
   }
@@ -234,21 +260,29 @@ export function createSceneList({
     return body;
   }
 
-  function renderControls(scene, group, entryId) {
+  function renderControls(scene, group, entry) {
     const controls = document.createElement("span");
     controls.className = "scene-item__controls";
-    // Area entry star (grouped scenes only): filled = the landing scene.
-    // (Reordering is drag-and-drop via the handle now - no Up/Down buttons.)
+    // Area entry star (grouped scenes only). Two visuals so it survives reorder:
+    //   gold filled  -> this scene is the PINNED entry (sticks to the scene)
+    //   faint filled -> auto default (first scene) when nothing is pinned
+    //   hollow       -> not the entry; click to pin
     if (group) {
-      const isEntry = scene.id === entryId;
+      const isPinned = entry.explicitId && scene.id === entry.explicitId;
+      const isDefault = !entry.explicitId && scene.id === entry.defaultId;
       const star = document.createElement("button");
       star.type = "button";
-      star.className = "scene-item__star" + (isEntry ? " is-entry" : "");
-      star.textContent = isEntry ? "\u2605" : "\u2606";
-      star.title = isEntry
-        ? "This is the area's entry scene (click to reset to first)"
-        : "Set as this area's entry scene";
-      star.setAttribute("aria-pressed", isEntry ? "true" : "false");
+      star.className =
+        "scene-item__star" +
+        (isPinned ? " is-entry" : "") +
+        (isDefault ? " is-default" : "");
+      star.textContent = isPinned || isDefault ? "\u2605" : "\u2606";
+      star.title = isPinned
+        ? "Entry scene for this area (click to unpin \u2192 auto)"
+        : isDefault
+          ? "Default entry (first scene). Click to pin this scene so it stays the entry when you reorder."
+          : "Set as this area's entry scene";
+      star.setAttribute("aria-pressed", isPinned ? "true" : "false");
       star.addEventListener("click", () =>
         actions.onSetEntry(group.id, scene.id === group.entrySceneId ? "" : scene.id)
       );

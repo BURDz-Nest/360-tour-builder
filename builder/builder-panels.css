@@ -280,6 +280,7 @@ textarea.field__input { resize: vertical; }
   padding: 0 0.1rem;
 }
 .scene-item__star.is-entry { color: #f5a623; }
+.scene-item__star.is-default { color: #f5a623; opacity: 0.4; }
 @media (prefers-reduced-motion: reduce) {
   .scene-group__chevron { transition: none; }
 }
