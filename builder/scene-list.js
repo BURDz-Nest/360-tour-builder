@@ -10,7 +10,7 @@
  */
 
 import { miniBtn } from "./ui-dom.js";
-import { resolveGroupEntryScene } from "../player-template/js/tour-model.js?v=2";
+import { resolveGroupEntryScene } from "../player-template/js/tour-model.js?v=3";
 
 const COLLAPSE_KEY = "builder-collapsed-groups";
 const UNGROUPED = "__ungrouped__";

@@ -285,15 +285,22 @@ textarea.field__input { resize: vertical; }
   .scene-group__chevron { transition: none; }
 }
 
-/* Checkbox field (e.g. “show thumbnails” toggle) */
+/* Checkbox field (box + trailing text). Single source of truth. */
 .field--check {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ink);
+  cursor: pointer;
 }
-.field--check input { width: 1rem; height: 1rem; }
+.field--check input { width: 1rem; height: 1rem; margin-top: 0.15rem; flex: none; }
 .field--check .field__label { margin: 0; }
+
+/* Tour-settings Display section: give each field room so checkboxes + the
+   image-quality picker don't crowd together. */
+#panel-settings .field { margin-bottom: 1.15rem; }
 
 /* ============ Preview ============ */
 .preview-wrap { position: relative; height: 100%; min-height: 360px; }
@@ -437,16 +444,6 @@ textarea.field__input { resize: vertical; }
   background: none;
   cursor: pointer;
 }
-/* Checkbox field (box + trailing text) - used by the zone idle-outline toggle. */
-.field--check {
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--ink);
-  cursor: pointer;
-}
-.field--check input { margin-top: 0.15rem; flex: none; }
 
 .view-row {
   display: flex;

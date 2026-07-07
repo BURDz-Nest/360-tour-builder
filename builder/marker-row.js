@@ -12,7 +12,7 @@
  * fresh DOM tree.
  */
 
-import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js?v=2";
+import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js?v=3";
 import {
   miniBtn,
   labeledInput,

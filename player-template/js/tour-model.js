@@ -295,6 +295,8 @@ export function validateTour(raw) {
   tour.meta.showThumbnails = meta.showThumbnails !== false; // default on
   // Floating ground shadow under nav waypoints — default on (the new look).
   tour.meta.showWaypointShadows = meta.showWaypointShadows !== false;
+  // Info-zone reveal button in the player - default on for back-compat.
+  tour.meta.showInfoZones = meta.showInfoZones !== false;
   tour.meta.createdAt = String(meta.createdAt || tour.meta.createdAt);
 
   // ---- scenes ----

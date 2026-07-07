@@ -14,13 +14,13 @@ import {
   validateTour,
   MARKER_TYPES,
   MARKER_SHAPES,
-} from "../player-template/js/tour-model.js?v=2";
+} from "../player-template/js/tour-model.js?v=3";
 // NOTE on cache: ES module imports use the URL as the cache key, so adding
 // ?v= here forces a fresh fetch when builder-viewer.js changes. The parent
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "50";
+const BUILDER_BUILD = "51";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js?v=43";
 import { createMarkerActions } from "./marker-actions.js?v=42";
@@ -124,6 +124,7 @@ function init() {
     state.tour.meta.showWaypointShadows = e.target.checked;
     applyShadowPref();
   });
+  $("meta-show-info-zones").addEventListener("change", (e) => (state.tour.meta.showInfoZones = e.target.checked));
 
   // Image quality preset (authoring preference, persisted to localStorage).
   populateQualityPicker();
@@ -452,6 +453,7 @@ function renderAll() {
   $("meta-author").value = state.tour.meta.author;
   $("meta-show-thumbnails").checked = state.tour.meta.showThumbnails !== false;
   $("meta-show-waypoint-shadows").checked = state.tour.meta.showWaypointShadows !== false;
+  $("meta-show-info-zones").checked = state.tour.meta.showInfoZones !== false;
   applyShadowPref();
   renderSceneList();
   renderSceneEditor();

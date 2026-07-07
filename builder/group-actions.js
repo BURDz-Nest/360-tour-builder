@@ -7,7 +7,7 @@
  * membership" logic lives here; builder.js just wires buttons.
  */
 
-import { createGroup, createScene } from "../player-template/js/tour-model.js?v=2";
+import { createGroup, createScene } from "../player-template/js/tour-model.js?v=3";
 
 /**
  * @param {object} ctx

@@ -221,6 +221,8 @@ function initViewer(tour) {
 function wireRevealZones(tour) {
   const btn = els.revealZones;
   if (!btn) return;
+  // Author opt-out: hide the reveal button entirely when the tour setting is off.
+  if (tour.meta?.showInfoZones === false) return;
   const hasZones = (tour.scenes || []).some((s) =>
     (s.markers || []).some((m) => isZone(m))
   );
@@ -229,7 +231,7 @@ function wireRevealZones(tour) {
   btn.addEventListener("click", () => {
     const on = els.container.classList.toggle("zones-revealed");
     btn.setAttribute("aria-pressed", String(on));
-    btn.querySelector("span").textContent = on ? "Hide zones" : "Show zones";
+    btn.querySelector("span").textContent = on ? "Hide Info Zones" : "Show Info Zones";
   });
 }
 

@@ -11,7 +11,7 @@
  * (polygon hotspots authored by dragging corner handles in the preview).
  */
 
-import { MARKER_TYPES, MARKER_SHAPES } from "../player-template/js/tour-model.js?v=2";
+import { MARKER_TYPES, MARKER_SHAPES } from "../player-template/js/tour-model.js?v=3";
 
 /**
  * @param {object} ctx
