@@ -106,21 +106,6 @@ export function createGroupActions({ state, refresh, selectScene, toast }) {
     refresh();
   }
 
-  /** Up/down within a group (keyboard-accessible reorder). delta = -1 | +1. */
-  function moveSceneWithinGroup(id, delta) {
-    const arr = scenes();
-    const scene = arr.find((s) => s.id === id);
-    if (!scene) return;
-    const siblings = arr.filter((s) => norm(s.groupId) === norm(scene.groupId));
-    const pos = siblings.indexOf(scene);
-    const swapWith = siblings[pos + delta];
-    if (!swapWith) return; // already at an end
-    const i = arr.indexOf(scene);
-    const j = arr.indexOf(swapWith);
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-    refresh();
-  }
-
   /** Choose which scene a visitor lands on when jumping to this area. */
   function setGroupEntry(groupId, sceneId) {
     const g = groups().find((x) => x.id === groupId);
@@ -130,13 +115,21 @@ export function createGroupActions({ state, refresh, selectScene, toast }) {
     toast?.("Set as this area's entry scene.");
   }
 
+  /** Recolor an area; live-updates its dot + every member row's accent. */
+  function setGroupColor(groupId, color) {
+    const g = groups().find((x) => x.id === groupId);
+    if (!g) return;
+    g.color = color;
+    refresh();
+  }
+
   return {
     addGroup,
     renameGroup,
     deleteGroup,
     addSceneToGroup,
     moveSceneToGroup,
-    moveSceneWithinGroup,
     setGroupEntry,
+    setGroupColor,
   };
 }

@@ -23,8 +23,8 @@ const UNGROUPED = "__ungrouped__";
  * @param {() => string|null} cfg.getCurrentSceneId
  * @param {(path: string) => string} cfg.resolveThumbUrl
  * @param {object} cfg.actions  {
- *   onSelect, onMove(id, delta), onAddScene(groupId),
- *   onAddGroup, onRenameGroup(id, name), onDeleteGroup(id),
+ *   onSelect, onAddScene(groupId), onAddGroup,
+ *   onRenameGroup(id, name), onDeleteGroup(id), onSetColor(id, color),
  *   onMoveToGroup(sceneId, groupId, beforeSceneId), onSetEntry(groupId, sceneId)
  * }
  */
@@ -130,7 +130,19 @@ export function createSceneList({
   function renderActionRow(group) {
     const row = document.createElement("div");
     row.className = "scene-group__actions";
+
+    // Color swatch: native picker keeps it accessible + zero-dep. Live-updates
+    // the dot + every scene row's accent on change.
+    const color = document.createElement("input");
+    color.type = "color";
+    color.className = "scene-group__color";
+    color.value = group.color || "#0071dc";
+    color.title = "Area color";
+    color.setAttribute("aria-label", `Color for area ${group.name}`);
+    color.addEventListener("input", () => actions.onSetColor(group.id, color.value));
+
     row.append(
+      color,
       miniBtn("Rename", "Rename area", () => beginRename(row, group)),
       miniBtn("Delete", "Delete area", () => actions.onDeleteGroup(group.id))
     );
@@ -226,12 +238,13 @@ export function createSceneList({
     const controls = document.createElement("span");
     controls.className = "scene-item__controls";
     // Area entry star (grouped scenes only): filled = the landing scene.
+    // (Reordering is drag-and-drop via the handle now - no Up/Down buttons.)
     if (group) {
       const isEntry = scene.id === entryId;
       const star = document.createElement("button");
       star.type = "button";
       star.className = "scene-item__star" + (isEntry ? " is-entry" : "");
-      star.textContent = isEntry ? "\u2605" : "\u2606"; //  / 
+      star.textContent = isEntry ? "\u2605" : "\u2606";
       star.title = isEntry
         ? "This is the area's entry scene (click to reset to first)"
         : "Set as this area's entry scene";
@@ -241,10 +254,6 @@ export function createSceneList({
       );
       controls.append(star);
     }
-    controls.append(
-      miniBtn("Up", "Move up", () => actions.onMove(scene.id, -1)),
-      miniBtn("Down", "Move down", () => actions.onMove(scene.id, 1))
-    );
     return controls;
   }
 

@@ -20,7 +20,7 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "48";
+const BUILDER_BUILD = "49";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js?v=43";
 import { createMarkerActions } from "./marker-actions.js?v=42";
@@ -28,8 +28,8 @@ import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js?v=2";
 import { mountOverlays } from "./overlays.js?v=2";
 import { createPreview } from "./preview.js";
-import { createSceneList } from "./scene-list.js?v=6";
-import { createGroupActions } from "./group-actions.js?v=2";
+import { createSceneList } from "./scene-list.js?v=7";
+import { createGroupActions } from "./group-actions.js?v=3";
 import { duplicateScene, copyHotspots, openSceneCopyMenu } from "./scene-actions.js";
 import { resolveInitialTheme, applyTheme, bindThemeToggle } from "./theme.js";
 import { mountTabs } from "./tabs.js?v=1";
@@ -89,11 +89,11 @@ function init() {
     resolveThumbUrl: (p) => preview.resolvePreviewUrl(p),
     actions: {
       onSelect: selectScene,
-      onMove: (id, delta) => groupActions.moveSceneWithinGroup(id, delta),
       onAddScene: (groupId) => addSceneToGroup(groupId),
       onAddGroup: () => groupActions.addGroup(),
       onRenameGroup: (id, name) => groupActions.renameGroup(id, name),
       onDeleteGroup: (id) => groupActions.deleteGroup(id),
+      onSetColor: (id, color) => groupActions.setGroupColor(id, color),
       onMoveToGroup: (sid, gid, before) => groupActions.moveSceneToGroup(sid, gid, before),
       onSetEntry: (gid, sid) => groupActions.setGroupEntry(gid, sid),
     },
