@@ -11,14 +11,14 @@ import { Viewer } from "@photo-sphere-viewer/core";
 import { VirtualTourPlugin } from "@photo-sphere-viewer/virtual-tour-plugin";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
 
-import { validateTour, getScene, isZone, resolveGroupEntryScene } from "./tour-model.js";
+import { validateTour, getScene, isZone, resolveGroupEntryScene } from "./tour-model.js?v=3";
 import {
   toViewerNodes,
   sceneInitialView,
   escapeHtml,
-} from "./psv-adapter.js";
-import { readSceneFromUrl, readAreaFromUrl, writeSceneToUrl, mountShareUI } from "./share.js";
-import { mountAreasMenu } from "./areas-menu.js";
+} from "./psv-adapter.js?v=2";
+import { readSceneFromUrl, readAreaFromUrl, writeSceneToUrl, mountShareUI } from "./share.js?v=1";
+import { mountAreasMenu } from "./areas-menu.js?v=1";
 
 const DEFAULT_CONFIG = "tour.json";
 const PREVIEW_SENTINEL = "__preview__";

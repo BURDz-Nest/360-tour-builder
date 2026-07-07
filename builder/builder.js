@@ -20,7 +20,7 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "51";
+const BUILDER_BUILD = "52";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js?v=43";
 import { createMarkerActions } from "./marker-actions.js?v=42";
@@ -381,9 +381,13 @@ async function previewInPlayer() {
   // base), so relative panorama paths resolve. Fall back to the template
   // player when no base is set (only works with absolute/Azure image URLs).
   const base = (state.previewBase || "").trim();
+  // Cache-bust player.html itself so the browser always fetches the current one
+  // (which carries fresh ?v= pins for player.js/css) - no more hard-refreshing
+  // the preview tab to pick up updates.
+  const bust = `&_=${Date.now()}`;
   const playerUrl = base
-    ? base.replace(/\/?$/, "/") + "player.html?config=__preview__"
-    : "../player-template/player.html?config=__preview__";
+    ? base.replace(/\/?$/, "/") + "player.html?config=__preview__" + bust
+    : "../player-template/player.html?config=__preview__" + bust;
   window.open(playerUrl, "_blank");
 }
 

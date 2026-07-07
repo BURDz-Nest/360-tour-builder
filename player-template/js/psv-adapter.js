@@ -17,8 +17,8 @@
  *   angles in DEGREES  -> PSV "<n>deg" strings
  */
 
-import { MARKER_TYPES, isZone, DEFAULT_ZONE_HOVER } from "./tour-model.js";
-import { renderMarkerHtml } from "./marker-icons.js";
+import { MARKER_TYPES, isZone, DEFAULT_ZONE_HOVER } from "./tour-model.js?v=3";
+import { renderMarkerHtml } from "./marker-icons.js?v=1";
 
 /** PSV wants angles as strings like "30deg" (or radians). We use degrees. */
 export function degStr(value) {
