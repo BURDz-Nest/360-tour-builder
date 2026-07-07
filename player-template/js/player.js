@@ -11,13 +11,14 @@ import { Viewer } from "@photo-sphere-viewer/core";
 import { VirtualTourPlugin } from "@photo-sphere-viewer/virtual-tour-plugin";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
 
-import { validateTour, getScene, isZone } from "./tour-model.js";
+import { validateTour, getScene, isZone, resolveGroupEntryScene } from "./tour-model.js";
 import {
   toViewerNodes,
   sceneInitialView,
   escapeHtml,
 } from "./psv-adapter.js";
 import { readSceneFromUrl, writeSceneToUrl, mountShareUI } from "./share.js";
+import { mountAreasMenu } from "./areas-menu.js";
 
 const DEFAULT_CONFIG = "tour.json";
 const PREVIEW_SENTINEL = "__preview__";
@@ -35,6 +36,7 @@ const els = {
   overlayBody: document.getElementById("info-body"),
   overlayClose: document.getElementById("info-close"),
   revealZones: document.getElementById("reveal-zones-btn"),
+  areasMenu: document.getElementById("areas-menu"),
 };
 
 let activeTour = null;
@@ -144,6 +146,21 @@ function initViewer(tour) {
   // Show the "Reveal zones" toggle only when this tour actually has zones.
   wireRevealZones(tour);
 
+  // Areas fast-travel dropdown (only if this tour is split into groups). Picking
+  // an area jumps to that area's entry scene (author's choice, else its first).
+  const areas = mountAreasMenu({
+    mountEl: els.areasMenu,
+    tour,
+    onPickArea: (groupId) => {
+      const entry = resolveGroupEntryScene(tour, groupId);
+      if (entry) {
+        virtualTour.setCurrentNode(entry.id).catch((err) =>
+          console.warn("[player] area jump failed", err)
+        );
+      }
+    },
+  });
+
   // The transition already moved us to the saved view; here we only update the
   // caption text (no rotate/zoom -> no jump). Also keep the URL's ?scene= in
   // sync so the address bar always reflects what you're looking at.
@@ -152,6 +169,7 @@ function initViewer(tour) {
     if (scene) setCaption(scene.caption);
     writeSceneToUrl(node.id);
     currentSceneId = node.id;
+    areas?.update(node.id); // keep the area breadcrumb in sync
   });
 
   // Marker click router:
