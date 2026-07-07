@@ -17,6 +17,11 @@ export function readSceneFromUrl() {
   return new URLSearchParams(location.search).get("scene");
 }
 
+/** Read the ?area= param (a group id) from the current URL, or null if absent. */
+export function readAreaFromUrl() {
+  return new URLSearchParams(location.search).get("area");
+}
+
 /**
  * Replace (not push) the URL's ?scene= so the browser back-button doesn't
  * fill up with every scene change. Preserves existing params (e.g. ?config=).

@@ -163,6 +163,11 @@ export function createSceneList({
   function renderRow(scene, tour, currentId, group, entryId) {
     const row = document.createElement("div");
     row.className = "scene-item" + (scene.id === currentId ? " is-active" : "");
+    // Tint each row with its area's color (left accent) for at-a-glance grouping.
+    if (group && group.color) {
+      row.classList.add("has-accent");
+      row.style.setProperty("--group-accent", group.color);
+    }
     wireDrag(row, scene.id);
 
     const handle = document.createElement("span");

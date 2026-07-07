@@ -17,7 +17,7 @@ import {
   sceneInitialView,
   escapeHtml,
 } from "./psv-adapter.js";
-import { readSceneFromUrl, writeSceneToUrl, mountShareUI } from "./share.js";
+import { readSceneFromUrl, readAreaFromUrl, writeSceneToUrl, mountShareUI } from "./share.js";
 import { mountAreasMenu } from "./areas-menu.js";
 
 const DEFAULT_CONFIG = "tour.json";
@@ -88,13 +88,17 @@ async function main() {
 
 function initViewer(tour) {
   const { nodes, startNodeId } = toViewerNodes(tour);
-  // Deep-link override: if the URL carries ?scene=<id> and it matches a real
-  // scene, start there instead of the tour's default start scene.
-  const requested = readSceneFromUrl();
-  const effectiveStart =
-    requested && tour.scenes.some((s) => s.id === requested)
-      ? requested
-      : startNodeId;
+  // Deep-link precedence: an explicit ?scene=<id> wins; otherwise ?area=<groupId>
+  // starts at that area's entry scene; otherwise the tour's default start scene.
+  const requestedScene = readSceneFromUrl();
+  const requestedArea = readAreaFromUrl();
+  let effectiveStart = startNodeId;
+  if (requestedScene && tour.scenes.some((s) => s.id === requestedScene)) {
+    effectiveStart = requestedScene;
+  } else if (requestedArea) {
+    const entry = resolveGroupEntryScene(tour, requestedArea);
+    if (entry) effectiveStart = entry.id;
+  }
 
   // Apply tour-wide marker preferences as classes on the viewer container so
   // CSS can opt out cleanly without touching marker HTML.

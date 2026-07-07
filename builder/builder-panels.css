@@ -95,6 +95,10 @@ textarea.field__input { resize: vertical; }
   background: var(--panel);
 }
 .scene-item.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.scene-item.has-accent {
+  border-left: 3px solid var(--group-accent, var(--line));
+  padding-left: 1px; /* offset the thicker border so content doesn't shift */
+}
 .scene-item__name {
   display: block;
   color: var(--ink);
