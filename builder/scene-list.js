@@ -65,6 +65,11 @@ export function createSceneList({
     // Dropping onto empty section space appends the scene to this group.
     wireSectionDrop(body, group ? group.id : null);
 
+    // Group tools (Rename / Delete) live at the top of the OPEN body - not in
+    // the header - so the header stays readable and the rename input can never
+    // sit inside the toggle button (which caused clicks to collapse the group).
+    if (group) body.append(renderActionRow(group));
+
     const add = document.createElement("button");
     add.type = "button";
     add.className = "scene-group__add";
@@ -87,57 +92,65 @@ export function createSceneList({
     return section;
   }
 
+  /** The whole header is one toggle button: chevron + color dot + name + count. */
   function renderHead(group, key, isOpen, count) {
-    const head = document.createElement("div");
+    const head = document.createElement("button");
+    head.type = "button";
     head.className = "scene-group__head";
+    head.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    head.addEventListener("click", () => toggleCollapse(key));
 
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "scene-group__toggle";
-    toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    toggle.innerHTML = "<span class='scene-group__chevron' aria-hidden='true'>\u203A</span>";
+    const chevron = document.createElement("span");
+    chevron.className = "scene-group__chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.textContent = "\u203A";
+    head.append(chevron);
+
+    if (group && group.color) {
+      const dot = document.createElement("span");
+      dot.className = "scene-group__dot";
+      dot.style.background = group.color;
+      dot.setAttribute("aria-hidden", "true");
+      head.append(dot);
+    }
+
     const nameEl = document.createElement("span");
     nameEl.className = "scene-group__name";
     nameEl.textContent = group ? group.name : "Uncategorized";
-    toggle.append(nameEl);
-    toggle.addEventListener("click", () => toggleCollapse(key));
-    head.append(toggle);
+    head.append(nameEl);
 
     const meta = document.createElement("span");
     meta.className = "scene-group__count";
     meta.textContent = String(count);
     head.append(meta);
-
-    if (group) {
-      if (group.color) {
-        const dot = document.createElement("span");
-        dot.className = "scene-group__dot";
-        dot.style.background = group.color;
-        dot.setAttribute("aria-hidden", "true");
-        // The name lives inside the toggle button, so insert the dot there
-        // (right before the label), not on `head` (nameEl isn't head's child).
-        toggle.insertBefore(dot, nameEl);
-      }
-      head.append(
-        miniBtn("Rename", "Rename area", () => beginRename(head, nameEl, group)),
-        miniBtn("Delete", "Delete area", () => actions.onDeleteGroup(group.id))
-      );
-    }
     return head;
   }
 
-  /** Swap the group name for an input; commit on Enter/blur, cancel on Esc. */
-  function beginRename(head, nameEl, group) {
-    if (head.querySelector(".scene-group__rename")) return;
+  /** Rename / Delete row at the top of an open group; Rename swaps to an input. */
+  function renderActionRow(group) {
+    const row = document.createElement("div");
+    row.className = "scene-group__actions";
+    row.append(
+      miniBtn("Rename", "Rename area", () => beginRename(row, group)),
+      miniBtn("Delete", "Delete area", () => actions.onDeleteGroup(group.id))
+    );
+    return row;
+  }
+
+  /** Inline-edit a group name inside its action row; Enter/blur save, Esc cancels. */
+  function beginRename(row, group) {
     const input = document.createElement("input");
     input.type = "text";
     input.className = "scene-group__rename field__input";
     input.value = group.name;
-    nameEl.replaceWith(input);
+    row.replaceChildren(input);
     input.focus();
     input.select();
+    let done = false;
     const commit = (save) => {
-      if (save) actions.onRenameGroup(group.id, input.value);
+      if (done) return; // guard the Enter-then-blur double fire
+      done = true;
+      if (save) actions.onRenameGroup(group.id, input.value); // re-renders the list
       else render();
     };
     input.addEventListener("keydown", (e) => {

@@ -169,21 +169,22 @@ textarea.field__input { resize: vertical; }
 .scene-group__head {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.4rem 0.3rem 0.15rem;
-}
-.scene-group__toggle {
-  flex: 1;
-  display: flex;
-  align-items: center;
   gap: 0.4rem;
-  min-width: 0;
+  width: 100%;
   background: none;
   border: none;
   font: inherit;
   color: var(--ink);
   cursor: pointer;
-  padding: 0.2rem 0.25rem;
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+}
+.scene-group__head:hover { background: var(--panel); border-radius: 10px; }
+.scene-group__actions {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0 0.15rem 0.45rem;
+  margin-bottom: 0.1rem;
 }
 .scene-group__chevron {
   flex: none;
@@ -201,6 +202,8 @@ textarea.field__input { resize: vertical; }
   border: 1px solid rgba(0, 0, 0, 0.25);
 }
 .scene-group__name {
+  flex: 1;
+  min-width: 0;
   font-weight: 700;
   font-size: 0.9rem;
   overflow: hidden;
