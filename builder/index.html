@@ -107,6 +107,30 @@
             <select id="image-quality" class="field__input"></select>
             <span class="field__hint muted">Use <em>Optimize images</em> in the Images panel to re-encode existing photos at this setting.</span>
           </label>
+
+          <h2 class="section-title">Guided experience</h2>
+          <label class="field field--check">
+            <input id="meta-exp-enabled" type="checkbox" />
+            <span class="field__label">Turn this tour into a <strong>guided experience</strong></span>
+          </label>
+          <p class="field__hint muted" style="margin-top:-.4rem">
+            Linear mode: navigation pins are hidden. The learner must open every
+            <strong>required</strong> info hotspot in a scene before a
+            <em>Continue</em> prompt appears to move on. Mark hotspots as required
+            in the Hotspots panel.
+          </p>
+          <div id="exp-config" hidden>
+            <label class="field">
+              <span class="field__label">Completion screen title</span>
+              <input id="meta-exp-title" class="field__input" type="text"
+                     placeholder="Great job!" />
+            </label>
+            <label class="field">
+              <span class="field__label">Completion screen message</span>
+              <textarea id="meta-exp-message" class="field__input" rows="3"
+                        placeholder="You've found everything. The experience is complete."></textarea>
+            </label>
+          </div>
         </div>
       </section>
 
@@ -323,6 +347,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=52"></script>
+    <script type="module" src="builder.js?v=53"></script>
   </body>
 </html>

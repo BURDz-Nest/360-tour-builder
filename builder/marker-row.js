@@ -12,7 +12,7 @@
  * fresh DOM tree.
  */
 
-import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js?v=3";
+import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js?v=4";
 import {
   miniBtn,
   labeledInput,
@@ -28,14 +28,15 @@ import { createIconPicker } from "./icon-picker.js";
  * @param {object} cfg.marker    the marker being edited
  * @param {string|null} cfg.selectedMarkerId  expanded === selected
  * @param {object[]} cfg.scenes  all scenes (for the link target dropdown)
+ * @param {boolean} cfg.guided   guided mode -> show the "required to find" toggle
  * @param {object} cfg.actions   { onReplace, onDelete, onUpdate(patch), onSelect, onToggle }
  * @returns {HTMLElement}
  */
-export function renderMarkerRow({ scene, marker: m, selectedMarkerId, scenes, actions }) {
+export function renderMarkerRow({ scene, marker: m, selectedMarkerId, scenes, guided = false, actions }) {
   const selected = m.id === selectedMarkerId;
   return isZone(m)
-    ? renderZoneRow({ m, selected, actions })
-    : renderIconRow({ scene, m, selected, scenes, actions });
+    ? renderZoneRow({ m, selected, guided, actions })
+    : renderIconRow({ scene, m, selected, scenes, guided, actions });
 }
 
 /**
@@ -85,7 +86,7 @@ function makeShell({ id, selected, badgeClass, badgeText, title, getFallback, ac
 }
 
 /** Editor for an ICON marker (link/info): label + icon + target/info + position. */
-function renderIconRow({ scene, m, selected, scenes, actions }) {
+function renderIconRow({ scene, m, selected, scenes, guided, actions }) {
   const isLink = m.type === MARKER_TYPES.LINK;
   // Nav hotspots with no label show their target scene's name instead.
   const targetName = () => {
@@ -123,6 +124,7 @@ function renderIconRow({ scene, m, selected, scenes, actions }) {
           actions.onUpdate(m.id, { html: v })
         )
   );
+  if (guided && !isLink) details.append(requiredToggle(m, actions));
 
   const pos = document.createElement("p");
   pos.className = "marker-row__pos muted";
@@ -132,7 +134,7 @@ function renderIconRow({ scene, m, selected, scenes, actions }) {
 }
 
 /** Editor for an INFO ZONE (polygon): label + info + idle-outline + hover color. */
-function renderZoneRow({ m, selected, actions }) {
+function renderZoneRow({ m, selected, guided, actions }) {
   const { row, details, setTitle } = makeShell({
     id: m.id,
     selected,
@@ -167,6 +169,7 @@ function renderZoneRow({ m, selected, actions }) {
       actions.onUpdate(m.id, { hoverColor: v })
     )
   );
+  if (guided) details.append(requiredToggle(m, actions));
 
   const hint = document.createElement("p");
   hint.className = "marker-row__pos muted";
@@ -203,4 +206,15 @@ function linkTargetSelect(scene, m, scenes, actions, onChanged) {
   });
   wrap.append(select);
   return wrap;
+}
+
+/** Guided-mode toggle: mark this info hotspot as required-to-find to progress. */
+function requiredToggle(m, actions) {
+  const el = labeledCheckbox(
+    "Required to find (learner must open this to continue)",
+    !!m.required,
+    (on) => actions.onUpdate(m.id, { required: on })
+  );
+  el.classList.add("marker-row__required");
+  return el;
 }

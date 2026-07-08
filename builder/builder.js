@@ -10,19 +10,20 @@ import {
   createEmptyTour,
   createScene,
   createMarker,
+  createExperience,
   getScene,
   validateTour,
   MARKER_TYPES,
   MARKER_SHAPES,
-} from "../player-template/js/tour-model.js?v=3";
+} from "../player-template/js/tour-model.js?v=4";
 // NOTE on cache: ES module imports use the URL as the cache key, so adding
 // ?v= here forces a fresh fetch when builder-viewer.js changes. The parent
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "52";
+const BUILDER_BUILD = "53";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
-import { renderMarkerRow } from "./marker-row.js?v=43";
+import { renderMarkerRow } from "./marker-row.js?v=44";
 import { createMarkerActions } from "./marker-actions.js?v=42";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js?v=2";
@@ -125,6 +126,16 @@ function init() {
     applyShadowPref();
   });
   $("meta-show-info-zones").addEventListener("change", (e) => (state.tour.meta.showInfoZones = e.target.checked));
+
+  // Guided experience (opt-in linear mode).
+  $("meta-exp-enabled").addEventListener("change", (e) => {
+    ensureExperience();
+    state.tour.meta.experience.enabled = e.target.checked;
+    reflectExperience();
+    renderMarkerList(); // "required" checkboxes appear/disappear with the mode
+  });
+  bindInput("meta-exp-title", (v) => { ensureExperience(); state.tour.meta.experience.completionTitle = v; });
+  bindInput("meta-exp-message", (v) => { ensureExperience(); state.tour.meta.experience.completionMessage = v; });
 
   // Image quality preset (authoring preference, persisted to localStorage).
   populateQualityPicker();
@@ -449,6 +460,28 @@ function preExportCheck() {
   return null;
 }
 
+/* ---- Guided experience helpers ---- */
+
+// Lazily ensure meta.experience exists (older in-memory tours may predate it).
+function ensureExperience() {
+  if (!state.tour.meta.experience) state.tour.meta.experience = createExperience();
+  return state.tour.meta.experience;
+}
+
+// Push meta.experience into the settings inputs + show/hide the config block.
+function reflectExperience() {
+  const exp = ensureExperience();
+  $("meta-exp-enabled").checked = !!exp.enabled;
+  $("meta-exp-title").value = exp.completionTitle || "";
+  $("meta-exp-message").value = exp.completionMessage || "";
+  $("exp-config").hidden = !exp.enabled;
+}
+
+// True when the tour is in guided-authoring mode (drives required checkboxes).
+function guidedMode() {
+  return !!state.tour.meta.experience?.enabled;
+}
+
 /* ===================== Rendering ===================== */
 
 function renderAll() {
@@ -458,6 +491,7 @@ function renderAll() {
   $("meta-show-thumbnails").checked = state.tour.meta.showThumbnails !== false;
   $("meta-show-waypoint-shadows").checked = state.tour.meta.showWaypointShadows !== false;
   $("meta-show-info-zones").checked = state.tour.meta.showInfoZones !== false;
+  reflectExperience();
   applyShadowPref();
   renderSceneList();
   renderSceneEditor();
@@ -530,6 +564,7 @@ function fillMarkerList(container, markers, scene, emptyMsg) {
         marker: m,
         selectedMarkerId: state.selectedMarkerId,
         scenes: state.tour.scenes,
+        guided: guidedMode(), // show the "required to find" toggle in guided mode
         actions: {
           onReplace: (id) => markerActions.replaceMarker(id),
           onDelete: (id) => markerActions.deleteMarker(id),
