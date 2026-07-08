@@ -1,8 +1,10 @@
 [
   "css/app.css",
+  "css/guided.css",
   "css/markers.css",
   "css/player.css",
   "js/areas-menu.js",
+  "js/guided.js",
   "js/marker-icons.js",
   "js/player.js",
   "js/psv-adapter.js",

@@ -17,7 +17,7 @@
  *   angles in DEGREES  -> PSV "<n>deg" strings
  */
 
-import { MARKER_TYPES, isZone, DEFAULT_ZONE_HOVER } from "./tour-model.js?v=3";
+import { MARKER_TYPES, isZone, DEFAULT_ZONE_HOVER } from "./tour-model.js?v=4";
 import { renderMarkerHtml } from "./marker-icons.js?v=1";
 
 /** PSV wants angles as strings like "30deg" (or radians). We use degrees. */
@@ -104,14 +104,17 @@ export function linkMarkerToConfig(marker) {
  *
  * @returns {{ nodes: object[], startNodeId: string }}
  */
-export function toViewerNodes(tour) {
+export function toViewerNodes(tour, opts = {}) {
+  // Guided (linear) mode hides ALL navigation pins - progression is driven by
+  // the guided controller's Continue prompt, not by clicking link markers.
+  const guided = !!opts.guided;
   const showThumbnails = tour.meta?.showThumbnails !== false;
   const nodes = (tour.scenes || []).map((scene) => {
     const markers = [];
 
     for (const m of scene.markers || []) {
       if (m.type === MARKER_TYPES.LINK) {
-        if (m.targetSceneId) markers.push(linkMarkerToConfig(m));
+        if (!guided && m.targetSceneId) markers.push(linkMarkerToConfig(m));
       } else if (m.type === MARKER_TYPES.INFO) {
         markers.push(isZone(m) ? zoneMarkerToConfig(m) : infoMarkerToConfig(m));
       }
