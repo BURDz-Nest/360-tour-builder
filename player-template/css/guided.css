@@ -94,16 +94,16 @@
 .guided-found::after {
   content: "\2713";
   position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 17px;
-  height: 17px;
+  right: 1px;
+  bottom: 1px;
+  width: 22px;
+  height: 22px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: #14823c;
   color: #fff;
-  font: 700 12px/1 system-ui, sans-serif;
+  font: 700 15px/1 system-ui, sans-serif;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   z-index: 2;
 }
@@ -167,5 +167,81 @@
 @media (max-width: 480px) {
   .guided-prompt {
     bottom: 4.5rem;
+  }
+}
+
+/* =================================================================
+   START / WELCOME SCREEN — plain white full-cover panel shown before the
+   run begins (opt-in via meta.experience.showStartScreen).
+   ================================================================= */
+.guided-start {
+  position: absolute;
+  inset: 0;
+  z-index: 90; /* above HUD/prompt, below nothing else in the stage */
+  display: grid;
+  place-items: center;
+  padding: 2rem 1.25rem;
+  background: #fff;
+  color: #1a1a1a;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.guided-start.is-in {
+  opacity: 1;
+}
+.guided-start__card {
+  max-width: 34rem;
+  width: 100%;
+  text-align: center;
+}
+.guided-start__title {
+  margin: 0 0 1.25rem;
+  font: 700 clamp(1.5rem, 4vw, 2.1rem)/1.2 system-ui, sans-serif;
+}
+.guided-start__list {
+  list-style: none;
+  margin: 0 auto 1.75rem;
+  padding: 0;
+  max-width: 30rem;
+  text-align: left;
+}
+.guided-start__list li {
+  position: relative;
+  padding: 0.55rem 0 0.55rem 1.9rem;
+  font: 400 1.05rem/1.45 system-ui, sans-serif;
+  border-bottom: 1px solid #eee;
+}
+.guided-start__list li::before {
+  content: "\2192"; /* arrow */
+  position: absolute;
+  left: 0.25rem;
+  color: #0071dc; /* Walmart blue */
+  font-weight: 700;
+}
+.guided-start__btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0.85rem 2.5rem;
+  border-radius: 999px;
+  background: #0071dc;
+  color: #fff;
+  font: 700 1.05rem/1 system-ui, sans-serif;
+  box-shadow: 0 4px 14px rgba(0, 113, 220, 0.35);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.guided-start__btn:hover {
+  background: #005fb8;
+}
+.guided-start__btn:active {
+  transform: translateY(1px);
+}
+.guided-start__btn:focus-visible {
+  outline: 3px solid #ffc220; /* spark yellow for visible focus */
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .guided-start {
+    transition: none;
   }
 }

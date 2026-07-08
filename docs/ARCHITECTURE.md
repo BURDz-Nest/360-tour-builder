@@ -300,6 +300,7 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
             showHotspotHints: false,    // magnifier glyph on zones for mobile (opt-in)
             experience: {               // opt-in GUIDED mode (disabled by default)
               enabled: false,
+              showStartScreen: true,      // welcome/instructions screen before the run
               completionTitle: "Great job!",
               completionMessage: "You've found everything."
             },

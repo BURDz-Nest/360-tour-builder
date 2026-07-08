@@ -15,15 +15,15 @@ import {
   validateTour,
   MARKER_TYPES,
   MARKER_SHAPES,
-} from "../player-template/js/tour-model.js?v=5";
+} from "../player-template/js/tour-model.js?v=6";
 // NOTE on cache: ES module imports use the URL as the cache key, so adding
 // ?v= here forces a fresh fetch when builder-viewer.js changes. The parent
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "54";
+const BUILDER_BUILD = "55";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
-import { renderMarkerRow } from "./marker-row.js?v=44";
+import { renderMarkerRow } from "./marker-row.js?v=45";
 import { createMarkerActions } from "./marker-actions.js?v=42";
 import * as fs from "./fs-workspace.js";
 import { createWorkspace } from "./workspace.js?v=2";
@@ -135,6 +135,7 @@ function init() {
     reflectExperience();
     renderMarkerList(); // "required" checkboxes appear/disappear with the mode
   });
+  $("meta-exp-startscreen").addEventListener("change", (e) => { ensureExperience(); state.tour.meta.experience.showStartScreen = e.target.checked; });
   bindInput("meta-exp-title", (v) => { ensureExperience(); state.tour.meta.experience.completionTitle = v; });
   bindInput("meta-exp-message", (v) => { ensureExperience(); state.tour.meta.experience.completionMessage = v; });
 
@@ -473,6 +474,7 @@ function ensureExperience() {
 function reflectExperience() {
   const exp = ensureExperience();
   $("meta-exp-enabled").checked = !!exp.enabled;
+  $("meta-exp-startscreen").checked = exp.showStartScreen !== false;
   $("meta-exp-title").value = exp.completionTitle || "";
   $("meta-exp-message").value = exp.completionMessage || "";
   $("exp-config").hidden = !exp.enabled;

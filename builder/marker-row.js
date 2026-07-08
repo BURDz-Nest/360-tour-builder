@@ -147,6 +147,11 @@ function renderZoneRow({ m, selected, guided, actions }) {
 
   details.append(rowActions(m, actions, /*moveable*/ false));
   details.append(
+    labeledColor("Hover color", m.hoverColor, (v) =>
+      actions.onUpdate(m.id, { hoverColor: v })
+    )
+  );
+  details.append(
     labeledInput("Label", m.label, (v) => {
       actions.onUpdate(m.id, { label: v });
       setTitle(v);
@@ -162,11 +167,6 @@ function renderZoneRow({ m, selected, guided, actions }) {
       "Faint outline when idle (otherwise invisible until hover)",
       m.idleStroke,
       (on) => actions.onUpdate(m.id, { idleStroke: on })
-    )
-  );
-  details.append(
-    labeledColor("Hover color", m.hoverColor, (v) =>
-      actions.onUpdate(m.id, { hoverColor: v })
     )
   );
   if (guided) details.append(requiredToggle(m, actions));

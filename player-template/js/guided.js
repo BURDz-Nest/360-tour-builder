@@ -20,7 +20,7 @@
  * and talks to PSV only through the handles player.js passes in.
  */
 
-import { getScene, requiredMarkers } from "./tour-model.js?v=5";
+import { getScene, requiredMarkers } from "./tour-model.js?v=6";
 
 /**
  * @param {object} cfg
@@ -33,10 +33,13 @@ import { getScene, requiredMarkers } from "./tour-model.js?v=5";
 export function mountGuided({ tour, virtualTour, markers, stageEl }) {
   const scenes = tour.scenes || [];
   const exp = tour.meta?.experience || {};
+  const tourTitle = tour.meta?.title || "";
+  const wantsStart = exp.showStartScreen !== false;
   const found = new Set(); // required marker ids opened so far (whole run)
   let currentId = null;
 
   const ui = buildUI(stageEl);
+  if (wantsStart) ui.showStart(tourTitle);
 
   const reqIdsFor = (scene) => requiredMarkers(scene).map((m) => m.id);
   const sceneIndex = (id) => scenes.findIndex((s) => s.id === id);
@@ -101,6 +104,7 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
         .setCurrentNode(first.id)
         .catch((err) => console.warn("[guided] restart failed", err));
     }
+    if (wantsStart) ui.showStart(tourTitle); // re-welcome on Start over
   }
 
   // Best-effort visual "done" state on the found marker (dim + checkmark via CSS).
@@ -196,7 +200,42 @@ function buildUI(stageEl) {
     completeEl = null;
   }
 
-  return { setProgress, showPrompt, hidePrompt, showCompletion, hideCompletion };
+  // Welcome / instructions screen shown before the run starts.
+  let startEl = null;
+  function showStart(title) {
+    hideStart();
+    const overlay = el("div", "guided-start", { role: "dialog", "aria-modal": "true" });
+    const card = el("div", "guided-start__card");
+    const h = el("h1", "guided-start__title");
+    h.textContent = `Welcome to ${title || "the"} Guide`;
+    const list = el("ul", "guided-start__list");
+    [
+      "Select and drag anywhere on the image to rotate your view.",
+      "When you see an opportunity, select the area.",
+      "Find all opportunities in each image.",
+    ].forEach((t) => {
+      const li = document.createElement("li");
+      li.textContent = t;
+      list.append(li);
+    });
+    const btn = el("button", "guided-start__btn");
+    btn.type = "button";
+    btn.textContent = "Start";
+    btn.onclick = () => hideStart();
+    card.append(h, list, btn);
+    overlay.append(card);
+    mount.append(overlay);
+    startEl = overlay;
+    requestAnimationFrame(() => overlay.classList.add("is-in"));
+    btn.focus();
+  }
+
+  function hideStart() {
+    startEl?.remove();
+    startEl = null;
+  }
+
+  return { setProgress, showPrompt, hidePrompt, showCompletion, hideCompletion, showStart, hideStart };
 }
 
 /** tiny element helper */

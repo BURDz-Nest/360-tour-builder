@@ -172,6 +172,7 @@ requirements without leaving the app.
     "showHotspotHints": false,      // opt-in magnifier glyph on info zones (mobile)
     "experience": {                 // opt-in guided mode (disabled by default)
       "enabled": false,
+      "showStartScreen": true,      // welcome/instructions screen before the run
       "completionTitle": "Great job!",
       "completionMessage": "You've found everything."
     },

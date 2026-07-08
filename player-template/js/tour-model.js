@@ -114,6 +114,8 @@ export function createExperience(raw = {}) {
   const e = raw && typeof raw === "object" ? raw : {};
   return {
     enabled: !!e.enabled,
+    // Show a welcome/instructions screen before the guided run starts.
+    showStartScreen: e.showStartScreen !== false, // default on when guided
     completionTitle: String(e.completionTitle || "Great job!"),
     completionMessage: String(
       e.completionMessage ||
