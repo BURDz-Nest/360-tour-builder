@@ -279,7 +279,7 @@
             <button id="btn-add-all-scenes" class="btn" type="button">Add all as scenes</button>
             <button id="btn-optimize" class="btn" type="button">Optimize images</button>
           </div>
-          <p class="muted image-panel__hint">Drag 360 photos here, or click “Add images” — each becomes a new scene (auto-resized using your <strong>Image quality</strong> setting in the meta panel). “Optimize images” re-encodes everything at the current quality preset.</p>
+          <p class="muted image-panel__hint">Drag 360 photos here, or click “Add images” — each becomes a new scene, sized by your <strong>Image quality</strong> setting in the meta panel (default: <strong>Original</strong>, no downscale). “Optimize images” re-encodes everything at the current preset — note it can only shrink, never sharpen.</p>
           <div id="image-grid" class="image-grid"></div>
         </div>
       </div>
@@ -355,6 +355,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=56"></script>
+    <script type="module" src="builder.js?v=57"></script>
   </body>
 </html>

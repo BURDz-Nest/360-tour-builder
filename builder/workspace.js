@@ -5,7 +5,7 @@
 // behaviour it needs (dependency injection), so the file-system UI lives in one
 // cohesive place instead of bloating builder.js.
 
-import * as fs from "./fs-workspace.js?v=2";
+import * as fs from "./fs-workspace.js?v=3";
 import { rememberProject } from "./project-store.js";
 
 export function createWorkspace(ctx) {
@@ -188,10 +188,15 @@ export function createWorkspace(ctx) {
   async function handleOptimize() {
     if (!state.dirHandle) return toast("Open or bind a tour folder first.", true);
     const p = fs.getQualityPreset();
+    const widthText = Number.isFinite(p.maxWidth)
+      ? `downscaled to max ${p.maxWidth}px wide`
+      : "kept at original size (no downscale)";
     if (!confirm(
       `Re-encode every image in this tour at "${p.label}"\n` +
-      `(max ${p.maxWidth}px, JPEG quality ${p.quality})?\n\n` +
-      `This will overwrite existing files. Larger tours can take a minute.`
+      `(${widthText}, JPEG quality ${p.quality}).\n\n` +
+      `Heads up: this can only SHRINK or re-compress — it can never add ` +
+      `resolution/sharpness back. Overwrites existing files. Larger tours can ` +
+      `take a minute.`
     )) return;
     try {
       toast("Optimizing images\u2026 this can take a moment.");

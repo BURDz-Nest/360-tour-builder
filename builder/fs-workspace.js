@@ -14,20 +14,29 @@ const IMG_RE = /\.(jpe?g|png|webp)$/i;
  * don't have to think in megapixels and 0.0–1.0 floats.
  *
  * Why these numbers:
+ *   - "Original" keeps the camera's native resolution (no downscale) — the
+ *     sharpest option and the DEFAULT, because downscaling is destructive and
+ *     can never be undone. Only shrink deliberately (smaller files) via the
+ *     other presets.
  *   - 4096 is the "safe everywhere" width (locked-down VDI / older laptops
  *     start failing above this for textures). 6144 / 8192 are fine on real
  *     hardware but big files; warn in the UI.
  *   - 0.82 was the v1 default — fast and small but visibly soft on detail.
  *   - 0.90 is the sweet spot: ~25-40% bigger than 0.82, dramatically sharper.
  *   - 0.95 is for hero scenes (text/logo readability) and costs ~2-3x size.
+ *
+ * IMPORTANT: optimize/import can only DOWNSCALE + re-compress. It can never add
+ * resolution or sharpness back — so an over-shrunk image is only fixable by
+ * re-importing the original.
  */
 export const QUALITY_PRESETS = Object.freeze({
+  original: { label: "Original (no resize — sharpest)", maxWidth: Infinity, quality: 0.95 },
   web:      { label: "Web optimized (smallest)",  maxWidth: 4096, quality: 0.82 },
-  balanced: { label: "Balanced (recommended)",    maxWidth: 4096, quality: 0.90 },
+  balanced: { label: "Balanced (smaller files)",  maxWidth: 4096, quality: 0.90 },
   high:     { label: "High quality (sharper)",    maxWidth: 6144, quality: 0.92 },
-  max:      { label: "Maximum (largest files)",   maxWidth: 8192, quality: 0.95 },
+  max:      { label: "Maximum (8192px cap)",      maxWidth: 8192, quality: 0.95 },
 });
-const DEFAULT_PRESET_KEY = "balanced";
+const DEFAULT_PRESET_KEY = "original";
 
 // Mutable module state so the builder can tweak the preset at runtime without
 // threading options through every fs call. Single source of truth.
