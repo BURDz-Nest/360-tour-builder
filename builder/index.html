@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="builder-panels.css?v=7" />
     <link rel="stylesheet" href="welcome.css?v=1" />
     <link rel="stylesheet" href="help-modal.css?v=1" />
-    <link rel="stylesheet" href="../player-template/css/markers.css?v=7" />
+    <link rel="stylesheet" href="../player-template/css/markers.css?v=8" />
 
     <script type="importmap">
       {
@@ -107,6 +107,34 @@
             <select id="image-quality" class="field__input"></select>
             <span class="field__hint muted">Use <em>Optimize images</em> in the Images panel to re-encode existing photos at this setting.</span>
           </label>
+
+          <h2 class="section-title">Guided experience</h2>
+          <label class="field field--check">
+            <input id="meta-exp-enabled" type="checkbox" />
+            <span class="field__label">Turn this tour into a <strong>guided experience</strong></span>
+          </label>
+          <p class="field__hint muted" style="margin-top:-.4rem">
+            Linear mode: navigation pins are hidden. The learner must open every
+            <strong>required</strong> info hotspot in a scene before a
+            <em>Continue</em> prompt appears to move on. Mark hotspots as required
+            in the Hotspots panel.
+          </p>
+          <div id="exp-config" hidden>
+            <label class="field field--check">
+              <input id="meta-exp-startscreen" type="checkbox" />
+              <span class="field__label">Show a <strong>welcome/start screen</strong> with instructions</span>
+            </label>
+            <label class="field">
+              <span class="field__label">Completion screen title</span>
+              <input id="meta-exp-title" class="field__input" type="text"
+                     placeholder="Great job!" />
+            </label>
+            <label class="field">
+              <span class="field__label">Completion screen message</span>
+              <textarea id="meta-exp-message" class="field__input" rows="3"
+                        placeholder="You've found everything. The experience is complete."></textarea>
+            </label>
+          </div>
         </div>
       </section>
 
@@ -217,6 +245,10 @@
                 <button id="btn-add-info" class="btn" type="button" title="A glyph pin you click for details">+ Info icon</button>
                 <button id="btn-add-info-zone" class="btn" type="button" title="A transparent region that reveals on hover">+ Info zone</button>
               </div>
+              <label class="field field--check" style="margin-top:.6rem">
+                <input id="meta-show-hints" type="checkbox" />
+                <span class="field__label">Show a <strong>magnifier</strong> on info zones (helps mobile users spot them)</span>
+              </label>
               <p class="field__hint muted">Info hotspots show a pop-up when clicked. Use an <em>icon</em> for a point, or a <em>zone</em> to highlight a whole object/area.</p>
               <div id="marker-list-info"></div>
             </div>
@@ -323,6 +355,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=52"></script>
+    <script type="module" src="builder.js?v=55"></script>
   </body>
 </html>

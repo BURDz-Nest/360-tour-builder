@@ -85,12 +85,14 @@ new tour.
 │   │   ├── app.css            SHARED app chrome (builder + player). Cache-busted ?v=N
 │   │   ├── markers.css        SHARED marker library + animations + icon-picker + ZONES
 │   │   └── player.css         player-only chrome (.player-*, info overlay, share, spinner, areas menu)
+│   │   └── guided.css         guided-experience UI (.guided-* HUD/prompt/completion; player-only)
 │   ├── js/
 │   │   ├── tour-model.js      tour.json schema (v2), validate, factories, group helpers (PURE, shared)
 │   │   ├── marker-icons.js    Icon registry (NAV/INFO sets + animations). PURE, shared.
 │   │   ├── psv-adapter.js     tour.json -> PSV config (the ONLY PSV-shape file, shared)
 │   │   ├── share.js           player Share button + QR modal + ?scene= deep-linking (button currently hidden)
 │   │   ├── areas-menu.js      mountAreasMenu() - player Areas dropdown + current-area breadcrumb
+│   │   ├── guided.js          mountGuided() - opt-in linear 'find the hotspots' mode (LAZY)
 │   │   └── player.js          player bootstrap (fetch config -> init Viewer)
 │   └── vendor/                VENDORED libs (list_files hides this - it exists!)
 │       ├── three.module.js                 (three 0.169.0)
@@ -251,6 +253,18 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   VirtualTour. Mounts only when ≥1 group actually contains scenes. It floats
   over the panorama just under the title bar (moved out of the top bar).
 
+### `guided.js` — **player-only, LAZY-LOADED**
+- `mountGuided({tour, virtualTour, markers, stageEl}) -> {onEnterScene(id),
+  onInfoOpened(id)}`. The opt-in linear "find the hotspots" experience. player.js
+  only `import()`s this when `isGuided(tour)` — a normal tour never downloads it.
+- Flow: no nav pins (suppressed upstream). The learner must OPEN every INFO
+  hotspot flagged `required` in a scene (opening the popup = the "found" signal,
+  forwarded from player.js's select-marker handler). A HUD shows "Found N of M";
+  when the scene is complete a Continue-to-<next> prompt slides in (Finish ->
+  completion screen on the last scene). No persistence (one-and-done; a scene
+  with zero required hotspots shows Continue immediately). Owns its own
+  namespaced `.guided-*` DOM; styling in `css/guided.css`.
+
 ### `player.js` (player bootstrap)
 - `?config=` → fetch (or `__preview__` from localStorage) → `validateTour` →
   `toViewerNodes` → init `Viewer` with VirtualTour + Markers.
@@ -282,8 +296,15 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
             "startSceneId": "s1",
             "showThumbnails": true,       // image thumbs in nav popups (default on)
             "showWaypointShadows": true,  // ground shadow under nav pins (default on)
-            "showInfoZones": true,        // show the Info Zones reveal button (default on)
-            "createdAt": "ISO" },
+            showInfoZones: true,        // show the Info Zones reveal button (default on)
+            showHotspotHints: false,    // magnifier glyph on zones for mobile (opt-in)
+            experience: {               // opt-in GUIDED mode (disabled by default)
+              enabled: false,
+              showStartScreen: true,      // welcome/instructions screen before the run
+              completionTitle: "Great job!",
+              completionMessage: "You've found everything."
+            },
+            createdAt: "ISO" },
   "groups": [                            // v2: scene AREAS (optional; [] = none)
     { "id":"g1", "name":"Front End", "color":"#0071dc", "entrySceneId":"s1" }
   ],
@@ -297,7 +318,7 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
     "initialView": { "yaw": 0, "pitch": 0, "zoom": 50 },  // DEGREES, zoom 0-100
     "markers": [
       { "id":"m1","type":"link","yaw":60,"pitch":-5,"label":"To Backroom","icon":"door","targetSceneId":"backroom" },
-      { "id":"m2","type":"info","yaw":-90,"pitch":0,"label":"Desk","icon":"clock","html":"<p>Open 8-9</p>" },
+      { "id":"m2","type":"info","yaw":-90,"pitch":0,"label":"Desk","icon":"clock","html":"<p>Open 8-9</p>","required":true },
       { "id":"m3","type":"info","shape":"zone","label":"Vase","html":"<p>Ming dynasty</p>",
         "points":[{"yaw":8,"pitch":14},{"yaw":32,"pitch":14},{"yaw":32,"pitch":-4},{"yaw":8,"pitch":-4}],
         "idleStroke":false,"hoverColor":"#0071dc" }
@@ -317,6 +338,11 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   jumpable area** (deliberate product decision).
 - **Angles are DEGREES** everywhere in our data; `psv-adapter` converts to PSV
   strings. Don't leak `"deg"` strings into the model.
+- **Guided experience (opt-in):** `meta.experience.enabled` turns a tour into a
+  linear "find the hotspots" experience. `marker.required` (INFO markers only,
+  stored only when true) flags a hotspot the learner must open to progress. Both
+  are additive + back-compatible — absent = a normal tour. Runtime lives in the
+  lazy `guided.js`; see §5 and the `isGuided`/`requiredMarkers` helpers.
 - **Paths**: relative (`images/x.jpg`) for local/self-contained, OR absolute
   (Azure) URLs. Both work in the player. The builder's read-only "Panorama"
   field shows whichever it is; you change it via the **Images** dialog, not by
@@ -431,11 +457,11 @@ cd <this folder> && python3 -m http.server 8124
 
 ## 10. Roadmap / not-yet-built (planned next steps)
 
-**Recently shipped (for context):** scene AREAS/groups (schema v2) — builder
-collapsible areas with color + entry star, player Areas dropdown + breadcrumb,
-`?area=` deep-linking; the `showInfoZones` tour setting; drag-to-reorder scenes.
-The player **Share** button is temporarily hidden (code retained) pending a
-later revamp.
+**Recently shipped (for context):** scene AREAS/groups (schema v2); the
+`showInfoZones` tour setting; drag-to-reorder scenes; and the opt-in **guided
+experience** (linear find-the-hotspots mode + completion screen; data via
+`meta.experience` + `marker.required`, runtime in the lazy `guided.js`). The
+player **Share** button is temporarily hidden (code retained) pending a revamp.
 
 - **Icon LIBRARY expansion / custom icons** (next up per product): a larger,
   categorized picker and/or user-supplied glyphs for nav waypoints + info pins.

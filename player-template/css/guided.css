@@ -1,0 +1,258 @@
+/*
+ * guided.css — styling for the opt-in guided experience (player only).
+ * All rules are namespaced .guided-* and only take effect once guided.js
+ * mounts its DOM, so this is inert for normal tours.
+ */
+
+/* Progress HUD — a pill floating top-center over the panorama. */
+.guided-hud {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff;
+  font: 600 0.95rem/1 system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.guided-hud.is-complete {
+  background: rgba(20, 130, 60, 0.85);
+}
+
+/* Continue prompt — a card sliding up from the bottom-center. */
+.guided-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 5.5rem;
+  transform: translate(-50%, 1.5rem);
+  z-index: 72;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: min(92vw, 26rem);
+  padding: 1.1rem 1.4rem;
+  border-radius: 16px;
+  background: rgba(20, 22, 28, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.guided-prompt.is-in {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.guided-prompt__text {
+  margin: 0;
+  font: 500 1rem/1.35 system-ui, sans-serif;
+}
+.guided-prompt__btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0.7rem 1.3rem;
+  border-radius: 10px;
+  background: #0071dc; /* Walmart blue */
+  color: #fff;
+  font: 600 1rem/1 system-ui, sans-serif;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.guided-prompt__btn:hover {
+  background: #005fb8;
+}
+.guided-prompt__btn:active {
+  transform: translateY(1px);
+}
+.guided-prompt__btn:focus-visible {
+  outline: none;
+  background: #005fb8; /* darker blue, no yellow flash */
+  box-shadow: 0 0 0 3px rgba(0, 113, 220, 0.45);
+}
+
+/* A required hotspot the learner has already opened.
+   NOTE: PSV sets overflow:hidden on the marker host, so the check must sit
+   INSIDE the box. We dim only the icon (not the check) so the badge stays
+   bright green. */
+.guided-found .tour-marker,
+.guided-found .tour-hint {
+  opacity: 0.6;
+  filter: saturate(0.75);
+}
+.guided-found .tour-marker__ring {
+  display: none; /* stop the attention pulse once it's been found */
+}
+.guided-found::after {
+  content: "\2713";
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #14823c;
+  color: #fff;
+  font: 700 15px/1 system-ui, sans-serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+/* Found info ZONES (SVG paths can't take ::after) get a persistent faint fill. */
+.tour-zone.guided-found {
+  fill: #14823c !important;
+  fill-opacity: 0.18 !important;
+  stroke: #14823c !important;
+  stroke-opacity: 0.9 !important;
+}
+
+/* Completion screen — full-stage congratulations overlay. */
+.guided-complete {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(10, 12, 16, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.guided-complete.is-in {
+  opacity: 1;
+}
+.guided-complete__card {
+  max-width: min(92vw, 30rem);
+  padding: 2rem 2rem 1.6rem;
+  border-radius: 20px;
+  background: #fff;
+  color: #16181d;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+.guided-complete__check {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #14823c;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+}
+.guided-complete__title {
+  margin: 0 0 0.5rem;
+  font: 700 1.6rem/1.2 system-ui, sans-serif;
+}
+.guided-complete__msg {
+  margin: 0 0 1.3rem;
+  font: 400 1.05rem/1.5 system-ui, sans-serif;
+  color: #444;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 480px) {
+  .guided-prompt {
+    bottom: 4.5rem;
+  }
+}
+
+/* =================================================================
+   START / WELCOME SCREEN — a modal card over the darkened panorama, matching
+   the completion screen (opt-in via meta.experience.showStartScreen).
+   ================================================================= */
+.guided-start {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(10, 12, 16, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.guided-start.is-in {
+  opacity: 1;
+}
+.guided-start__card {
+  max-width: min(94vw, 36rem);
+  width: 100%;
+  padding: 2.4rem 2.4rem 2rem;
+  border-radius: 20px;
+  background: #fff;
+  color: #16181d;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+.guided-start__title {
+  margin: 0 0 1.5rem;
+  font: 700 clamp(1.6rem, 4vw, 2.2rem)/1.2 system-ui, sans-serif;
+}
+.guided-start__list {
+  list-style: none;
+  margin: 0 auto 2rem;
+  padding: 0;
+  max-width: 32rem;
+  text-align: left;
+}
+.guided-start__list li {
+  position: relative;
+  padding: 0.7rem 0 0.7rem 2rem;
+  font: 400 1.1rem/1.5 system-ui, sans-serif;
+  border-bottom: 1px solid #eee;
+}
+.guided-start__list li:last-child {
+  border-bottom: 0;
+}
+.guided-start__list li::before {
+  content: "\2192"; /* arrow */
+  position: absolute;
+  left: 0.25rem;
+  color: #0071dc; /* Walmart blue */
+  font-weight: 700;
+}
+.guided-start__btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0.8rem 2.2rem;
+  border-radius: 10px; /* square-ish, matches the other buttons */
+  background: #0071dc; /* static Walmart blue */
+  color: #fff;
+  font: 700 1.05rem/1 system-ui, sans-serif;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.guided-start__btn:hover {
+  background: #005fb8; /* darker blue on hover */
+}
+.guided-start__btn:active {
+  background: #004a91; /* darker still on click */
+  transform: translateY(1px);
+}
+.guided-start__btn:focus-visible {
+  outline: none;
+  background: #005fb8;
+  box-shadow: 0 0 0 3px rgba(0, 113, 220, 0.45); /* blue halo, no yellow */
+}
+@media (prefers-reduced-motion: reduce) {
+  .guided-start {
+    transition: none;
+  }
+}

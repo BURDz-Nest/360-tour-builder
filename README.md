@@ -41,6 +41,10 @@ anywhere — the **player** runtime travels with it.
 - **Info Zones** — Storyline-style transparent polygon hotspots (in addition to
   icon pins), with a per-tour **Show Info Zones** toggle for the player's reveal
   button.
+- **Guided experience (opt-in)** — flip a tour into a linear "find the hotspots"
+  mode: navigation pins are hidden, the learner must open every **required** info
+  hotspot in a scene before a **Continue** prompt appears, ending on a custom
+  **completion screen**. Disabled by default; a normal tour is unaffected.
 - **Live preview** — a real Photo-Sphere-Viewer panorama with capture-current-view
   for each scene's default camera angle, plus a chosen start scene.
 - **Dark mode** — builder theme toggle, remembered across sessions.
@@ -87,6 +91,7 @@ anywhere — the **player** runtime travels with it.
 │   │   ├── marker-icons.js    the marker icon registry (SVGs)
 │   │   ├── psv-adapter.js     maps tour-model → Photo-Sphere-Viewer
 │   │   ├── areas-menu.js      player Areas dropdown + current-area breadcrumb
+│   │   ├── guided.js          opt-in guided 'find the hotspots' runtime (lazy)
 │   │   ├── player.js          read-only viewer controller
 │   │   └── share.js           Share button + QR modal (currently hidden)
 │   └── vendor/                vendored PSV 5.11.5 + three 0.169.0 + qrcode (no CDN)
@@ -164,6 +169,13 @@ requirements without leaving the app.
     "showThumbnails": true,         // image thumbnails in nav popups
     "showWaypointShadows": true,    // floating ground shadow under nav waypoints
     "showInfoZones": true,          // show the player's Info Zones reveal button
+    "showHotspotHints": false,      // opt-in magnifier glyph on info zones (mobile)
+    "experience": {                 // opt-in guided mode (disabled by default)
+      "enabled": false,
+      "showStartScreen": true,      // welcome/instructions screen before the run
+      "completionTitle": "Great job!",
+      "completionMessage": "You've found everything."
+    },
     "createdAt": "ISO-8601"
   },
   "groups": [                        // scene AREAS (optional; [] or omitted = none)
@@ -184,6 +196,7 @@ requirements without leaving the app.
           "label": "To Backroom", "targetSceneId": "backroom" },
         { "id": "m2", "type": "info", "yaw": -90, "pitch": 0,
           "icon": "",                             // info default
+          "required": true,                       // guided mode: must be opened to progress
           "label": "Service Desk", "html": "<p>Open 8a-9p</p>" }
       ]
     }

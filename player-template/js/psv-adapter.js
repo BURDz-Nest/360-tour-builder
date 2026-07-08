@@ -17,7 +17,7 @@
  *   angles in DEGREES  -> PSV "<n>deg" strings
  */
 
-import { MARKER_TYPES, isZone, DEFAULT_ZONE_HOVER } from "./tour-model.js?v=3";
+import { MARKER_TYPES, isZone, DEFAULT_ZONE_HOVER } from "./tour-model.js?v=5";
 import { renderMarkerHtml } from "./marker-icons.js?v=1";
 
 /** PSV wants angles as strings like "30deg" (or radians). We use degrees. */
@@ -66,6 +66,41 @@ export function zoneMarkerToConfig(marker) {
   };
 }
 
+/** Minimal magnifying-glass glyph (white on a translucent chip). */
+const MAGNIFIER_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none"
+  stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>`;
+
+/** Average a zone's corner points -> a center yaw/pitch (DEGREES). */
+function zoneCentroid(points = []) {
+  if (!points.length) return { yaw: 0, pitch: 0 };
+  const sum = points.reduce(
+    (a, p) => ({ yaw: a.yaw + (Number(p.yaw) || 0), pitch: a.pitch + (Number(p.pitch) || 0) }),
+    { yaw: 0, pitch: 0 }
+  );
+  return { yaw: sum.yaw / points.length, pitch: sum.pitch / points.length };
+}
+
+/**
+ * A small tappable magnifier badge at a zone's center (opt-in mobile hint).
+ * It routes to the SAME info popup as the zone; `hintFor` lets guided mode map
+ * the click back to the underlying zone's id. Distinct id (<zoneId>__hint) so it
+ * can coexist with the invisible polygon marker.
+ */
+export function zoneHintMarker(marker) {
+  const c = zoneCentroid(marker.points);
+  return {
+    id: `${marker.id}__hint`,
+    position: { yaw: degStr(c.yaw), pitch: degStr(c.pitch) },
+    html: `<span class="tour-hint" aria-hidden="true">${MAGNIFIER_SVG}</span>`,
+    size: { width: 40, height: 40 },
+    anchor: "center center",
+    className: "tour-marker-host tour-hint-host",
+    tooltip: marker.label ? { content: escapeHtml(marker.label) } : undefined,
+    data: { kind: "info", label: marker.label, html: marker.html, hintFor: marker.id },
+  };
+}
+
 /** Build the marker config for a single INFO marker. */
 export function infoMarkerToConfig(marker) {
   return {
@@ -104,16 +139,25 @@ export function linkMarkerToConfig(marker) {
  *
  * @returns {{ nodes: object[], startNodeId: string }}
  */
-export function toViewerNodes(tour) {
+export function toViewerNodes(tour, opts = {}) {
+  // Guided (linear) mode hides ALL navigation pins - progression is driven by
+  // the guided controller's Continue prompt, not by clicking link markers.
+  const guided = !!opts.guided;
   const showThumbnails = tour.meta?.showThumbnails !== false;
+  const showHints = tour.meta?.showHotspotHints === true;
   const nodes = (tour.scenes || []).map((scene) => {
     const markers = [];
 
     for (const m of scene.markers || []) {
       if (m.type === MARKER_TYPES.LINK) {
-        if (m.targetSceneId) markers.push(linkMarkerToConfig(m));
+        if (!guided && m.targetSceneId) markers.push(linkMarkerToConfig(m));
       } else if (m.type === MARKER_TYPES.INFO) {
-        markers.push(isZone(m) ? zoneMarkerToConfig(m) : infoMarkerToConfig(m));
+        if (isZone(m)) {
+          markers.push(zoneMarkerToConfig(m));
+          if (showHints) markers.push(zoneHintMarker(m)); // mobile magnifier
+        } else {
+          markers.push(infoMarkerToConfig(m));
+        }
       }
     }
 

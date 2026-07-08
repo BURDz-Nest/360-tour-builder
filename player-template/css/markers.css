@@ -287,3 +287,35 @@
   stroke-width: 3;
   outline: none;
 }
+
+/* =================================================================
+   MAGNIFIER HINTS (opt-in: meta.showHotspotHints)
+   A small pulsing magnifier chip dropped at an info zone's center so the
+   otherwise-invisible region is easy to spot & tap on touch devices.
+   ================================================================= */
+.tour-hint-host {
+  cursor: pointer;
+  pointer-events: auto;
+}
+.tour-hint {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 113, 220, 0.92); /* Walmart blue */
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  animation: tour-hint-pulse 2s ease-in-out infinite;
+}
+.tour-hint-host:hover .tour-hint,
+.tour-hint-host:focus-visible .tour-hint {
+  background: rgba(0, 95, 184, 0.98);
+}
+@keyframes tour-hint-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.14); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-hint { animation: none; }
+}

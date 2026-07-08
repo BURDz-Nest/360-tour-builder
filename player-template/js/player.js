@@ -11,12 +11,12 @@ import { Viewer } from "@photo-sphere-viewer/core";
 import { VirtualTourPlugin } from "@photo-sphere-viewer/virtual-tour-plugin";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
 
-import { validateTour, getScene, isZone, resolveGroupEntryScene } from "./tour-model.js?v=3";
+import { validateTour, getScene, isZone, isGuided, resolveGroupEntryScene } from "./tour-model.js?v=6";
 import {
   toViewerNodes,
   sceneInitialView,
   escapeHtml,
-} from "./psv-adapter.js?v=2";
+} from "./psv-adapter.js?v=4";
 import { readSceneFromUrl, readAreaFromUrl, writeSceneToUrl, mountShareUI } from "./share.js?v=1";
 import { mountAreasMenu } from "./areas-menu.js?v=1";
 
@@ -87,17 +87,22 @@ async function main() {
 }
 
 function initViewer(tour) {
-  const { nodes, startNodeId } = toViewerNodes(tour);
+  const guidedOn = isGuided(tour);
+  const { nodes, startNodeId } = toViewerNodes(tour, { guided: guidedOn });
   // Deep-link precedence: an explicit ?scene=<id> wins; otherwise ?area=<groupId>
   // starts at that area's entry scene; otherwise the tour's default start scene.
-  const requestedScene = readSceneFromUrl();
-  const requestedArea = readAreaFromUrl();
+  // GUIDED mode ignores deep-links entirely - a linear experience always starts
+  // at scene 1 (so a refresh or "Start over" restarts cleanly).
   let effectiveStart = startNodeId;
-  if (requestedScene && tour.scenes.some((s) => s.id === requestedScene)) {
-    effectiveStart = requestedScene;
-  } else if (requestedArea) {
-    const entry = resolveGroupEntryScene(tour, requestedArea);
-    if (entry) effectiveStart = entry.id;
+  if (!guidedOn) {
+    const requestedScene = readSceneFromUrl();
+    const requestedArea = readAreaFromUrl();
+    if (requestedScene && tour.scenes.some((s) => s.id === requestedScene)) {
+      effectiveStart = requestedScene;
+    } else if (requestedArea) {
+      const entry = resolveGroupEntryScene(tour, requestedArea);
+      if (entry) effectiveStart = entry.id;
+    }
   }
 
   // Apply tour-wide marker preferences as classes on the viewer container so
@@ -147,23 +152,43 @@ function initViewer(tour) {
   const markers = viewer.getPlugin(MarkersPlugin);
   const virtualTour = viewer.getPlugin(VirtualTourPlugin);
 
+  // ---- Guided experience (opt-in, lazy) ----
+  // Only load the guided controller when this tour asks for it, so normal
+  // tours never download or run a byte of it. Nav pins are already suppressed
+  // by toViewerNodes({ guided:true }); progression is driven from guided.js.
+  let guided = null;
+  if (guidedOn) {
+    document.body.classList.add("is-guided");
+    const stageEl = els.container.closest(".player-stage") || els.container.parentElement;
+    import("./guided.js?v=5")
+      .then((mod) => {
+        guided = mod.mountGuided({ tour, virtualTour, markers, stageEl });
+        if (currentSceneId) guided.onEnterScene(currentSceneId); // catch up
+      })
+      .catch((err) => console.error("[player] guided mode failed to load", err));
+  }
+
   // Show the "Reveal zones" toggle only when this tour actually has zones.
-  wireRevealZones(tour);
+  // (Skipped in guided mode - revealing all zones would trivialize finding.)
+  if (!guidedOn) wireRevealZones(tour);
 
   // Areas fast-travel dropdown (only if this tour is split into groups). Picking
   // an area jumps to that area's entry scene (author's choice, else its first).
-  const areas = mountAreasMenu({
-    mountEl: els.areasMenu,
-    tour,
-    onPickArea: (groupId) => {
-      const entry = resolveGroupEntryScene(tour, groupId);
-      if (entry) {
-        virtualTour.setCurrentNode(entry.id).catch((err) =>
-          console.warn("[player] area jump failed", err)
-        );
-      }
-    },
-  });
+  // Disabled in guided mode - the experience is strictly linear.
+  const areas = guidedOn
+    ? null
+    : mountAreasMenu({
+        mountEl: els.areasMenu,
+        tour,
+        onPickArea: (groupId) => {
+          const entry = resolveGroupEntryScene(tour, groupId);
+          if (entry) {
+            virtualTour.setCurrentNode(entry.id).catch((err) =>
+              console.warn("[player] area jump failed", err)
+            );
+          }
+        },
+      });
 
   // The transition already moved us to the saved view; here we only update the
   // caption text (no rotate/zoom -> no jump). Also keep the URL's ?scene= in
@@ -171,9 +196,10 @@ function initViewer(tour) {
   virtualTour.addEventListener("node-changed", ({ node }) => {
     const scene = getScene(activeTour, node.id);
     if (scene) setCaption(scene.caption);
-    writeSceneToUrl(node.id);
+    if (!guidedOn) writeSceneToUrl(node.id); // guided mode keeps the URL clean
     currentSceneId = node.id;
     areas?.update(node.id); // keep the area breadcrumb in sync
+    guided?.onEnterScene(node.id); // reset progress HUD for the new scene
   });
 
   // Marker click router:
@@ -184,6 +210,7 @@ function initViewer(tour) {
     if (!data) return;
     if (data.kind === "info") {
       openInfo(data.label, data.html);
+      guided?.onInfoOpened(marker.id); // opening = "found" in guided mode
     } else if (data.kind === "link" && data.targetSceneId) {
       virtualTour.setCurrentNode(data.targetSceneId).catch((err) =>
         console.warn("[player] nav failed", err)
