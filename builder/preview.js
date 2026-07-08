@@ -4,26 +4,26 @@
 // friendly empty message (scene-without-image vs. no-scene) over a blank
 // viewer. Keeps all "what's on screen" logic in one cohesive place.
 
-export function createPreview({ state, $, toast, getScene, viewer }) {
+export function createPreview({ state, $, toast, getScene, viewer, resolver }) {
   /**
-   * Resolve a panorama path for the LIVE PREVIEW only. Absolute URLs and
-   * root-relative paths pass through; relative paths get previewBase prepended
-   * so the builder (served from /builder/) finds images under /tours/<name>/.
-   * The base is never written to tour.json — saved paths stay portable.
+   * Resolve a panorama/thumbnail path for the LIVE PREVIEW only. Delegates to
+   * the asset resolver: reads straight from the tour folder handle as a blob:
+   * URL (works wherever the folder lives), falling back to the HTTP base for
+   * in-repo tours. Async. The base is never written to tour.json — saved paths
+   * stay portable.
    */
   function resolvePreviewUrl(path) {
-    if (!path) return "";
-    if (/^(https?:|data:|blob:|\/)/i.test(path)) return path;
-    const base = (state.previewBase || "").trim();
-    if (!base) return path;
-    return base.replace(/\/?$/, "/") + path.replace(/^\.?\//, "");
+    return resolver.resolve(path);
   }
 
   /** Load a scene's panorama into the viewer using the resolved URL. */
-  function loadCurrentPreview(scene) {
-    viewer
-      .loadScene(scene, resolvePreviewUrl(scene.panorama))
-      .catch(() => toast("Couldn't load that panorama URL (check the path).", true));
+  async function loadCurrentPreview(scene) {
+    try {
+      const url = await resolver.resolve(scene.panorama);
+      await viewer.loadScene(scene, url);
+    } catch {
+      toast("Couldn't load that panorama (check the image exists in the folder).", true);
+    }
   }
 
   /** Single source of truth for the preview (image vs. empty message). */

@@ -231,8 +231,11 @@ export function createSceneList({
       const img = document.createElement("img");
       img.loading = "lazy";
       img.alt = "";
-      img.src = resolveThumbUrl(scene.thumbnail);
       img.addEventListener("error", () => thumb.classList.add("is-broken"));
+      // resolveThumbUrl is async (may read the file from the folder handle).
+      Promise.resolve(resolveThumbUrl(scene.thumbnail))
+        .then((url) => { if (url) img.src = url; else thumb.classList.add("is-broken"); })
+        .catch(() => thumb.classList.add("is-broken"));
       thumb.append(img);
     } else {
       thumb.classList.add("is-empty");

@@ -21,15 +21,16 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "55";
+const BUILDER_BUILD = "56";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js?v=45";
 import { createMarkerActions } from "./marker-actions.js?v=42";
-import * as fs from "./fs-workspace.js";
-import { createWorkspace } from "./workspace.js?v=2";
+import * as fs from "./fs-workspace.js?v=2";
+import { createWorkspace } from "./workspace.js?v=3";
 import { mountOverlays } from "./overlays.js?v=2";
-import { createPreview } from "./preview.js";
-import { createSceneList } from "./scene-list.js?v=8";
+import { createPreview } from "./preview.js?v=2";
+import { createAssetResolver } from "./asset-resolver.js?v=1";
+import { createSceneList } from "./scene-list.js?v=9";
 import { createGroupActions } from "./group-actions.js?v=4";
 import { duplicateScene, copyHotspots, openSceneCopyMenu } from "./scene-actions.js";
 import { resolveInitialTheme, applyTheme, bindThemeToggle } from "./theme.js";
@@ -52,6 +53,7 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const QUALITY_STORAGE_KEY = "tour-builder.imageQualityPreset";
 let viewer;
+let resolver; // blob-URL asset resolver (reads images from the folder handle)
 let preview;
 let sceneList;
 let groupActions;
@@ -81,7 +83,8 @@ function init() {
     refresh: renderMarkerList,
     highlight: highlightSelectedMarker,
   });
-  preview = createPreview({ state, $, toast, getScene, viewer });
+  resolver = createAssetResolver({ state, fs });
+  preview = createPreview({ state, $, toast, getScene, viewer, resolver });
   sceneList = createSceneList({
     listEl: $("scene-list"),
     countEl: $("scene-count"),
@@ -160,6 +163,7 @@ function init() {
       createEmptyTour, createScene,
       updateScene, renderAll, selectScene, updatePreview: preview.updatePreview,
       cancelPlacing: () => markerActions.cancelPlacing(),
+      resolver,
     });
     // Topbar shortcuts (same actions as the Welcome screen).
     $("btn-new-tour").addEventListener("click", ws.handleNewTour);
@@ -383,25 +387,27 @@ async function previewInPlayer() {
   // stage the preview — awaited so we never open the player before the thumbs
   // exist (that race caused broken-image icons).
   await prepareThumbnails();
-  // Hand the in-progress tour to the player via localStorage (shared across
-  // tabs, instant, and no flaky blob-URL fetching).
+  // Build a preview config whose image paths are resolved to blob: URLs read
+  // straight from the tour folder. This makes preview work no matter WHERE the
+  // folder lives (even outside the repo) and lets us always open the repo's
+  // template player, which is guaranteed to be served + same-origin. We clone
+  // first so the real tour keeps its portable relative paths.
+  let config;
   try {
-    localStorage.setItem("tour-preview-config", JSON.stringify(serializeTour()));
+    config = JSON.parse(JSON.stringify(serializeTour()));
+    for (const s of config.scenes || []) {
+      if (s.panorama) s.panorama = await resolver.resolve(s.panorama);
+      if (s.thumbnail) s.thumbnail = await resolver.resolve(s.thumbnail);
+    }
+    localStorage.setItem("tour-preview-config", JSON.stringify(config));
   } catch (e) {
     return toast(`Couldn't stage preview: ${e.message}`, true);
   }
-  // Open the player that lives in the SAME folder as the images (the Preview
-  // base), so relative panorama paths resolve. Fall back to the template
-  // player when no base is set (only works with absolute/Azure image URLs).
-  const base = (state.previewBase || "").trim();
-  // Cache-bust player.html itself so the browser always fetches the current one
-  // (which carries fresh ?v= pins for player.js/css) - no more hard-refreshing
-  // the preview tab to pick up updates.
+  // Always open the repo's template player (served by the dev server + same
+  // origin, so the blob: image URLs created above are reachable). Cache-bust so
+  // fresh ?v= pins for player.js/css are always picked up.
   const bust = `&_=${Date.now()}`;
-  const playerUrl = base
-    ? base.replace(/\/?$/, "/") + "player.html?config=__preview__" + bust
-    : "../player-template/player.html?config=__preview__" + bust;
-  window.open(playerUrl, "_blank");
+  window.open("../player-template/player.html?config=__preview__" + bust, "_blank");
 }
 
 async function importTour(e) {

@@ -5,7 +5,7 @@
 // behaviour it needs (dependency injection), so the file-system UI lives in one
 // cohesive place instead of bloating builder.js.
 
-import * as fs from "./fs-workspace.js";
+import * as fs from "./fs-workspace.js?v=2";
 import { rememberProject } from "./project-store.js";
 
 export function createWorkspace(ctx) {
@@ -13,6 +13,7 @@ export function createWorkspace(ctx) {
     state, $, toast, getScene, validateTour,
     createEmptyTour, createScene,
     updateScene, renderAll, selectScene, updatePreview, cancelPlacing,
+    resolver,
   } = ctx;
 
   // Image-modal mode. ASSIGN (default, opened via "Images…") = clicking a
@@ -116,6 +117,7 @@ export function createWorkspace(ctx) {
     try {
       const added = await fs.addImages(state.dirHandle, files);
       if (!added.length) return toast("No image files found to add.", true);
+      resolver.invalidate(); // in case any filenames were replaced on disk
       const targetGroup = inAddMode() ? imageTarget : null;
       const { created, firstId } = appendScenesForImages(added, targetGroup);
       renderAll();
@@ -149,7 +151,7 @@ export function createWorkspace(ctx) {
     const onClick = inAddMode()
       ? (name) => addImageAsScene(name, imageTarget)
       : assignImageToScene;
-    fs.renderImageGrid($("image-grid"), names, state.previewBase, onClick);
+    fs.renderImageGrid($("image-grid"), names, (p) => resolver.resolve(p), onClick);
   }
 
   /** Re-title the images modal + swap its hint depending on the mode. */
@@ -194,6 +196,7 @@ export function createWorkspace(ctx) {
     try {
       toast("Optimizing images\u2026 this can take a moment.");
       const { optimized, renames } = await fs.optimizeFolder(state.dirHandle);
+      resolver.invalidate(); // files were overwritten — drop stale blob URLs
       // Repoint any scenes whose image was renamed (e.g. .png -> .jpg).
       for (const s of state.tour.scenes) {
         const m = /^images\/(.+)$/.exec(s.panorama || "");

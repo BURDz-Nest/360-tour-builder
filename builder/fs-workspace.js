@@ -64,6 +64,17 @@ async function getFileHandleDeep(dirHandle, relPath, create = false) {
   return dir.getFileHandle(fileName, { create });
 }
 
+/**
+ * Read a file (by relative path like "images/foo.jpg") from a directory handle
+ * and return the File/Blob. Used by the asset resolver to make blob: URLs so
+ * the builder can preview images no matter WHERE the tour folder lives (not
+ * just under the repo's served /tours/).
+ */
+export async function readFileDeep(dirHandle, relPath) {
+  const fh = await getFileHandleDeep(dirHandle, relPath, false);
+  return fh.getFile();
+}
+
 async function writeFile(dirHandle, relPath, data) {
   const fh = await getFileHandleDeep(dirHandle, relPath, true);
   const w = await fh.createWritable();
@@ -357,17 +368,16 @@ export function setupDropZone(el, onFiles) {
 }
 
 /**
- * Render a thumbnail grid of images. `baseUrl` is the HTTP path the running
- * server serves the tour from (e.g. ../tours/foo/), so thumbnails load over
- * HTTP. Clicking a thumbnail calls onAssign(name).
+ * Render a thumbnail grid of images. `resolve(relPath)` returns a Promise of a
+ * displayable URL (blob: from the folder handle, or an HTTP path) so images
+ * load regardless of where the tour folder lives. Clicking calls onAssign(name).
  */
-export function renderImageGrid(container, names, baseUrl, onAssign) {
+export function renderImageGrid(container, names, resolve, onAssign) {
   container.innerHTML = "";
   if (!names.length) {
     container.innerHTML = '<p class="muted">No images yet — drag 360 photos here.</p>';
     return;
   }
-  const base = (baseUrl || "").replace(/\/?$/, "/");
   for (const name of names) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -376,8 +386,10 @@ export function renderImageGrid(container, names, baseUrl, onAssign) {
     const img = document.createElement("img");
     img.loading = "lazy";
     img.alt = "";
-    img.src = `${base}images/${encodeURIComponent(name)}`;
     img.addEventListener("error", () => btn.classList.add("is-broken"));
+    Promise.resolve(resolve(`images/${name}`))
+      .then((url) => { if (url) img.src = url; else btn.classList.add("is-broken"); })
+      .catch(() => btn.classList.add("is-broken"));
     const span = document.createElement("span");
     span.textContent = name;
     btn.append(img, span);
