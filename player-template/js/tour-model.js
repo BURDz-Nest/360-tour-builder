@@ -91,10 +91,31 @@ export function createEmptyTour() {
       startSceneId: "",
       showThumbnails: true,
       showWaypointShadows: true,
+      showInfoZones: true,
+      // Guided-experience config (opt-in linear mode). Disabled by default so
+      // normal tours are completely unaffected.
+      experience: createExperience(),
       createdAt: new Date().toISOString(),
     },
     groups: [],
     scenes: [],
+  };
+}
+
+/**
+ * Guided-experience config (opt-in). Also serves as the defensive normalizer
+ * used by validateTour, so unknown/old files get sane defaults. Disabled by
+ * default -> a normal tour never enters guided mode.
+ */
+export function createExperience(raw = {}) {
+  const e = raw && typeof raw === "object" ? raw : {};
+  return {
+    enabled: !!e.enabled,
+    completionTitle: String(e.completionTitle || "Great job!"),
+    completionMessage: String(
+      e.completionMessage ||
+        "You've found everything. The experience is complete."
+    ),
   };
 }
 
@@ -137,7 +158,11 @@ export function createMarker({
   points = null,
   idleStroke = false,
   hoverColor = DEFAULT_ZONE_HOVER,
+  required = false,
 } = {}) {
+  // Guided-experience flag: an INFO hotspot the learner must open to progress.
+  // Only stored when true (keeps normal tour.json small + back-compatible).
+  const req = type === MARKER_TYPES.INFO && required ? { required: true } : {};
   // INFO ZONE: a polygon hotspot. No single position - the corners live in
   // `points` (DEGREES). Falls back to a default quad if given too few points.
   if (type === MARKER_TYPES.INFO && shape === MARKER_SHAPES.ZONE) {
@@ -154,6 +179,7 @@ export function createMarker({
       // false -> fully transparent until hover; true -> faint always-on stroke.
       idleStroke: !!idleStroke,
       hoverColor: hoverColor || DEFAULT_ZONE_HOVER,
+      ...req,
     };
   }
   // ICON marker (link or info): single position + an icon from marker-icons.js.
@@ -168,6 +194,7 @@ export function createMarker({
     // and lets us change the default later without touching saved data.
     icon,
     ...(type === MARKER_TYPES.LINK ? { targetSceneId } : { html }),
+    ...req,
   };
 }
 
@@ -187,6 +214,18 @@ export function defaultZonePoints(centerYaw = 0, centerPitch = 0, halfW = 12, ha
 /** True if a marker is an info zone (polygon) rather than a glyph pin. */
 export function isZone(marker) {
   return marker?.type === MARKER_TYPES.INFO && marker?.shape === MARKER_SHAPES.ZONE;
+}
+
+/** True if this tour is configured as a guided (linear) experience. */
+export function isGuided(tour) {
+  return !!tour?.meta?.experience?.enabled;
+}
+
+/** The INFO markers in a scene flagged required-to-find (guided mode). */
+export function requiredMarkers(scene) {
+  return (scene?.markers || []).filter(
+    (m) => m?.type === MARKER_TYPES.INFO && m?.required
+  );
 }
 
 /** Look up a scene by id (or undefined). */
@@ -297,6 +336,8 @@ export function validateTour(raw) {
   tour.meta.showWaypointShadows = meta.showWaypointShadows !== false;
   // Info-zone reveal button in the player - default on for back-compat.
   tour.meta.showInfoZones = meta.showInfoZones !== false;
+  // Guided-experience config - normalized (disabled by default).
+  tour.meta.experience = createExperience(meta.experience);
   tour.meta.createdAt = String(meta.createdAt || tour.meta.createdAt);
 
   // ---- scenes ----
@@ -411,6 +452,7 @@ function normalizeMarker(raw) {
     points: Array.isArray(raw.points) ? raw.points : null,
     idleStroke: !!raw.idleStroke,
     hoverColor: raw.hoverColor ? String(raw.hoverColor) : undefined,
+    required: !!raw.required,
   });
   if (raw.id) marker.id = String(raw.id);
   return marker;
