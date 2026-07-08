@@ -207,7 +207,9 @@ function buildUI(stageEl) {
     const overlay = el("div", "guided-start", { role: "dialog", "aria-modal": "true" });
     const card = el("div", "guided-start__card");
     const h = el("h1", "guided-start__title");
-    h.textContent = `Welcome to ${title || "the"} Guide`;
+    // "Untitled Tour" is the validator's default -> treat as no real title.
+    const named = title && title !== "Untitled Tour";
+    h.textContent = named ? `Welcome to ${title}` : "Welcome!";
     const list = el("ul", "guided-start__list");
     [
       "Select and drag anywhere on the image to rotate your view.",

@@ -160,7 +160,7 @@ function initViewer(tour) {
   if (guidedOn) {
     document.body.classList.add("is-guided");
     const stageEl = els.container.closest(".player-stage") || els.container.parentElement;
-    import("./guided.js?v=4")
+    import("./guided.js?v=5")
       .then((mod) => {
         guided = mod.mountGuided({ tour, virtualTour, markers, stageEl });
         if (currentSceneId) guided.onEnterScene(currentSceneId); // catch up

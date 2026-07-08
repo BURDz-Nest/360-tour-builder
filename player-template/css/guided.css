@@ -75,8 +75,9 @@
   transform: translateY(1px);
 }
 .guided-prompt__btn:focus-visible {
-  outline: 3px solid #ffc220; /* Walmart spark yellow — visible focus (WCAG) */
-  outline-offset: 2px;
+  outline: none;
+  background: #005fb8; /* darker blue, no yellow flash */
+  box-shadow: 0 0 0 3px rgba(0, 113, 220, 0.45);
 }
 
 /* A required hotspot the learner has already opened.
@@ -171,45 +172,54 @@
 }
 
 /* =================================================================
-   START / WELCOME SCREEN — plain white full-cover panel shown before the
-   run begins (opt-in via meta.experience.showStartScreen).
+   START / WELCOME SCREEN — a modal card over the darkened panorama, matching
+   the completion screen (opt-in via meta.experience.showStartScreen).
    ================================================================= */
 .guided-start {
   position: absolute;
   inset: 0;
-  z-index: 90; /* above HUD/prompt, below nothing else in the stage */
+  z-index: 90;
   display: grid;
   place-items: center;
-  padding: 2rem 1.25rem;
-  background: #fff;
-  color: #1a1a1a;
+  padding: 1.5rem;
+  background: rgba(10, 12, 16, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.3s ease;
 }
 .guided-start.is-in {
   opacity: 1;
 }
 .guided-start__card {
-  max-width: 34rem;
+  max-width: min(94vw, 36rem);
   width: 100%;
+  padding: 2.4rem 2.4rem 2rem;
+  border-radius: 20px;
+  background: #fff;
+  color: #16181d;
   text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
 .guided-start__title {
-  margin: 0 0 1.25rem;
-  font: 700 clamp(1.5rem, 4vw, 2.1rem)/1.2 system-ui, sans-serif;
+  margin: 0 0 1.5rem;
+  font: 700 clamp(1.6rem, 4vw, 2.2rem)/1.2 system-ui, sans-serif;
 }
 .guided-start__list {
   list-style: none;
-  margin: 0 auto 1.75rem;
+  margin: 0 auto 2rem;
   padding: 0;
-  max-width: 30rem;
+  max-width: 32rem;
   text-align: left;
 }
 .guided-start__list li {
   position: relative;
-  padding: 0.55rem 0 0.55rem 1.9rem;
-  font: 400 1.05rem/1.45 system-ui, sans-serif;
+  padding: 0.7rem 0 0.7rem 2rem;
+  font: 400 1.1rem/1.5 system-ui, sans-serif;
   border-bottom: 1px solid #eee;
+}
+.guided-start__list li:last-child {
+  border-bottom: 0;
 }
 .guided-start__list li::before {
   content: "\2192"; /* arrow */
@@ -222,23 +232,24 @@
   appearance: none;
   border: 0;
   cursor: pointer;
-  padding: 0.85rem 2.5rem;
-  border-radius: 999px;
-  background: #0071dc;
+  padding: 0.8rem 2.2rem;
+  border-radius: 10px; /* square-ish, matches the other buttons */
+  background: #0071dc; /* static Walmart blue */
   color: #fff;
   font: 700 1.05rem/1 system-ui, sans-serif;
-  box-shadow: 0 4px 14px rgba(0, 113, 220, 0.35);
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
 .guided-start__btn:hover {
-  background: #005fb8;
+  background: #005fb8; /* darker blue on hover */
 }
 .guided-start__btn:active {
+  background: #004a91; /* darker still on click */
   transform: translateY(1px);
 }
 .guided-start__btn:focus-visible {
-  outline: 3px solid #ffc220; /* spark yellow for visible focus */
-  outline-offset: 2px;
+  outline: none;
+  background: #005fb8;
+  box-shadow: 0 0 0 3px rgba(0, 113, 220, 0.45); /* blue halo, no yellow */
 }
 @media (prefers-reduced-motion: reduce) {
   .guided-start {
