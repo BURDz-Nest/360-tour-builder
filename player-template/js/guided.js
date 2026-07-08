@@ -81,8 +81,23 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
       ui.showPrompt({
         text: "That was the final scene.",
         buttonLabel: "Finish",
-        onClick: () => ui.showCompletion(exp),
+        onClick: () => ui.showCompletion(exp, restart),
       });
+    }
+  }
+
+  // Clean in-app restart (no page reload -> avoids the ?scene deep-link sending
+  // us back to the last scene). Clears progress and jumps to the first scene;
+  // the resulting node-changed fires onEnterScene -> render.
+  function restart() {
+    found.clear();
+    ui.hideCompletion();
+    ui.hidePrompt();
+    const first = scenes[0];
+    if (first) {
+      virtualTour
+        .setCurrentNode(first.id)
+        .catch((err) => console.warn("[guided] restart failed", err));
     }
   }
 
@@ -104,6 +119,7 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
 
 function buildUI(stageEl) {
   const mount = stageEl || document.body;
+  let completeEl = null; // the completion overlay, if shown
 
   // Progress HUD (top-center pill).
   const hud = el("div", "guided-hud", { "aria-live": "polite" });
@@ -144,9 +160,10 @@ function buildUI(stageEl) {
     prompt.classList.remove("is-in");
   }
 
-  function showCompletion(exp) {
+  function showCompletion(exp, onRestart) {
     hidePrompt();
     hud.hidden = true;
+    hideCompletion(); // never stack two overlays
     const overlay = el("div", "guided-complete", { role: "dialog", "aria-modal": "true" });
     const card = el("div", "guided-complete__card");
     const check = el("div", "guided-complete__check");
@@ -160,15 +177,21 @@ function buildUI(stageEl) {
     const again = el("button", "guided-prompt__btn");
     again.type = "button";
     again.textContent = "Start over";
-    again.onclick = () => location.reload();
+    again.onclick = () => onRestart?.();
     card.append(check, h, p, again);
     overlay.append(card);
     mount.append(overlay);
+    completeEl = overlay;
     requestAnimationFrame(() => overlay.classList.add("is-in"));
     again.focus();
   }
 
-  return { setProgress, showPrompt, hidePrompt, showCompletion };
+  function hideCompletion() {
+    completeEl?.remove();
+    completeEl = null;
+  }
+
+  return { setProgress, showPrompt, hidePrompt, showCompletion, hideCompletion };
 }
 
 /** tiny element helper */

@@ -91,14 +91,18 @@ function initViewer(tour) {
   const { nodes, startNodeId } = toViewerNodes(tour, { guided: guidedOn });
   // Deep-link precedence: an explicit ?scene=<id> wins; otherwise ?area=<groupId>
   // starts at that area's entry scene; otherwise the tour's default start scene.
-  const requestedScene = readSceneFromUrl();
-  const requestedArea = readAreaFromUrl();
+  // GUIDED mode ignores deep-links entirely - a linear experience always starts
+  // at scene 1 (so a refresh or "Start over" restarts cleanly).
   let effectiveStart = startNodeId;
-  if (requestedScene && tour.scenes.some((s) => s.id === requestedScene)) {
-    effectiveStart = requestedScene;
-  } else if (requestedArea) {
-    const entry = resolveGroupEntryScene(tour, requestedArea);
-    if (entry) effectiveStart = entry.id;
+  if (!guidedOn) {
+    const requestedScene = readSceneFromUrl();
+    const requestedArea = readAreaFromUrl();
+    if (requestedScene && tour.scenes.some((s) => s.id === requestedScene)) {
+      effectiveStart = requestedScene;
+    } else if (requestedArea) {
+      const entry = resolveGroupEntryScene(tour, requestedArea);
+      if (entry) effectiveStart = entry.id;
+    }
   }
 
   // Apply tour-wide marker preferences as classes on the viewer container so
@@ -156,7 +160,7 @@ function initViewer(tour) {
   if (guidedOn) {
     document.body.classList.add("is-guided");
     const stageEl = els.container.closest(".player-stage") || els.container.parentElement;
-    import("./guided.js?v=1")
+    import("./guided.js?v=2")
       .then((mod) => {
         guided = mod.mountGuided({ tour, virtualTour, markers, stageEl });
         if (currentSceneId) guided.onEnterScene(currentSceneId); // catch up
@@ -192,7 +196,7 @@ function initViewer(tour) {
   virtualTour.addEventListener("node-changed", ({ node }) => {
     const scene = getScene(activeTour, node.id);
     if (scene) setCaption(scene.caption);
-    writeSceneToUrl(node.id);
+    if (!guidedOn) writeSceneToUrl(node.id); // guided mode keeps the URL clean
     currentSceneId = node.id;
     areas?.update(node.id); // keep the area breadcrumb in sync
     guided?.onEnterScene(node.id); // reset progress HUD for the new scene
