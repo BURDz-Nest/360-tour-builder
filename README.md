@@ -34,11 +34,19 @@ anywhere — the **player** runtime travels with it.
 - **Scene management** — thumbnails and hotspot-count badges in the scene list,
   reorder by drag, **duplicate a scene**, and **copy hotspots** from one scene to
   another.
+- **Scene areas (groups)** — organize scenes into named, color-coded **areas**
+  (e.g. Front End, Back Room). The builder shows collapsible area sections with a
+  color picker and a per-area **entry scene**; the player gets an **Areas**
+  dropdown for fast travel plus `?area=<id>` deep-linking.
+- **Info Zones** — Storyline-style transparent polygon hotspots (in addition to
+  icon pins), with a per-tour **Show Info Zones** toggle for the player's reveal
+  button.
 - **Live preview** — a real Photo-Sphere-Viewer panorama with capture-current-view
   for each scene's default camera angle, plus a chosen start scene.
 - **Dark mode** — builder theme toggle, remembered across sessions.
-- **Player niceties** — URL deep-linking (`?scene=<id>`) so any view is shareable,
-  and a **Share** button with a QR code for opening the tour on a phone.
+- **Player niceties** — URL deep-linking (`?scene=<id>` / `?area=<id>`) so any
+  view is shareable. *(A Share/QR button exists in the code but is temporarily
+  hidden pending a revamp.)*
 - **One-click publish guidance** — an in-app **Help & publishing** modal covers
   the GitHub Pages + Azure steps (including the all-important CORS bit).
 
@@ -59,8 +67,9 @@ anywhere — the **player** runtime travels with it.
 │   ├── preview.js             what the center viewport shows (image vs. empty)
 │   ├── workspace.js           New/Open/Recent + image flows
 │   ├── overlays.js            Welcome + Images modal chrome
-│   ├── scene-list.js          scene list rows (thumbnails + hotspot badges)
+│   ├── scene-list.js          grouped scene list (areas + thumbnails + hotspot badges + drag)
 │   ├── scene-actions.js       duplicate scene + copy-hotspots menu
+│   ├── group-actions.js       scene AREA (group) CRUD: add/rename/delete/recolor/entry
 │   ├── marker-row.js          hotspot editor row factory
 │   ├── icon-picker.js         marker icon library picker
 │   ├── tabs.js                accessible tab controller (Scenes | Tour settings)
@@ -77,8 +86,9 @@ anywhere — the **player** runtime travels with it.
 │   │   ├── tour-model.js      tour.json schema authority (pure data)
 │   │   ├── marker-icons.js    the marker icon registry (SVGs)
 │   │   ├── psv-adapter.js     maps tour-model → Photo-Sphere-Viewer
+│   │   ├── areas-menu.js      player Areas dropdown + current-area breadcrumb
 │   │   ├── player.js          read-only viewer controller
-│   │   └── share.js           Share button + QR modal
+│   │   └── share.js           Share button + QR modal (currently hidden)
 │   └── vendor/                vendored PSV 5.11.5 + three 0.169.0 + qrcode (no CDN)
 ├── tours/                     your tours live here locally (git-ignored)
 │   └── .gitkeep               each tours/<name>/ is a complete, deployable site
@@ -141,11 +151,11 @@ the server and opens the builder for you.
 The **Help & publishing** button in the builder summarizes the GitHub/Azure
 requirements without leaving the app.
 
-## tour.json schema (version 1)
+## tour.json schema (version 2)
 
 ```jsonc
 {
-  "version": 1,
+  "version": 2,
   "meta": {
     "title": "",
     "description": "",
@@ -153,12 +163,17 @@ requirements without leaving the app.
     "startSceneId": "s1",
     "showThumbnails": true,         // image thumbnails in nav popups
     "showWaypointShadows": true,    // floating ground shadow under nav waypoints
+    "showInfoZones": true,          // show the player's Info Zones reveal button
     "createdAt": "ISO-8601"
   },
+  "groups": [                        // scene AREAS (optional; [] or omitted = none)
+    { "id": "g1", "name": "Front End", "color": "#0071dc", "entrySceneId": "s1" }
+  ],
   "scenes": [
     {
       "id": "s1",
       "name": "Frontend",                         // shown in nav popups
+      "groupId": "g1",                            // area membership (null = Uncategorized)
       "panorama": "images/front.jpg",             // local path OR full Azure URL
       "thumbnail": "images/thumbs/front.jpg",     // auto-generated; defaults to panorama
       "caption": "Checkout area",
@@ -176,6 +191,11 @@ requirements without leaving the app.
 }
 ```
 
+- **Back-compatible with v1:** older files (no `groups`, no `scene.groupId`) load
+  fine — the schema back-fills them and the `show*` meta flags default to `true`.
+- **Areas:** `groups[]` = `{id, name, color, entrySceneId}`; each scene's
+  `groupId` links it to an area (or `null` = Uncategorized). `entrySceneId` is
+  the scene you land on when picking that area in the player.
 - Angles are stored as human-friendly **degrees**; the player converts them for WebGL.
 - `marker.icon` is an id from the icon registry (e.g. `waypoint`, `arrow`, `door`,
   `info`, `star`). An empty string means "use the default icon for this marker

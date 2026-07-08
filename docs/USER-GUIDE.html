@@ -146,6 +146,8 @@
           <div class="card"><h3>Scene</h3><p style="font-size:.9rem">One 360&deg; photo (a single location). A tour is a list of scenes the viewer moves between.</p></div>
           <div class="card"><h3>Navigation marker</h3><p style="font-size:.9rem">A blue waypoint pin that jumps the viewer to another scene &mdash; like a doorway.</p></div>
           <div class="card"><h3>Info marker</h3><p style="font-size:.9rem">A teal "i" pin that opens a popup with text/details when clicked.</p></div>
+          <div class="card"><h3>Info zone</h3><p style="font-size:.9rem">A see-through shaped hotspot (instead of a pin) &mdash; hover or tap the region to reveal it, click to open its popup. Great for highlighting an object or wall.</p></div>
+          <div class="card"><h3>Area</h3><p style="font-size:.9rem">An optional named, color-coded group of scenes (e.g. <em>Front End</em>, <em>Back Room</em>). Visitors can jump between areas from a dropdown in the player.</p></div>
         </div>
       </section>
 
@@ -192,11 +194,18 @@
         <h2>5. Managing Scenes</h2>
         <ul class="bullets">
           <li><span><strong>Select</strong> a scene by clicking its name in the left list &mdash; its 360 loads in the center preview.</span></li>
-          <li><span><strong>Reorder</strong> by dragging the <span style="font-family:monospace">&#9776;</span> grip handle (or use the Up/Down buttons).</span></li>
+          <li><span><strong>Reorder</strong> by dragging the <span style="font-family:monospace">&#9776;</span> grip handle up or down the list.</span></li>
           <li><span><strong>Rename</strong> via the scene name field. Add a caption for a label shown in the player.</span></li>
           <li><span><strong>Set the start scene</strong> with <em>Set as start</em> &mdash; this is where the tour opens.</span></li>
           <li><span><strong>Delete</strong> a scene with the red <em>Delete scene</em> button.</span></li>
           <li><span><strong>Swap a scene's photo:</strong> select the scene, open Images&hellip;, and click a thumbnail to reassign it.</span></li>
+        </ul>
+        <h3 style="margin-top:1.25rem">Organizing into Areas (optional)</h3>
+        <ul class="bullets">
+          <li><span>Click <span class="btn-chip chip-ghost">+ New group</span> above the scene list to create an <strong>Area</strong>, then <strong>drag scenes</strong> into it.</span></li>
+          <li><span>Open an area's row to <strong>rename</strong> it, pick its <strong>color</strong> (the swatch), or <strong>delete</strong> it (its scenes return to <em>Uncategorized</em>).</span></li>
+          <li><span>Click the <strong>star</strong> on a scene to pin it as that area's <strong>entry scene</strong> &mdash; the scene visitors land on when they pick the area. A gold star stays put when you reorder; a faint star just marks the current default (first scene).</span></li>
+          <li><span>In the player, areas appear as a <strong>dropdown</strong> over the panorama for quick jumping. Scenes left in <em>Uncategorized</em> aren't shown as a jumpable area.</span></li>
         </ul>
       </section>
 
@@ -226,6 +235,8 @@
         <ul class="bullets">
           <li><span><strong>Saved view per scene:</strong> drag/zoom the preview to the angle you want, then capture it. The player opens each scene facing that direction, and navigation fades in already facing it (no spinning).</span></li>
           <li><span><strong>Show thumbnails toggle</strong> (Tour details): when on, hovering a navigation pin shows a snapshot preview of the target scene. Turn it off for a cleaner look &mdash; pins then show just the scene title.</span></li>
+          <li><span><strong>Show floating shadow</strong> (Display): a soft ground shadow under navigation waypoints for a bit of depth. On by default.</span></li>
+          <li><span><strong>Show Info Zones</strong> (Display): when on, the player shows a button to reveal any info-zone hotspots (helpful on touch/keyboard). Turn it off to hide that button entirely.</span></li>
         </ul>
       </section>
 
@@ -246,6 +257,7 @@
         <ul class="bullets">
           <li><span><strong>Send the folder:</strong> zip <code class="inline">tours/&lt;your-tour&gt;/</code> and share it. The recipient opens <code class="inline">player.html</code>.</span></li>
           <li><span><strong>Host it:</strong> upload the tour folder to any static web host or internal site. See <code class="inline">docs/DEPLOY.md</code> for GitHub Pages / Azure Blob steps.</span></li>
+          <li><span><strong>Link to a specific spot:</strong> add <code class="inline">?scene=&lt;id&gt;</code> to open on a particular scene, or <code class="inline">?area=&lt;id&gt;</code> to open on an area's entry scene &mdash; handy for sharing a direct view.</span></li>
         </ul>
         <div class="callout info"><strong>Need the hosting checklist?</strong> Click <span class="btn-chip chip-ghost">Help &amp; publishing</span> in the builder for an at-a-glance summary of what you need for GitHub Pages and Azure (including the required CORS setting).</div>
         <div class="callout warn"><strong>Before sharing:</strong> make sure photos contain no sensitive/PII content. See <code class="inline">docs/SECURITY.md</code> for data-handling guidance.</div>

@@ -57,13 +57,14 @@ new tour.
 │
 ├── builder/                   THE AUTHORING TOOL (local only)
 │   ├── index.html             builder DOM + import map (cache-busted ?v=N)
-│   ├── builder.js             controller: state, render, wiring (keep <600 lines)
+│   ├── builder.js             controller: state, render, wiring (593 lines - near the 600 cap)
 │   ├── builder-viewer.js      BuilderViewer class - PSV preview, place-mode, drag, zone editing
 │   ├── marker-actions.js      marker CRUD + placement glue (factory; incl. zones)
 │   ├── marker-row.js          one marker's editor card (icon row OR zone settings)
 │   ├── icon-picker.js         createIconPicker() - inline grid picker for marker icons
-│   ├── scene-list.js          scene list rows (thumbnails + hotspot-count badges)
+│   ├── scene-list.js          GROUPED scene list (collapsible areas + thumbnails + hotspot badges + drag reorder)
 │   ├── scene-actions.js       Duplicate scene + Copy hotspots helpers
+│   ├── group-actions.js       createGroupActions() - area (group) CRUD: add/rename/delete/recolor/set-entry
 │   ├── tabs.js                mountTabs() - accessible WAI-ARIA tab controller (reused)
 │   ├── theme.js               dark/light theme toggle + persistence
 │   ├── preview.js             createPreview() - what the center viewport shows
@@ -72,6 +73,8 @@ new tour.
 │   ├── project-store.js       IndexedDB "recent projects" (dir handles)
 │   ├── fs-workspace.js        File System Access API: read/write/optimize files
 │   ├── ui-dom.js              tiny DOM builder helpers (miniBtn, labeledInput/Color/Checkbox, modal)
+│   ├── builder-ui.css         builder chrome/layout (builder-only; NOT synced to tours)
+│   ├── builder-panels.css     builder side-panel + scene-list/areas styling (builder-only)
 │   ├── welcome.css            Welcome-screen styles (builder-only; NOT synced to tours)
 │   └── help-modal.css         Help/publish modal styles (builder-only)
 │
@@ -81,19 +84,21 @@ new tour.
 │   ├── css/
 │   │   ├── app.css            SHARED app chrome (builder + player). Cache-busted ?v=N
 │   │   ├── markers.css        SHARED marker library + animations + icon-picker + ZONES
-│   │   └── player.css         player-only chrome (.player-*, info overlay, share, spinner)
+│   │   └── player.css         player-only chrome (.player-*, info overlay, share, spinner, areas menu)
 │   ├── js/
-│   │   ├── tour-model.js      tour.json schema, validate, factories (PURE, shared)
+│   │   ├── tour-model.js      tour.json schema (v2), validate, factories, group helpers (PURE, shared)
 │   │   ├── marker-icons.js    Icon registry (NAV/INFO sets + animations). PURE, shared.
 │   │   ├── psv-adapter.js     tour.json -> PSV config (the ONLY PSV-shape file, shared)
-│   │   ├── share.js           player Share button + QR modal + ?scene= deep-linking
+│   │   ├── share.js           player Share button + QR modal + ?scene= deep-linking (button currently hidden)
+│   │   ├── areas-menu.js      mountAreasMenu() - player Areas dropdown + current-area breadcrumb
 │   │   └── player.js          player bootstrap (fetch config -> init Viewer)
-│   └── vendor/                VENDORED libs (list_files hides this — it exists!)
+│   └── vendor/                VENDORED libs (list_files hides this - it exists!)
 │       ├── three.module.js                 (three 0.169.0)
 │       ├── psv-core.module.js / .css       (PSV 5.11.5)
 │       ├── psv-markers.module.js / .css
 │       ├── psv-virtual-tour.module.js / .css
-│       └── psv-gallery.module.js / .css
+│       ├── psv-gallery.module.js / .css    (vendored but NOT enabled in player.js yet)
+│       └── qrcode.js                       (qrcode-generator 1.4.4, for Share/QR)
 │
 ├── tours/                     YOUR TOURS - local working data, GIT-IGNORED
 │   └── .gitkeep               (each tours/<name>/ is a complete deployable site)
@@ -135,6 +140,22 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   deleteMarker, replaceMarker, updateMarker, moveZoneCorner }`. Handles both
   icon markers and info zones (zone placement drops a default quad;
   `moveZoneCorner` commits a dragged corner).
+
+### `scene-list.js` + `group-actions.js` — scene AREAS (groups)
+- `scene-list.js` renders the left scene list **grouped into collapsible areas**
+  (schema v2). Each area shows a color dot + name + scene count; scenes are
+  drag-reorderable and drag-movable between areas. Per-scene row: thumbnail,
+  name + hotspot-count badge, and an **entry star** for grouped scenes
+  (gold = author-pinned area entry, keyed by scene id so it survives reorder;
+  faint = the auto default first scene when nothing is pinned). It's a pure
+  factory that takes an `actions` bag; the open area's action row also holds a
+  native `<input type=color>` swatch (recolor is applied live in-place via
+  `applyColorLive` — NEVER re-render on the color `input` event or the OS
+  picker slams shut).
+- `group-actions.js` — `createGroupActions(ctx)`: the area CRUD, returns
+  `{ addGroup, renameGroup, deleteGroup, setGroupColor, setGroupEntry,
+  addSceneToGroup, moveSceneToGroup }`. `setGroupColor` mutates data only (no
+  refresh — see above); deleting an area re-homes its scenes to Uncategorized.
 
 ### `builder-viewer.js` — `class BuilderViewer`
 - Wraps ONE PSV `Viewer` + `MarkersPlugin` for the live preview.
@@ -188,10 +209,18 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
 ## 5. Module-by-module (player / shared)
 
 ### `tour-model.js` (PURE — no DOM, no PSV) — **shared by builder + player**
-- The schema authority. `SCHEMA_VERSION = 1`, `MARKER_TYPES`,
-  `createEmptyTour/Scene/Marker`, `getScene`, `resolveStartScene`, and
-  `validateTour(raw)` which **repairs what it safely can** and returns
+- The schema authority. `SCHEMA_VERSION = 2`, `MARKER_TYPES`, `MARKER_SHAPES`,
+  `createEmptyTour/Scene/Marker/Group`, `getScene`, `resolveStartScene`, and
+  `validateTour(raw)` which **repairs what it safely can** (incl. back-filling
+  v1 tours: no `groups` -> `[]`, missing `scene.groupId` -> `null`) and returns
   `{ok, tour, errors, warnings}`. Change the schema HERE first.
+- **Scene AREAS (v2):** `tour.groups[]` = `{id, name, color, entrySceneId}` and
+  each `scene.groupId` points at a group (or `null` = Uncategorized). Group
+  helpers: `createGroup`, `getGroup`, `scenesInGroup`, `listAreas`,
+  `resolveGroupEntryScene` (explicit `entrySceneId` else first member). Default
+  group color is `#0071dc`. Old v1 tours load unchanged (no groups).
+- New `meta` display flags (all default **on** for back-compat, validated via
+  `!== false`): `showThumbnails`, `showWaypointShadows`, `showInfoZones`.
 
 ### `psv-adapter.js` — **shared**, the ONLY other PSV-aware file
 - `toViewerNodes(tour)` → VirtualTour nodes. **Both** `link` and `info` markers
@@ -214,6 +243,14 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
 - `renderMarkerHtml({ type, iconId, size, variant })` is what builder preview,
   builder picker, and player runtime ALL call — single source of truth.
 
+### `areas-menu.js` — **player-only**
+- `mountAreasMenu({mountEl, tour, onPickArea}) -> {update(sceneId)}`. Renders the
+  player's **Areas dropdown** (fast-travel between groups) + a current-area
+  breadcrumb on the button. Pure UI: it calls `onPickArea(groupId)` and never
+  navigates itself; `player.js` resolves the group's entry scene and drives the
+  VirtualTour. Mounts only when ≥1 group actually contains scenes. It floats
+  over the panorama just under the title bar (moved out of the top bar).
+
 ### `player.js` (player bootstrap)
 - `?config=` → fetch (or `__preview__` from localStorage) → `validateTour` →
   `toViewerNodes` → init `Viewer` with VirtualTour + Markers.
@@ -222,20 +259,38 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   always lands on each scene's saved view with **no spin**.
 - **Marker click router:** info markers open the accessible overlay panel;
   link markers call `virtualTour.setCurrentNode(targetSceneId)` for navigation.
+- **Deep-linking:** boot precedence is `?scene=<id>` > `?area=<groupId>` (jumps
+  to that area's entry scene) > tour default; `writeSceneToUrl` keeps `?scene=`
+  in sync on every `node-changed` (via `history.replaceState`).
+- **Areas dropdown:** mounts `areas-menu.js`, resolves picks through
+  `resolveGroupEntryScene`, and calls `.update()` on `node-changed` to keep the
+  breadcrumb current. Also gates the **Info Zones** reveal button behind
+  `meta.showInfoZones` (and the presence of zones). The **Share** button is
+  currently hidden (see §8) though `share.js` stays wired for a quick re-enable.
+- **Child imports are version-pinned** (`./tour-model.js?v=N`, etc.) so a bumped
+  module actually reloads — see §8.
 - Surfaces `panorama-error` (the CORS/black-image case) with a clear message.
 
 ---
 
-## 6. Data model — `tour.json` (version 1)
+## 6. Data model — `tour.json` (version 2)
 
 ```jsonc
 {
-  "version": 1,
+  "version": 2,
   "meta": { "title": "", "description": "", "author": "",
-            "startSceneId": "s1", "showThumbnails": true, "createdAt": "ISO" },
+            "startSceneId": "s1",
+            "showThumbnails": true,       // image thumbs in nav popups (default on)
+            "showWaypointShadows": true,  // ground shadow under nav pins (default on)
+            "showInfoZones": true,        // show the Info Zones reveal button (default on)
+            "createdAt": "ISO" },
+  "groups": [                            // v2: scene AREAS (optional; [] = none)
+    { "id":"g1", "name":"Front End", "color":"#0071dc", "entrySceneId":"s1" }
+  ],
   "scenes": [{
     "id": "s1",
     "name": "Frontend",                 // gallery label
+    "groupId": "g1",                    // v2: area membership (null = Uncategorized)
     "panorama": "images/front.jpg",     // local path OR full Azure URL
     "thumbnail": "images/thumbs/front.jpg",
     "caption": "Checkout area",
@@ -251,6 +306,15 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
 }
 ```
 
+- **v1 -> v2 is back-compatible.** `validateTour` back-fills `groups: []` and
+  `scene.groupId: null` for old files; the three `show*` meta flags default to
+  `true`. A v2 tour with no groups behaves exactly like a v1 tour did.
+- **AREAS (groups):** `tour.groups[]` = `{id, name, color, entrySceneId}` and
+  `scene.groupId` links a scene to one (or `null` = Uncategorized). The builder
+  shows collapsible areas (color dot + entry star); the player shows an Areas
+  dropdown. `entrySceneId` is where picking that area lands you (falls back to
+  the first member). **Uncategorized is a staging bucket — NOT a player-facing
+  jumpable area** (deliberate product decision).
 - **Angles are DEGREES** everywhere in our data; `psv-adapter` converts to PSV
   strings. Don't leak `"deg"` strings into the model.
 - **Paths**: relative (`images/x.jpg`) for local/self-contained, OR absolute
@@ -302,10 +366,25 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
 1. **Cache-busting:** the browser caches modules hard. After editing
    `builder.js` or `app.css`, **bump the `?v=N`** in `builder/index.html`
    (and `player-template/player.html` for player/css changes). Tell the user to
-   hard-refresh (Cmd+Shift+R).
+   hard-refresh (Cmd+Shift+R). **Also bump the pinned import pins** — e.g.
+   `player.js` imports `./tour-model.js?v=3`, and `psv-adapter.js` imports it at
+   the same pin. A bare `import "./x.js"` will serve a STALE cached copy even
+   after you edit x.js; that exact bug silently dropped a new meta flag once.
+   Keep the import's `?v=` and any `<script src>`/`<link href>` version in lockstep.
+10. **`[hidden]` vs `display`:** the `hidden` HTML attribute does NOT hide an
+   element whose class sets `display` (e.g. `.player-bar__share { display:
+   inline-flex }`) — an author `display` rule beats the UA `[hidden]{display:none}`
+   rule. `player.css` now has a defensive `[hidden]{display:none !important;}`.
+   When verifying visibility headlessly, check `getComputedStyle(el).display`,
+   NOT just `el.hidden` (the property can be true while the element still shows).
+11. **Preview freshness:** `previewInPlayer` appends `&_=<timestamp>` to the
+   `player.html` URL so the preview tab always fetches the current HTML (which
+   carries fresh `?v=` pins) — no more hard-refreshing the preview every time.
 2. **600-line rule:** keep each file under 600 lines. If `builder.js` creeps
    over, extract a cohesive chunk into a new `createX()` module (that's how
-   `preview.js`/`overlays.js`/`workspace.js` were born).
+   `preview.js`/`overlays.js`/`workspace.js`/`group-actions.js` were born).
+   Heads-up: **`builder.js` is at 593 lines** — the next feature that touches it
+   should extract, not append.
 3. **PSV isolation:** only `builder-viewer.js`, `psv-adapter.js`, and
    `player.js` may import PSV. Everything else stays PSV-agnostic.
 4. **z-index / stacking:** modals are `z-index 50`, Welcome `60`. `.builder-main`
@@ -344,11 +423,26 @@ cd <this folder> && python3 -m http.server 8124
   real-facility imagery) and are NOT committed. A tracked `tours/.gitkeep`
   keeps the folder present. Author tours locally; publish each `tours/<name>/`
   folder to its own hosting target. See `docs/SECURITY.md`.
+- Active branches: **`main`** (canonical) and **`feature/scene-groups`** (kept
+  around post-merge as a checkpoint — do not develop on it; all scene-groups work
+  is already in `main`).
 
 ---
 
 ## 10. Roadmap / not-yet-built (planned next steps)
 
+**Recently shipped (for context):** scene AREAS/groups (schema v2) — builder
+collapsible areas with color + entry star, player Areas dropdown + breadcrumb,
+`?area=` deep-linking; the `showInfoZones` tour setting; drag-to-reorder scenes.
+The player **Share** button is temporarily hidden (code retained) pending a
+later revamp.
+
+- **Icon LIBRARY expansion / custom icons** (next up per product): a larger,
+  categorized picker and/or user-supplied glyphs for nav waypoints + info pins.
+  Today icons come from the fixed registry in `marker-icons.js` (§5).
+- **PSV GalleryPlugin** is vendored + import-mapped but NOT enabled in
+  `player.js` (only referenced in a comment). Enabling a per-area gallery is a
+  candidate once areas mature.
 - **Azure image upload mode** (for big tours): an "Upload to Azure" action that
   pushes `images/` to Blob storage and rewrites scene paths to the Azure URLs —
   *app-managed, user never types a URL*. Needs the container's **CORS** set for
@@ -374,6 +468,13 @@ cd <this folder> && python3 -m http.server 8124
   picker, preview, and player all pick it up — no other edits needed unless
   you also need a brand-new animation, in which case add a `@keyframes` + a
   `.tour-anim--<token>` rule in `markers.css` and an entry in `ANIMATIONS`.
+- **Add a tour-level display toggle** (like `showInfoZones`): add the flag to
+  `createEmptyTour` + validate it (`!== false`) in `tour-model.js`; add the
+  checkbox to `index.html` Display section; bind + reflect-on-load in
+  `builder.js`; read `tour.meta.<flag>` in `player.js`.
+- **Change area (group) behavior:** data + helpers in `tour-model.js`; builder
+  CRUD in `group-actions.js` + list UI in `scene-list.js`; player dropdown in
+  `areas-menu.js` wired from `player.js`.
 - **Restyle anything:** `player-template/css/app.css` (shared). Bump `?v=N`.
 - **Add a builder dialog:** follow the `overlays.js` pattern; mount in
   `builder.js` `init()`.
