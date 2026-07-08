@@ -15,13 +15,13 @@ import {
   validateTour,
   MARKER_TYPES,
   MARKER_SHAPES,
-} from "../player-template/js/tour-model.js?v=4";
+} from "../player-template/js/tour-model.js?v=5";
 // NOTE on cache: ES module imports use the URL as the cache key, so adding
 // ?v= here forces a fresh fetch when builder-viewer.js changes. The parent
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "53";
+const BUILDER_BUILD = "54";
 import { BuilderViewer } from "./builder-viewer.js?v=38";
 import { renderMarkerRow } from "./marker-row.js?v=44";
 import { createMarkerActions } from "./marker-actions.js?v=42";
@@ -126,6 +126,7 @@ function init() {
     applyShadowPref();
   });
   $("meta-show-info-zones").addEventListener("change", (e) => (state.tour.meta.showInfoZones = e.target.checked));
+  $("meta-show-hints").addEventListener("change", (e) => (state.tour.meta.showHotspotHints = e.target.checked));
 
   // Guided experience (opt-in linear mode).
   $("meta-exp-enabled").addEventListener("change", (e) => {
@@ -491,6 +492,7 @@ function renderAll() {
   $("meta-show-thumbnails").checked = state.tour.meta.showThumbnails !== false;
   $("meta-show-waypoint-shadows").checked = state.tour.meta.showWaypointShadows !== false;
   $("meta-show-info-zones").checked = state.tour.meta.showInfoZones !== false;
+  $("meta-show-hints").checked = state.tour.meta.showHotspotHints === true;
   reflectExperience();
   applyShadowPref();
   renderSceneList();

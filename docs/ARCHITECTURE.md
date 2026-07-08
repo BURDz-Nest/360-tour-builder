@@ -297,6 +297,7 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
             "showThumbnails": true,       // image thumbs in nav popups (default on)
             "showWaypointShadows": true,  // ground shadow under nav pins (default on)
             showInfoZones: true,        // show the Info Zones reveal button (default on)
+            showHotspotHints: false,    // magnifier glyph on zones for mobile (opt-in)
             experience: {               // opt-in GUIDED mode (disabled by default)
               enabled: false,
               completionTitle: "Great job!",

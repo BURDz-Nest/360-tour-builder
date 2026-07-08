@@ -79,25 +79,40 @@
   outline-offset: 2px;
 }
 
-/* A required hotspot the learner has already opened — dim it and add a check. */
-.guided-found {
-  opacity: 0.55;
-  filter: saturate(0.7);
+/* A required hotspot the learner has already opened.
+   NOTE: PSV sets overflow:hidden on the marker host, so the check must sit
+   INSIDE the box. We dim only the icon (not the check) so the badge stays
+   bright green. */
+.guided-found .tour-marker,
+.guided-found .tour-hint {
+  opacity: 0.6;
+  filter: saturate(0.75);
+}
+.guided-found .tour-marker__ring {
+  display: none; /* stop the attention pulse once it's been found */
 }
 .guided-found::after {
   content: "\2713";
   position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
+  right: 2px;
+  bottom: 2px;
+  width: 17px;
+  height: 17px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: #14823c;
   color: #fff;
   font: 700 12px/1 system-ui, sans-serif;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+/* Found info ZONES (SVG paths can't take ::after) get a persistent faint fill. */
+.tour-zone.guided-found {
+  fill: #14823c !important;
+  fill-opacity: 0.18 !important;
+  stroke: #14823c !important;
+  stroke-opacity: 0.9 !important;
 }
 
 /* Completion screen — full-stage congratulations overlay. */

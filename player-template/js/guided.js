@@ -20,7 +20,7 @@
  * and talks to PSV only through the handles player.js passes in.
  */
 
-import { getScene, requiredMarkers } from "./tour-model.js?v=4";
+import { getScene, requiredMarkers } from "./tour-model.js?v=5";
 
 /**
  * @param {object} cfg
@@ -50,10 +50,12 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
   function onInfoOpened(markerId) {
     const scene = getScene(tour, currentId);
     if (!scene) return;
+    // A magnifier hint marker (<zoneId>__hint) counts as its underlying zone.
+    const id = markerId.endsWith("__hint") ? markerId.slice(0, -6) : markerId;
     const req = reqIdsFor(scene);
-    if (!req.includes(markerId) || found.has(markerId)) return; // optional/dupe
-    found.add(markerId);
-    markFoundVisual(markerId);
+    if (!req.includes(id) || found.has(id)) return; // optional/dupe
+    found.add(id);
+    markFoundVisual(id);
     render();
   }
 
@@ -102,13 +104,16 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
   }
 
   // Best-effort visual "done" state on the found marker (dim + checkmark via CSS).
+  // Marks the marker itself AND its magnifier hint badge, if present.
   function markFoundVisual(markerId) {
-    try {
-      const m = markers.getMarker(markerId);
-      const el = m?.domElement || m?.element;
-      el?.classList?.add("guided-found");
-    } catch {
-      /* marker API shape can vary; the HUD is the source of truth anyway */
+    for (const id of [markerId, `${markerId}__hint`]) {
+      try {
+        const m = markers.getMarker(id);
+        const el = m?.domElement || m?.element;
+        el?.classList?.add("guided-found");
+      } catch {
+        /* marker/hint may not exist; the HUD is the source of truth anyway */
+      }
     }
   }
 

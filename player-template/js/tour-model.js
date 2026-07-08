@@ -92,6 +92,9 @@ export function createEmptyTour() {
       showThumbnails: true,
       showWaypointShadows: true,
       showInfoZones: true,
+      // Show a magnifier glyph on info zones so they're tappable on mobile.
+      // Opt-in (default off) so normal tours look unchanged.
+      showHotspotHints: false,
       // Guided-experience config (opt-in linear mode). Disabled by default so
       // normal tours are completely unaffected.
       experience: createExperience(),
@@ -336,6 +339,8 @@ export function validateTour(raw) {
   tour.meta.showWaypointShadows = meta.showWaypointShadows !== false;
   // Info-zone reveal button in the player - default on for back-compat.
   tour.meta.showInfoZones = meta.showInfoZones !== false;
+  // Magnifier hint on zones (mobile discoverability) - opt-in, default off.
+  tour.meta.showHotspotHints = meta.showHotspotHints === true;
   // Guided-experience config - normalized (disabled by default).
   tour.meta.experience = createExperience(meta.experience);
   tour.meta.createdAt = String(meta.createdAt || tour.meta.createdAt);

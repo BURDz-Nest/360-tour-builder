@@ -11,12 +11,12 @@ import { Viewer } from "@photo-sphere-viewer/core";
 import { VirtualTourPlugin } from "@photo-sphere-viewer/virtual-tour-plugin";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
 
-import { validateTour, getScene, isZone, isGuided, resolveGroupEntryScene } from "./tour-model.js?v=4";
+import { validateTour, getScene, isZone, isGuided, resolveGroupEntryScene } from "./tour-model.js?v=5";
 import {
   toViewerNodes,
   sceneInitialView,
   escapeHtml,
-} from "./psv-adapter.js?v=3";
+} from "./psv-adapter.js?v=4";
 import { readSceneFromUrl, readAreaFromUrl, writeSceneToUrl, mountShareUI } from "./share.js?v=1";
 import { mountAreasMenu } from "./areas-menu.js?v=1";
 
@@ -160,7 +160,7 @@ function initViewer(tour) {
   if (guidedOn) {
     document.body.classList.add("is-guided");
     const stageEl = els.container.closest(".player-stage") || els.container.parentElement;
-    import("./guided.js?v=2")
+    import("./guided.js?v=3")
       .then((mod) => {
         guided = mod.mountGuided({ tour, virtualTour, markers, stageEl });
         if (currentSceneId) guided.onEnterScene(currentSceneId); // catch up

@@ -169,6 +169,7 @@ requirements without leaving the app.
     "showThumbnails": true,         // image thumbnails in nav popups
     "showWaypointShadows": true,    // floating ground shadow under nav waypoints
     "showInfoZones": true,          // show the player's Info Zones reveal button
+    "showHotspotHints": false,      // opt-in magnifier glyph on info zones (mobile)
     "experience": {                 // opt-in guided mode (disabled by default)
       "enabled": false,
       "completionTitle": "Great job!",
