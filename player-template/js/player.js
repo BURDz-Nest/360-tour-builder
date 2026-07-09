@@ -75,7 +75,7 @@ async function main() {
   }
 
   activeTour = tour;
-  document.title = `${tour.meta.title} — 360 Tour`;
+  document.title = `${tour.meta.title} — Spherio Studio`;
   els.title.textContent = tour.meta.title;
 
   try {

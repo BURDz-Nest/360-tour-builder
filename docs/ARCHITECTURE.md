@@ -1,4 +1,4 @@
-# ARCHITECTURE — 360 Tour Builder (v2)
+# ARCHITECTURE — Spherio Studio (v2)
 
 > **Read this first if you're an AI agent or developer picking up this project.**
 > It explains the philosophy, the file-by-file layout, the data model, the key

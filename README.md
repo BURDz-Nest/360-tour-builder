@@ -1,4 +1,4 @@
-# 360 Virtual Tour Builder
+# Spherio Studio
 
 A **zero-backend** toolkit for authoring interactive 360° virtual tours and
 shipping them to static hosting (GitHub Pages, Azure Blob, any plain web server).
