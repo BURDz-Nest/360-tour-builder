@@ -57,11 +57,12 @@ new tour.
 │
 ├── builder/                   THE AUTHORING TOOL (local only)
 │   ├── index.html             builder DOM + import map (cache-busted ?v=N)
-│   ├── builder.js             controller: state, render, wiring (593 lines - near the 600 cap)
+│   ├── builder.js             controller: state, render, wiring (638 lines - OVER the 600 cap; split candidate)
 │   ├── builder-viewer.js      BuilderViewer class - PSV preview, place-mode, drag, zone editing
 │   ├── marker-actions.js      marker CRUD + placement glue (factory; incl. zones)
 │   ├── marker-row.js          one marker's editor card (icon row OR zone settings)
 │   ├── icon-picker.js         createIconPicker() - inline grid picker for marker icons
+│   ├── asset-resolver.js      createAssetResolver() - tour-relative image path -> blob: URL (reads the folder handle; works wherever the tour lives)
 │   ├── scene-list.js          GROUPED scene list (collapsible areas + thumbnails + hotspot badges + drag reorder)
 │   ├── scene-actions.js       Duplicate scene + Copy hotspots helpers
 │   ├── group-actions.js       createGroupActions() - area (group) CRUD: add/rename/delete/recolor/set-entry
@@ -121,20 +122,28 @@ new tour.
 The builder is a small MVC-ish app. `builder.js` is the controller; the other
 modules are injected collaborators (factory functions receiving a `ctx` object).
 
-### `builder.js` (controller, ~560 lines — **keep under 600**)
+### `builder.js` (controller, ~638 lines — **OVER the 600 cap; needs a split**)
 - Holds the single `state` object: `{ tour, currentSceneId, selectedMarkerId,
   placing, fileHandle, dirHandle, previewBase }`.
+- Creates the `resolver` (`createAssetResolver`) and injects it into `preview`
+  and `workspace` so images resolve from the folder handle as blob: URLs.
 - Owns rendering: `renderAll`, `renderSceneList`, `renderSceneEditor`,
   `renderMarkerList`, `renderViewReadout`.
 - Owns scene actions: `addScene`, `deleteScene`, `selectScene`,
   `updateScene`, `captureView`, `setStartScene`. **Marker** actions live in
   `marker-actions.js` (injected as `markerActions`).
 - Owns import/export: `importTour`, `saveTour`, `serializeTour`,
-  `prepareThumbnails`, `previewInPlayer` (stages tour to `localStorage` under
-  `tour-preview-config`, opens player with `?config=__preview__`).
+  `prepareThumbnails`, `previewInPlayer` — which now clones the tour, rewrites
+  every scene's `panorama`/`thumbnail` to a blob: URL via the resolver, stages
+  that to `localStorage` (`tour-preview-config`), and always opens the repo's
+  `player-template/player.html?config=__preview__` (guaranteed served +
+  same-origin, so blob URLs are reachable and folder location doesn't matter).
 - `init()` wires everything (incl. the left-panel tabs AND the Hotspots
   Navigation/Info sub-tabs via `mountTabs`). Help modal is wired at **top
   level**; File-System features only `if (fs.fsSupported())`.
+- **TECH DEBT:** this file crossed 600 lines. Candidate extractions:
+  export/preview flow (`saveTour`/`previewInPlayer`/`serializeTour`) or the
+  quality-preset dropdown wiring into their own small modules.
 
 ### `marker-actions.js` — `createMarkerActions(ctx)`
 - The marker CRUD + placement glue, extracted to keep `builder.js` under 600.
@@ -167,20 +176,36 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   per-corner handles (`onZoneCornerMove`).
 - **This is one of only two files that import PSV directly.**
 
-### `preview.js` — `createPreview({state,$,toast,getScene,viewer})`
+### `preview.js` — `createPreview({state,$,toast,getScene,viewer,resolver})`
 - Single source of truth for the center viewport. `updatePreview()` decides:
   scene-with-image → render; scene-without-image → "no image yet" card;
   no-scene → "Add images to get started!" card (over a blank viewer).
-- `resolvePreviewUrl()` prepends `state.previewBase` to relative paths **for
-  preview only** (never written to tour.json).
+- `resolvePreviewUrl()`/`loadCurrentPreview()` are **async** and delegate to the
+  `resolver`: images are read straight from the folder handle as blob: URLs, so
+  the preview works no matter WHERE the tour folder lives (not just under the
+  served `/tours/`). Falls back to `state.previewBase` (HTTP) only when no
+  folder is bound. Nothing here is written to tour.json — paths stay portable.
 
-### `workspace.js` — `createWorkspace(ctx)`
+### `asset-resolver.js` — `createAssetResolver({state, fs})`
+- Turns a tour-relative path (`images/IMG_01.jpg`) into a displayable URL.
+- `resolve(path)` (async): passthrough for http/data/blob/root-relative; else
+  reads the file via `fs.readFileDeep(state.dirHandle, path)` and returns a
+  **cached blob: URL**. Falls back to `state.previewBase` + path when there's no
+  handle (imported tour.json with absolute/remote URLs).
+- `peek(path)` (sync cached lookup) and `invalidate([path])` (revoke + re-read;
+  called after optimize/add-images so re-encoded files aren't served stale).
+- WHY: the File System Access picker lets authors open ANY folder; HTTP-relative
+  paths only resolve for in-repo tours, so external tours showed blank previews.
+
+### `workspace.js` — `createWorkspace(ctx)`  (ctx now includes `resolver`)
 - The File-System workflows: `handleNewTour`, `handleOpenTour`, `openRecent`,
   `bindFolder`, `handleAddImages`, `addAllImagesAsScenes`, `handleOptimize`,
   `refreshImageGrid`, `assignImageToScene`.
-- `adoptWorkspace(dirHandle, name)` is the hub: sets `previewBase`,
-  **auto-loads the folder's `tour.json`**, renders, remembers the project in
-  IndexedDB, refreshes the image grid.
+- `adoptWorkspace(dirHandle, name)` is the hub: sets `previewBase` (now only a
+  fallback), **auto-loads the folder's `tour.json`**, renders, remembers the
+  project in IndexedDB, refreshes the image grid (via `resolver`).
+- `handleOptimize`/`handleAddImages` call `resolver.invalidate()` so stale blob
+  URLs of re-encoded files aren't reused.
 - **New images auto-append as scenes** (each photo → a new scene at the bottom).
 
 ### `overlays.js` — `mountOverlays($, handlers)`
@@ -195,13 +220,23 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
 
 ### `fs-workspace.js` (File System Access API — Chrome/Edge only)
 - `fsSupported()`, `newTour()`, `openTour()`, `readTourJson()`,
-  `verifyPermission()`, `saveTourJson()`, `listImageNames()`,
-  `setupDropZone()`, `renderImageGrid()`.
-- **Image pipeline:** `addImages()` web-optimizes on import → downscale to
-  `MAX_PANO_WIDTH = 4096` px, re-encode JPEG (`webName()`), generate a
-  center-crop snapshot `thumbName()` in `images/thumbs/`. `optimizeFolder()`
-  re-processes Finder-copied files and returns a rename map so scene paths get
-  fixed. `ensureThumbnails()` backfills missing thumbs.
+  `verifyPermission()`, `saveTourJson()`, `listImageNames()`, `readFileDeep()`
+  (used by the asset resolver), `setupDropZone()`, `renderImageGrid()` (now
+  takes an async `resolve(relPath)` instead of a base URL).
+- **Quality presets** (`QUALITY_PRESETS`, `getQualityPreset`/`setQualityPreset`,
+  persisted in localStorage): `original` (maxWidth Infinity — no resize; the
+  **DEFAULT**), `web` (4096/q0.82), `balanced` (4096/q0.90), `high` (6144/q0.92),
+  `max` (8192/q0.95). Default is **Original** so imports keep native resolution;
+  the others deliberately downscale for smaller files.
+- **Image pipeline:** `addImages()` re-encodes on import at the active preset
+  (`optimizeToWeb()` — downscale to `maxWidth`, JPEG at `quality`, `webName()`)
+  and generates a center-crop snapshot `thumbName()` in `images/thumbs/`.
+  `optimizeFolder()` re-processes Finder-copied files and returns a rename map
+  so scene paths get fixed. `ensureThumbnails()` backfills missing thumbs.
+- **CRITICAL invariant:** `optimizeToWeb` can only DOWNSCALE + re-compress
+  (`scale = width > maxWidth ? maxWidth/width : 1`, capped at 1). It NEVER
+  upscales or adds sharpness — an over-shrunk image is only recoverable by
+  re-importing the original. The confirm dialog warns about this.
 
 ### `ui-dom.js`
 - Trivial DOM construction helpers used by the marker editor.
@@ -504,7 +539,7 @@ player **Share** button is temporarily hidden (code retained) pending a revamp.
 - **Restyle anything:** `player-template/css/app.css` (shared). Bump `?v=N`.
 - **Add a builder dialog:** follow the `overlays.js` pattern; mount in
   `builder.js` `init()`.
-- **Tweak image optimization:** `fs-workspace.js` (`MAX_PANO_WIDTH`,
+- **Tweak image optimization:** `fs-workspace.js` (`QUALITY_PRESETS`,
   `optimizeToWeb`, `makeSnapshotThumbnail`).
 
 When done: bump cache versions, `node --check` the JS, run a headless load to

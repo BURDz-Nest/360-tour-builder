@@ -173,7 +173,7 @@
             <ol style="font-size:.9rem;color:var(--gray-700);padding-left:1.1rem;margin:.5rem 0 0">
               <li>Open the <strong>Images&hellip;</strong> dialog.</li>
               <li><strong>Drag</strong> 360 photos onto the drop zone (or click <em>Add images</em>).</li>
-              <li>Builder copies them in, resizes to web JPEGs, makes thumbnails, and creates a scene for each.</li>
+              <li>Builder copies them in at your chosen <strong>Image quality</strong> (default: Original, full resolution), makes thumbnails, and creates a scene for each.</li>
             </ol>
           </div>
           <div class="card">
@@ -186,7 +186,7 @@
             </ol>
           </div>
         </div>
-        <div class="callout warn"><strong>Auto-optimization:</strong> Photos are downscaled to a max of <strong>4096px wide</strong> and saved as JPEG. This keeps tours fast and prevents black screens on locked-down work laptops (which often cap image sizes). Only the web version is stored &mdash; keep your originals elsewhere.</div>
+        <div class="callout warn"><strong>Image quality &amp; optimize:</strong> Pick a preset in <strong>Tour details &rarr; Image quality</strong>. The default <strong>Original (no resize)</strong> keeps your camera's full resolution &mdash; best for sign/text readability. The other presets (Web/Balanced 4096px, High 6144px, Maximum 8192px) deliberately <em>downscale</em> for smaller files. <strong>Optimize can only shrink or re-compress &mdash; it can never add resolution or sharpness back</strong>, so always keep your original photos elsewhere. If a very large image shows black on a locked-down laptop, drop to a smaller preset and re-import the originals.</div>
       </section>
 
       <!-- 5. SCENES -->
@@ -281,7 +281,7 @@
       <section id="trouble">
         <h2>10. Troubleshooting</h2>
         <details><summary>The folder/Images buttons are missing</summary><p>You're not in Chrome or Edge. Switch browsers &mdash; the File System features need them.</p></details>
-        <details><summary>The 360 image shows black</summary><p>The image is likely too large for your GPU. Open Images&hellip; and click <strong>Optimize images</strong> to resize everything to a safe 4096px.</p></details>
+        <details><summary>The 360 image shows black</summary><p>The image may be too large for that GPU (common on locked-down work laptops). In <strong>Tour details &rarr; Image quality</strong> pick a smaller preset (e.g. Balanced 4096px), then <strong>re-import your original photos</strong> so they come in downscaled. Note: running Optimize on already-shrunk files can't restore quality.</p></details>
         <details><summary>Hover previews show a broken image</summary><p>Thumbnails weren't generated yet. Open the tour, then hit <strong>Preview</strong> or <strong>Save</strong> once &mdash; the builder auto-generates any missing thumbnails.</p></details>
         <details><summary>My latest change isn't showing</summary><p>Hard-refresh with <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> on Windows) to clear cached files.</p></details>
         <details><summary>The server won't start / port in use</summary><p>Something is already using port 8124. Close the old Terminal window, or run the server on another port and adjust the URL.</p></details>
