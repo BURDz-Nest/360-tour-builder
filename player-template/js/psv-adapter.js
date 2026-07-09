@@ -71,14 +71,27 @@ const MAGNIFIER_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidd
   stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
   <circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>`;
 
-/** Average a zone's corner points -> a center yaw/pitch (DEGREES). */
+/**
+ * Average a zone's corner points -> a center yaw/pitch (DEGREES).
+ * Yaw is an ANGLE, so we take a CIRCULAR mean (average the unit vectors, then
+ * atan2). A plain arithmetic mean breaks for zones crossing the +/-180 seam
+ * (e.g. corners at 170 and -170 would average to 0 -> the opposite side of the
+ * sphere, dropping the magnifier hint across the room). Pitch never wraps, so a
+ * straight average is correct there.
+ */
 function zoneCentroid(points = []) {
   if (!points.length) return { yaw: 0, pitch: 0 };
-  const sum = points.reduce(
-    (a, p) => ({ yaw: a.yaw + (Number(p.yaw) || 0), pitch: a.pitch + (Number(p.pitch) || 0) }),
-    { yaw: 0, pitch: 0 }
-  );
-  return { yaw: sum.yaw / points.length, pitch: sum.pitch / points.length };
+  const DEG = Math.PI / 180;
+  let x = 0, y = 0, pitchSum = 0;
+  for (const p of points) {
+    const yaw = (Number(p.yaw) || 0) * DEG;
+    x += Math.cos(yaw);
+    y += Math.sin(yaw);
+    pitchSum += Number(p.pitch) || 0;
+  }
+  // If all vectors cancel (degenerate ring), fall back to the first yaw.
+  const yaw = x === 0 && y === 0 ? Number(points[0].yaw) || 0 : Math.atan2(y, x) / DEG;
+  return { yaw, pitch: pitchSum / points.length };
 }
 
 /**

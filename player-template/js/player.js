@@ -16,7 +16,7 @@ import {
   toViewerNodes,
   sceneInitialView,
   escapeHtml,
-} from "./psv-adapter.js?v=4";
+} from "./psv-adapter.js?v=5";
 import { readSceneFromUrl, readAreaFromUrl, writeSceneToUrl, mountShareUI } from "./share.js?v=1";
 import { mountAreasMenu } from "./areas-menu.js?v=1";
 
