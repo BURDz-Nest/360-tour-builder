@@ -116,6 +116,10 @@ export function createExperience(raw = {}) {
     enabled: !!e.enabled,
     // Show a welcome/instructions screen before the guided run starts.
     showStartScreen: e.showStartScreen !== false, // default on when guided
+    // Facilitator escape hatch: prev/next scene arrows that OVERRIDE the
+    // find-the-hotspots lock (e.g. "we're short on time, skip to scene 3").
+    // Off by default so the standard experience stays strictly linear.
+    allowSkipping: !!e.allowSkipping,
     completionTitle: String(e.completionTitle || "Great job!"),
     completionMessage: String(
       e.completionMessage ||

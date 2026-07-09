@@ -299,6 +299,12 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
   completion screen on the last scene). No persistence (one-and-done; a scene
   with zero required hotspots shows Continue immediately). Owns its own
   namespaced `.guided-*` DOM; styling in `css/guided.css`.
+- **Scene skipping (facilitator escape hatch):** when
+  `meta.experience.allowSkipping` is true, guided.js renders prev/next arrow
+  buttons (`.guided-nav`) pinned to the left/right edges. They call
+  `virtualTour.setCurrentNode()` by scene index and **override** the
+  find-everything lock (for instructors short on time). Disabled at the first/
+  last scene; hidden behind the start + completion overlays. Off by default.
 
 ### `player.js` (player bootstrap)
 - `?config=` → fetch (or `__preview__` from localStorage) → `validateTour` →
@@ -336,6 +342,7 @@ modules are injected collaborators (factory functions receiving a `ctx` object).
             experience: {               // opt-in GUIDED mode (disabled by default)
               enabled: false,
               showStartScreen: true,      // welcome/instructions screen before the run
+              allowSkipping: false,       // facilitator prev/next arrows that override the lock
               completionTitle: "Great job!",
               completionMessage: "You've found everything."
             },

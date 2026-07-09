@@ -35,10 +35,22 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
   const exp = tour.meta?.experience || {};
   const tourTitle = tour.meta?.title || "";
   const wantsStart = exp.showStartScreen !== false;
+  const allowSkipping = !!exp.allowSkipping;
   const found = new Set(); // required marker ids opened so far (whole run)
   let currentId = null;
 
-  const ui = buildUI(stageEl);
+  // Facilitator escape hatch: jump N scenes forward/back, overriding the
+  // find-the-hotspots lock. Guarded to the scene list bounds.
+  function skipScene(delta) {
+    const target = scenes[sceneIndex(currentId) + delta];
+    if (!target) return;
+    ui.hidePrompt();
+    virtualTour
+      .setCurrentNode(target.id)
+      .catch((err) => console.warn("[guided] skip failed", err));
+  }
+
+  const ui = buildUI(stageEl, { allowSkipping, onSkip: skipScene });
   if (wantsStart) ui.showStart(tourTitle);
 
   const reqIdsFor = (scene) => requiredMarkers(scene).map((m) => m.id);
@@ -65,6 +77,7 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
   function render() {
     const scene = getScene(tour, currentId);
     if (!scene) return;
+    ui.updateNav(sceneIndex(currentId), scenes.length);
     const req = reqIdsFor(scene);
     const done = req.filter((id) => found.has(id)).length;
     ui.setProgress(done, req.length);
@@ -98,6 +111,7 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
     found.clear();
     ui.hideCompletion();
     ui.hidePrompt();
+    ui.showNav(); // completion hid the arrows; bring them back for the rerun
     const first = scenes[0];
     if (first) {
       virtualTour
@@ -126,7 +140,7 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
 
 /* ===================== UI (namespaced .guided-*) ===================== */
 
-function buildUI(stageEl) {
+function buildUI(stageEl, { allowSkipping = false, onSkip } = {}) {
   const mount = stageEl || document.body;
   let completeEl = null; // the completion overlay, if shown
 
@@ -134,6 +148,34 @@ function buildUI(stageEl) {
   const hud = el("div", "guided-hud", { "aria-live": "polite" });
   hud.hidden = true;
   mount.append(hud);
+
+  // Facilitator skip arrows (prev/next scene). Only built when the author
+  // enabled "Allow scene skipping" — they OVERRIDE the find-the-hotspots lock.
+  let prevBtn = null;
+  let nextBtn = null;
+  let navEl = null;
+  if (allowSkipping) {
+    navEl = el("div", "guided-nav");
+    prevBtn = navBtn("prev", "Previous scene", () => onSkip?.(-1));
+    nextBtn = navBtn("next", "Next scene (skip ahead)", () => onSkip?.(1));
+    navEl.append(prevBtn, nextBtn);
+    // Visible from the start unless a welcome screen is about to cover it.
+    navEl.hidden = false;
+    mount.append(navEl);
+  }
+
+  /** Enable/disable the arrows for the current scene position. */
+  function updateNav(index, total) {
+    if (!navEl) return;
+    if (prevBtn) prevBtn.disabled = index <= 0;
+    if (nextBtn) nextBtn.disabled = index >= total - 1;
+  }
+  function showNav() {
+    if (navEl) navEl.hidden = false;
+  }
+  function hideNav() {
+    if (navEl) navEl.hidden = true;
+  }
 
   // Continue prompt (bottom-center card).
   const prompt = el("div", "guided-prompt");
@@ -172,6 +214,7 @@ function buildUI(stageEl) {
   function showCompletion(exp, onRestart) {
     hidePrompt();
     hud.hidden = true;
+    hideNav(); // the run is over — no more skipping
     hideCompletion(); // never stack two overlays
     const overlay = el("div", "guided-complete", { role: "dialog", "aria-modal": "true" });
     const card = el("div", "guided-complete__card");
@@ -204,6 +247,7 @@ function buildUI(stageEl) {
   let startEl = null;
   function showStart(title) {
     hideStart();
+    hideNav(); // don't let arrows peek from behind the welcome card
     const overlay = el("div", "guided-start", { role: "dialog", "aria-modal": "true" });
     const card = el("div", "guided-start__card");
     const h = el("h1", "guided-start__title");
@@ -223,7 +267,10 @@ function buildUI(stageEl) {
     const btn = el("button", "guided-start__btn");
     btn.type = "button";
     btn.textContent = "Start";
-    btn.onclick = () => hideStart();
+    btn.onclick = () => {
+      hideStart();
+      showNav(); // reveal the skip arrows once the run actually begins
+    };
     card.append(h, list, btn);
     overlay.append(card);
     mount.append(overlay);
@@ -237,7 +284,24 @@ function buildUI(stageEl) {
     startEl = null;
   }
 
-  return { setProgress, showPrompt, hidePrompt, showCompletion, hideCompletion, showStart, hideStart };
+  return { setProgress, showPrompt, hidePrompt, showCompletion, hideCompletion, showStart, hideStart, updateNav, showNav, hideNav };
+}
+
+/** Build one skip-arrow button (chevron SVG). */
+function navBtn(dir, label, onClick) {
+  const b = el("button", `guided-nav__btn guided-nav__${dir}`, {
+    type: "button",
+    "aria-label": label,
+    title: label,
+  });
+  // Chevron points the way it navigates.
+  const d = dir === "prev" ? "M15 5 L8 12 L15 19" : "M9 5 L16 12 L9 19";
+  b.innerHTML =
+    `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" ` +
+    `fill="none" stroke="currentColor" stroke-width="2.5" ` +
+    `stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+  b.addEventListener("click", onClick);
+  return b;
 }
 
 /** tiny element helper */

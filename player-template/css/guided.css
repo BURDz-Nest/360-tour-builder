@@ -26,6 +26,48 @@
   background: rgba(20, 130, 60, 0.85);
 }
 
+/* Facilitator skip arrows — circular buttons pinned to the left/right edges,
+ * vertically centered. Only present when the author enabled scene skipping.
+ * They OVERRIDE the find-the-hotspots lock (a time-management escape hatch). */
+.guided-nav__btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 71;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.guided-nav__prev { left: 1rem; }
+.guided-nav__next { right: 1rem; }
+.guided-nav__btn:hover { background: rgba(0, 0, 0, 0.75); }
+.guided-nav__btn:active { background: rgba(0, 0, 0, 0.9); }
+.guided-nav__btn:focus-visible {
+  outline: 3px solid #4a90ff;
+  outline-offset: 2px;
+}
+.guided-nav__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+@media (max-width: 600px) {
+  .guided-nav__btn { width: 46px; height: 46px; }
+  .guided-nav__prev { left: 0.5rem; }
+  .guided-nav__next { right: 0.5rem; }
+}
+
 /* Continue prompt — a card sliding up from the bottom-center. */
 .guided-prompt {
   position: absolute;
