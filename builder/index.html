@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="builder-ui.css?v=5" />
     <link rel="stylesheet" href="builder-panels.css?v=7" />
     <link rel="stylesheet" href="welcome.css?v=1" />
-    <link rel="stylesheet" href="help-modal.css?v=1" />
+    <link rel="stylesheet" href="help-modal.css?v=2" />
     <link rel="stylesheet" href="../player-template/css/markers.css?v=8" />
 
     <script type="importmap">
@@ -325,36 +325,117 @@
         </div>
 
         <div class="help-body">
-          <section class="help-card">
-            <h3>Quick start</h3>
+
+          <section class="help-card help-card--full">
+            <h3>The big idea</h3>
+            <p>Spherio Studio turns your 360&deg; photos into a clickable walk-through tour &mdash; no coding. Each tour is just a <strong>folder</strong> on your computer that holds the photos and a <code>tour.json</code> file describing the scenes and hotspots. &ldquo;Opening a project&rdquo; means picking that folder; &ldquo;saving&rdquo; writes the <code>tour.json</code> back into it.</p>
+            <p class="help-note">A <strong>scene</strong> = one 360&deg; photo. A <strong>hotspot</strong> = a clickable thing on a photo (a doorway that jumps to another scene, or an info point that pops up details). An <strong>area/group</strong> = an optional folder-within-your-tour for organizing lots of scenes.</p>
+          </section>
+
+          <section class="help-card help-card--full">
+            <h3>Get going in 4 steps</h3>
             <ol>
-              <li><strong>New project</strong> &rarr; name it &rarr; pick the <code>tours/</code> folder.</li>
-              <li>Open <strong>Images&hellip;</strong> and drag in your 360 photos &mdash; each becomes a scene (auto-resized using your <em>Image quality</em> setting; default is Balanced 4096px).</li>
-              <li>Add <strong>Navigation</strong> / <strong>Info</strong> hotspots by clicking in the preview.</li>
-              <li><strong>Save tour</strong>, then <strong>Preview in player</strong>.</li>
+              <li>Click <span class="help-ui">+ New tour</span> (top-left), name it, and pick where to save the folder. <span class="muted">Already have a tour? Use <span class="help-ui">Open tour folder</span>.</span></li>
+              <li>Click <span class="help-ui">Images&hellip;</span> and drag your 360 photos in &mdash; each photo becomes a scene automatically.</li>
+              <li>Pick a scene on the left, set its <strong>opening view</strong>, then open the <strong>Hotspots</strong> tab to add navigation arrows and info points.</li>
+              <li>Click <span class="help-ui">Save tour</span>, then <span class="help-ui">Preview in player</span> to see the real thing.</li>
             </ol>
           </section>
 
-          <section class="help-card">
-            <h3>Publishing to GitHub &mdash; what you&rsquo;ll need</h3>
+          <section class="help-card help-card--full">
+            <h3>Images: adding, sizing &amp; compressing</h3>
+            <h4>Two ways to add photos</h4>
             <ul>
-              <li>A <strong>GitHub account</strong> and a repository</li>
-              <li>Push your project folder to the repo</li>
-              <li>Turn on <strong>GitHub Pages</strong> (Settings &rarr; Pages &rarr; deploy from <code>main</code>, root <code>/</code>)</li>
-              <li>Your live link:<br /><code>https://&lt;user&gt;.github.io/&lt;repo&gt;/tours/&lt;tour&gt;/player.html</code></li>
+              <li><strong>Drag &amp; drop</strong> (easiest): open <span class="help-ui">Images&hellip;</span> and drop your 360s onto the box (or click <span class="help-ui">Add images&hellip;</span>). Each one is copied into the tour's <code>images/</code> folder and added as a new scene.</li>
+              <li><strong>Already in the folder?</strong> If you copied photos into <code>images/</code> yourself (Finder/Explorer), click <span class="help-ui">Add all as scenes</span> &mdash; this uses them as-is with <em>no re-encoding</em>.</li>
+            </ul>
+            <h4>Quality &amp; file size (the important part)</h4>
+            <ul>
+              <li>Set it in <span class="help-ui">Tour settings</span> &rarr; <strong>Image quality</strong>. It applies to photos you add or optimize from then on.</li>
+              <li><strong>Original (default)</strong> &mdash; keeps your camera's full resolution. Sharpest text/signage, biggest files. Best for training detail.</li>
+              <li><strong>Maximum 8192 / High 6144 / Balanced 4096 / Web 4096</strong> &mdash; each <em>downscales</em> to that width for smaller, faster-loading files.</li>
+              <li><span class="help-ui">Optimize images</span> re-encodes everything already in the folder at the current quality setting &mdash; handy for shrinking a heavy tour before publishing.</li>
+            </ul>
+            <p class="help-note"><strong>One-way street:</strong> optimizing can only <em>shrink</em> or compress &mdash; it can never add resolution or sharpness back. Always keep your original photos somewhere safe so you can re-import at a higher quality if needed. (Thumbnails for the nav pop-ups are made for you automatically.)</p>
+            <p class="muted">To set or swap a single scene's photo, open <span class="help-ui">Images&hellip;</span> &mdash; the &ldquo;Panorama image&rdquo; field in Scene settings is read-only on purpose.</p>
+          </section>
+
+          <section class="help-card">
+            <h3>Working with scenes</h3>
+            <ul>
+              <li><strong>Select</strong> a scene on the left to edit it.</li>
+              <li><strong>Opening view:</strong> rotate/zoom the preview to the angle you want, then <span class="help-ui">Capture current view</span>. Visitors start facing that way.</li>
+              <li><strong>Name</strong> and optional <strong>Caption</strong> live in Scene settings.</li>
+              <li><span class="help-ui">Set as start</span> makes it the first scene. <span class="help-ui">Duplicate scene</span> copies it (with hotspots). <span class="help-ui">Delete scene</span> removes it.</li>
             </ul>
           </section>
 
           <section class="help-card">
-            <h3>Using Azure for images (big tours) &mdash; what you&rsquo;ll need</h3>
+            <h3>Areas (groups) &amp; moving scenes</h3>
             <ul>
-              <li>An <strong>Azure Storage account</strong> + a Blob <strong>container</strong></li>
-              <li><strong>CORS enabled</strong> on the container for your Pages domain <span class="muted">(the #1 gotcha &mdash; without it, images load black)</span></li>
-              <li>Public read access <em>or</em> a SAS token</li>
-              <li>Upload your <code>images/</code> files, then reference them by their Azure URL</li>
+              <li>Big tour? Click <span class="help-ui">+ New group</span> to make an <strong>area</strong> (players get an Areas menu to jump around).</li>
+              <li><strong>Move / reorder:</strong> just <strong>drag a scene</strong> in the list &mdash; drop it on another scene or into a group's space. This works <em>across</em> groups, so that's how you move a scene from one area to another.</li>
+              <li>Each group's menu lets you <strong>rename</strong>, <strong>recolor</strong>, pick its <strong>entry scene</strong>, or delete it.</li>
+              <li>Scenes not in any group simply stay &ldquo;ungrouped&rdquo; at the top.</li>
             </ul>
-            <p class="muted">Tip: small/medium tours are simplest committed straight to GitHub. Reach for Azure when a tour has lots of high-res photos.</p>
           </section>
+
+          <section class="help-card help-card--full">
+            <h3>Hotspots: navigation, info icons &amp; info zones</h3>
+            <p>Pick a scene, open the <strong>Hotspots</strong> tab, then choose <strong>Navigation</strong> or <strong>Info</strong>.</p>
+            <ul>
+              <li><strong>Navigation</strong> (<span class="help-ui">+ Navigation</span>): click in the preview to drop it, then choose the <em>target scene</em> and an <em>icon</em>. These are the arrows/pins that move visitors between scenes.</li>
+              <li><strong>Info icon</strong> (<span class="help-ui">+ Info icon</span>): a small glyph you click to open a pop-up. Choose an icon from the library and write the description.</li>
+              <li><strong>Info zone</strong> (<span class="help-ui">+ Info zone</span>): a transparent box over a whole object/area. After adding it, <strong>drag its corner dots in the preview</strong> to fit the shape. The magnifier toggle helps mobile users spot zones.</li>
+              <li><strong>Move a pin:</strong> click it to select, then drag it in the preview. <strong>Reuse work:</strong> <span class="help-ui">Copy hotspots&hellip;</span> pulls all hotspots from another scene.</li>
+            </ul>
+            <p class="help-note"><strong>Descriptions accept HTML</strong> &mdash; add bold text, links, images, even video. Ready-made snippets live in the <code>templates/</code> folder next to this app.</p>
+          </section>
+
+          <section class="help-card">
+            <h3>Guided experience (optional)</h3>
+            <ul>
+              <li>Turn it on in <span class="help-ui">Tour settings</span> &rarr; <strong>Guided experience</strong>.</li>
+              <li>It hides the nav arrows and goes linear: the learner must open every <strong>required</strong> info hotspot in a scene before a <em>Continue</em> prompt appears. Mark hotspots &ldquo;required&rdquo; in the Hotspots panel.</li>
+              <li>Options: a <strong>welcome screen</strong>, a <strong>completion</strong> message, and <strong>Allow scene skipping</strong> (adds prev/next arrows so a facilitator can jump ahead when short on time).</li>
+            </ul>
+          </section>
+
+          <section class="help-card">
+            <h3>Save, preview &amp; re-open</h3>
+            <ul>
+              <li><span class="help-ui">Save tour</span> writes <code>tour.json</code> into the folder. Save often!</li>
+              <li><span class="help-ui">Preview in player</span> opens the real viewer with your current work.</li>
+              <li>Reopen anytime with <span class="help-ui">Open tour folder</span> or from &ldquo;Recent projects&rdquo; on the welcome screen.</li>
+              <li>Only have a <code>tour.json</code> file? Use <span class="help-ui">Import tour.json</span>.</li>
+            </ul>
+          </section>
+
+          <section class="help-card help-card--full">
+            <h3>Publish it (share a link)</h3>
+            <h4>GitHub Pages &mdash; simplest for most tours</h4>
+            <ol>
+              <li>Push your tour folder to a <strong>GitHub</strong> repository.</li>
+              <li>Turn on <strong>GitHub Pages</strong>: repo <em>Settings &rarr; Pages &rarr;</em> deploy from <code>main</code>, root <code>/</code>.</li>
+              <li>Share the link to <code>&hellip;/player.html</code>, e.g.<br /><code>https://&lt;user&gt;.github.io/&lt;repo&gt;/&lt;tour&gt;/player.html</code></li>
+            </ol>
+            <h4>Azure Blob &mdash; only for very large, high-res tours</h4>
+            <ul>
+              <li>Storage account + a Blob <strong>container</strong>, with <strong>CORS enabled</strong> for your site's domain <span class="muted">(the #1 gotcha &mdash; without it images load black)</span>.</li>
+              <li>Public read (or a SAS token), upload your <code>images/</code>, then point the scenes at their Azure URLs.</li>
+            </ul>
+          </section>
+
+          <section class="help-card help-card--full">
+            <h3>Handy tips &amp; fixes</h3>
+            <ul>
+              <li><strong>Images look black in a published tour?</strong> You're probably opening <code>player.html</code> by double-clicking it (a <code>file://</code> address). Serve it over <code>http(s)://</code> instead &mdash; browsers block local files from WebGL.</li>
+              <li><strong>Keep your originals.</strong> Optimizing is one-way; you can't un-shrink a photo.</li>
+              <li><strong>Changes not showing?</strong> Hard-refresh the page (<code>Cmd/Ctrl</code>+<code>Shift</code>+<code>R</code>).</li>
+              <li><strong>Easier on the eyes:</strong> the moon/sun button (top-right) toggles dark mode.</li>
+            </ul>
+          </section>
+
         </div>
       </div>
     </div>
