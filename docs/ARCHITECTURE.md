@@ -57,7 +57,7 @@ new tour.
 │
 ├── builder/                   THE AUTHORING TOOL (local only)
 │   ├── index.html             builder DOM + import map (cache-busted ?v=N)
-│   ├── builder.js             controller: state, render, wiring (638 lines - OVER the 600 cap; split candidate)
+│   ├── builder.js             controller: state, render, wiring (644 lines - OVER the 600 cap; split candidate)
 │   ├── builder-viewer.js      BuilderViewer class - PSV preview, place-mode, drag, zone editing
 │   ├── marker-actions.js      marker CRUD + placement glue (factory; incl. zones)
 │   ├── marker-row.js          one marker's editor card (icon row OR zone settings)
@@ -106,6 +106,8 @@ new tour.
 ├── tours/                     YOUR TOURS - local working data, GIT-IGNORED
 │   └── .gitkeep               (each tours/<name>/ is a complete deployable site)
 │
+├── templates/                 copy-paste HTML snippets for info-hotspot descriptions (dev reference; not shipped)
+│
 ├── scripts/
 │   ├── launch.command         double-click: start server + open builder (mac)
 │   ├── new-tour.sh            scaffold tours/<name>/ from the template
@@ -122,7 +124,7 @@ new tour.
 The builder is a small MVC-ish app. `builder.js` is the controller; the other
 modules are injected collaborators (factory functions receiving a `ctx` object).
 
-### `builder.js` (controller, ~638 lines — **OVER the 600 cap; needs a split**)
+### `builder.js` (controller, ~644 lines — **OVER the 600 cap; needs a split**)
 - Holds the single `state` object: `{ tour, currentSceneId, selectedMarkerId,
   placing, fileHandle, dirHandle, previewBase }`.
 - Creates the `resolver` (`createAssetResolver`) and injects it into `preview`
@@ -500,10 +502,20 @@ cd <this folder> && python3 -m http.server 8124
 ## 10. Roadmap / not-yet-built (planned next steps)
 
 **Recently shipped (for context):** scene AREAS/groups (schema v2); the
-`showInfoZones` tour setting; drag-to-reorder scenes; and the opt-in **guided
+`showInfoZones` tour setting; drag-to-reorder scenes; the opt-in **guided
 experience** (linear find-the-hotspots mode + completion screen; data via
-`meta.experience` + `marker.required`, runtime in the lazy `guided.js`). The
-player **Share** button is temporarily hidden (code retained) pending a revamp.
+`meta.experience` + `marker.required`, runtime in the lazy `guided.js`), now with
+an optional **Allow scene skipping** toggle (prev/next arrows in `guided.js`).
+More recent polish: the product **rebrand to “Spherio Studio”**; a circular-mean
+fix for the info-zone magnifier hint across the ±180° seam (`psv-adapter.js`);
+**info zones are now draggable by their body** (rigid translation) as well as by
+their corner handles, and **clicking empty panorama deselects** any hotspot
+(handled in the viewer `click` event since re-rendered zones desync PSV's
+`unselect-marker`); the **icon picker** is now a `position:fixed` popover so it
+can't be clipped by the scrollable editor panel; **red “Delete”** buttons on
+hotspot rows; and a `templates/` folder of copy-paste HTML snippets for info
+descriptions. The player **Share** button is temporarily hidden (code retained)
+pending a revamp.
 
 - **Icon LIBRARY expansion / custom icons** (next up per product): a larger,
   categorized picker and/or user-supplied glyphs for nav waypoints + info pins.

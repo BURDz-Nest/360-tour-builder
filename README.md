@@ -22,15 +22,7 @@ anywhere — the **player** runtime travels with it.
 - **Project-based workflow** — the builder opens to a Welcome screen with
   **New project / Open project / Recent projects** (a project = a tour folder).
   Recents persist across sessions via IndexedDB.
-- **Drag-and-drop images** — drop your 360° photos into the **Images** dialog and
-  each one is web-optimized (downscaled to 4096px JPEG + thumbnail) **and becomes
-  a new scene** automatically. No hand-typed paths anywhere.
-- **Click-to-place hotspots** — add **Navigation** links (scene-to-scene) and
-  **Info** popups by clicking in the live preview. Drag a placed hotspot to
-  reposition it; click empty space to deselect.
-- **Icon library** — choose from ~28 built-in marker glyphs (waypoints, arrows,
-  chevrons, footsteps, doors, stairs, elevator, info, star, phone, cart…) per
-  hotspot, or fall back to the sensible default for its type.
+
 - **Scene management** — thumbnails and hotspot-count badges in the scene list,
   reorder by drag, **duplicate a scene**, and **copy hotspots** from one scene to
   another.
@@ -40,7 +32,7 @@ anywhere — the **player** runtime travels with it.
   dropdown for fast travel plus `?area=<id>` deep-linking.
 - **Info Zones** — Storyline-style transparent polygon hotspots (in addition to
   icon pins), with a per-tour **Show Info Zones** toggle for the player's reveal
-  button.
+  button. Drag the zone body to move it, or drag the corner dots to reshape it.
 - **Guided experience (opt-in)** — flip a tour into a linear "find the hotspots"
   mode: navigation pins are hidden, the learner must open every **required** info
   hotspot in a scene before a **Continue** prompt appears, ending on a custom
@@ -81,7 +73,7 @@ anywhere — the **player** runtime travels with it.
 │   ├── project-store.js       IndexedDB "recent projects"
 │   ├── fs-workspace.js        File System Access: read/write/optimize files
 │   ├── ui-dom.js              small DOM helpers
-│   └── *.css                  builder-only styling (welcome, help-modal)
+│   └── *.css                  builder-only styling (builder-ui, builder-panels, welcome, help-modal)
 ├── player-template/           the runtime, copied into every new tour
 │   ├── player.html
 │   ├── manifest.json          list of runtime files to copy into a tour
@@ -97,6 +89,7 @@ anywhere — the **player** runtime travels with it.
 │   └── vendor/                vendored PSV 5.11.5 + three 0.169.0 + qrcode (no CDN)
 ├── tours/                     your tours live here locally (git-ignored)
 │   └── .gitkeep               each tours/<name>/ is a complete, deployable site
+├── templates/                 copy-paste HTML snippets for info-hotspot descriptions
 ├── scripts/
 │   ├── launch.command         double-click: start server + open builder (mac)
 │   ├── new-tour.sh            scaffold a tours/<name>/ folder (CLI alternative)
