@@ -173,7 +173,7 @@ function renderZoneRow({ m, selected, guided, actions }) {
 
   const hint = document.createElement("p");
   hint.className = "marker-row__pos muted";
-  hint.textContent = "Selected: drag the corner dots in the preview to fit the region.";
+  hint.textContent = "Selected: drag the zone body to move it, or drag the corner dots to reshape it.";
   details.append(hint);
   return row;
 }
@@ -185,7 +185,9 @@ function rowActions(m, actions, moveable = true) {
   if (moveable) {
     bar.append(miniBtn("Move", "Re-place on sphere", () => actions.onReplace(m.id)));
   }
-  bar.append(miniBtn("Delete", "Delete hotspot", () => actions.onDelete(m.id)));
+  const delBtn = miniBtn("Delete", "Delete hotspot", () => actions.onDelete(m.id));
+  delBtn.classList.add("mini-btn--danger");
+  bar.append(delBtn);
   return bar;
 }
 

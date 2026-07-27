@@ -55,6 +55,8 @@
 }
 .mini-btn:hover:not(:disabled) { background: var(--panel-soft); }
 .mini-btn:disabled { opacity: 0.4; cursor: default; }
+.mini-btn--danger { color: var(--danger); border-color: var(--danger-border); }
+.mini-btn--danger:hover:not(:disabled) { background: var(--danger-bg); }
 
 /* ============ Builder layout ============ */
 .builder-body { display: flex; flex-direction: column; }

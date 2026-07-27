@@ -21,10 +21,10 @@ import {
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "59";
-import { BuilderViewer } from "./builder-viewer.js?v=38";
-import { renderMarkerRow } from "./marker-row.js?v=46";
-import { createMarkerActions } from "./marker-actions.js?v=42";
+const BUILDER_BUILD = "60";
+import { BuilderViewer } from "./builder-viewer.js?v=39";
+import { renderMarkerRow } from "./marker-row.js?v=47";
+import { createMarkerActions } from "./marker-actions.js?v=43";
 import * as fs from "./fs-workspace.js?v=3";
 import { createWorkspace } from "./workspace.js?v=4";
 import { mountOverlays } from "./overlays.js?v=2";
@@ -77,6 +77,10 @@ function init() {
     },
     onMarkerDeselect: () => markerActions.selectMarker(null), // click empty -> deselect
     onZoneCornerMove: (id, idx, yaw, pitch) => markerActions.moveZoneCorner(id, idx, yaw, pitch),
+    onZoneMove: (id, points) => {
+      markerActions.moveZone(id, points);
+      markerActions.selectMarker(id); // keep it selected + surfaced in the panel
+    },
   });
   markerActions = createMarkerActions({
     state, viewer, $, toast, getScene, createMarker,

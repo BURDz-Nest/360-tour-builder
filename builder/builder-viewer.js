@@ -22,7 +22,7 @@ const RAD2DEG = 180 / Math.PI;
 export class BuilderViewer {
   /**
    * @param {HTMLElement} container
-   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id), onMarkerMove(id,yawDeg,pitchDeg), onMarkerDeselect(), onZoneCornerMove(id,cornerIdx,yawDeg,pitchDeg) }
+   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id), onMarkerMove(id,yawDeg,pitchDeg), onMarkerDeselect(), onZoneCornerMove(id,cornerIdx,yawDeg,pitchDeg), onZoneMove(id,points) }
    */
   constructor(container, handlers = {}) {
     this.handlers = handlers;
@@ -162,7 +162,79 @@ export class BuilderViewer {
       },
       tooltip: m.label ? { content: escapeHtml(m.label) } : undefined,
     });
-    if (selected) this._addZoneHandles(m, color);
+    if (selected) {
+      this._addZoneHandles(m, color);
+      this._attachZoneBodyDrag(m.id);
+    }
+  }
+
+  /**
+   * Let the author drag the whole selected zone by its BODY (translates every
+   * corner together), in addition to reshaping via the corner handles. Only
+   * wired on the selected zone, so an unselected zone still click-to-selects.
+   */
+  _attachZoneBodyDrag(zoneId) {
+    const el = this.markers.getMarker(zoneId)?.element;
+    if (!el) return;
+    el.style.cursor = "move";
+    el.style.touchAction = "none";
+    // Selected: swallow mousedown/touchstart so PSV doesn't pan while we drag.
+    el.addEventListener("mousedown", (e) => e.stopPropagation());
+    el.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+    el.addEventListener("pointerdown", (ev) => this._onZoneBodyDown(ev, zoneId));
+  }
+
+  _onZoneBodyDown(ev, zoneId) {
+    if (ev.button !== 0) return; // left-click only
+    ev.stopPropagation();
+    ev.preventDefault();
+    const start = this._clientToSpherical(ev.clientX, ev.clientY);
+    const zone = (this._markerList || []).find((x) => x.id === zoneId);
+    if (!start || !zone || !Array.isArray(zone.points)) return;
+    const origin = zone.points.map((p) => ({ yaw: p.yaw, pitch: p.pitch }));
+    const startX = ev.clientX;
+    const startY = ev.clientY;
+    const DRAG_THRESHOLD_PX = 4;
+    let dragged = false;
+    let latest = null;
+    const targetEl = ev.currentTarget;
+    targetEl.setPointerCapture?.(ev.pointerId);
+    targetEl.style.cursor = "grabbing";
+
+    const onMove = (e) => {
+      if (!dragged && Math.hypot(e.clientX - startX, e.clientY - startY) < DRAG_THRESHOLD_PX) return;
+      dragged = true;
+      const cur = this._clientToSpherical(e.clientX, e.clientY);
+      if (!cur) return;
+      // Rigid translation: apply the same yaw/pitch delta to every corner.
+      const dYaw = normDeg((cur.yawRad - start.yawRad) * RAD2DEG);
+      const dPitch = (cur.pitchRad - start.pitchRad) * RAD2DEG;
+      latest = origin.map((p) => ({
+        yaw: round(normDeg(p.yaw + dYaw)),
+        pitch: round(clampPitch(p.pitch + dPitch)),
+      }));
+      this.markers.updateMarker({
+        id: zoneId,
+        polygon: latest.map((p) => [degStr(p.yaw), degStr(p.pitch)]),
+      });
+      latest.forEach((p, idx) => {
+        this.markers.updateMarker({
+          id: `${zoneId}::corner::${idx}`,
+          position: { yaw: degStr(p.yaw), pitch: degStr(p.pitch) },
+        });
+      });
+    };
+    const onUp = (e) => {
+      targetEl.releasePointerCapture?.(e.pointerId);
+      targetEl.style.cursor = "move";
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      if (!dragged || !latest) return; // no movement -> plain click, keep selection
+      this._dragJustHappened = true; // suppress the trailing select click
+      this.handlers.onZoneMove?.(zoneId, latest);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
   }
 
   /** Drop a draggable dot on each corner of the selected zone. */
@@ -403,4 +475,10 @@ function normDeg(deg) {
 
 function round(n) {
   return Math.round(n * 10) / 10;
+}
+
+/** Keep a pitch within the sphere's valid range so a dragged zone can't flip
+ *  over the poles. */
+function clampPitch(deg) {
+  return Math.max(-89.9, Math.min(89.9, deg));
 }

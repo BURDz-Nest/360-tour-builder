@@ -140,6 +140,15 @@ export function createMarkerActions({
     viewer.renderMarkers(scene.markers); // re-draw polygon + handles
   }
 
+  /** Commit a whole-zone body drag: replace all corner points (DEGREES). */
+  function moveZone(id, points) {
+    const scene = currentScene();
+    const m = scene?.markers.find((x) => x.id === id);
+    if (!m || !Array.isArray(points)) return;
+    m.points = points.map((p) => ({ yaw: p.yaw, pitch: p.pitch }));
+    viewer.renderMarkers(scene.markers); // re-draw polygon + handles
+  }
+
   return {
     beginPlacing,
     cancelPlacing,
@@ -150,5 +159,6 @@ export function createMarkerActions({
     replaceMarker,
     updateMarker,
     moveZoneCorner,
+    moveZone,
   };
 }
