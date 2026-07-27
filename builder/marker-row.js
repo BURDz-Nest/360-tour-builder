@@ -20,7 +20,7 @@ import {
   labeledColor,
   labeledCheckbox,
 } from "./ui-dom.js";
-import { createIconPicker } from "./icon-picker.js";
+import { createIconPicker } from "./icon-picker.js?v=2";
 
 /**
  * @param {object} cfg
