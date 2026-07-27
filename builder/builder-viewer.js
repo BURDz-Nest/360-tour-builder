@@ -39,10 +39,21 @@ export class BuilderViewer {
     this.markers = this.viewer.getPlugin(MarkersPlugin);
 
     this.viewer.addEventListener("click", ({ data }) => {
-      if (!this.placeMode || !data) return;
-      const yaw = round(normDeg(data.yaw * RAD2DEG));
-      const pitch = round(data.pitch * RAD2DEG);
-      this.handlers.onPlace?.(yaw, pitch);
+      if (!data) return;
+      if (this.placeMode) {
+        const yaw = round(normDeg(data.yaw * RAD2DEG));
+        const pitch = round(data.pitch * RAD2DEG);
+        this.handlers.onPlace?.(yaw, pitch);
+        return;
+      }
+      if (this._dragJustHappened) return; // a drop isn't a click
+      // Clicking empty panorama (no marker under the cursor) deselects. We do
+      // this here instead of via PSV's unselect-marker event because zones
+      // re-render when selected, which desyncs PSV's internal selection so it
+      // never fires unselect-marker for them.
+      if (!data.marker && this._selectedMarkerId) {
+        this.handlers.onMarkerDeselect?.();
+      }
     });
 
     this.markers.addEventListener("select-marker", ({ marker }) => {
@@ -51,19 +62,8 @@ export class BuilderViewer {
       if (String(marker.id).includes("::corner::")) return;
       // Suppress the click that fires at the end of a drag (otherwise every
       // drop would also re-open the editor / steal focus).
-      if (this._dragJustHappened) {
-        this._dragJustHappened = false;
-        return;
-      }
+      if (this._dragJustHappened) return;
       this.handlers.onMarkerClick?.(marker.id);
-    });
-
-    // PSV fires this when you click empty panorama (or a different marker)
-    // while one is selected. Use it to deselect so the highlight + side-panel
-    // selection clear when you click away.
-    this.markers.addEventListener("unselect-marker", () => {
-      if (this._dragJustHappened) return; // a drop isn't a deselect
-      this.handlers.onMarkerDeselect?.();
     });
   }
 
@@ -230,7 +230,7 @@ export class BuilderViewer {
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
       if (!dragged || !latest) return; // no movement -> plain click, keep selection
-      this._dragJustHappened = true; // suppress the trailing select click
+      this._suppressNextClick(); // suppress the trailing select click
       this.handlers.onZoneMove?.(zoneId, latest);
     };
     document.addEventListener("pointermove", onMove);
@@ -285,7 +285,7 @@ export class BuilderViewer {
       targetEl.style.cursor = "grab";
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
-      this._dragJustHappened = true; // suppress the trailing select click
+      this._suppressNextClick(); // suppress the trailing select click
       if (last) this.handlers.onZoneCornerMove?.(zoneId, idx, last.yawDeg, last.pitchDeg);
     };
     document.addEventListener("pointermove", onMove);
@@ -380,7 +380,7 @@ export class BuilderViewer {
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
       if (!dragged) return; // no movement - treat as a plain click
-      this._dragJustHappened = true; // suppress the trailing click
+      this._suppressNextClick(); // suppress the trailing click
       const sph = this._clientToSpherical(e.clientX, e.clientY);
       if (!sph) return;
       const yawDeg = round(normDeg(sph.yawRad * RAD2DEG));
@@ -399,6 +399,20 @@ export class BuilderViewer {
     const sph = this.viewer.dataHelper.viewerCoordsToSphericalCoords(point);
     if (!sph) return null;
     return { yawRad: sph.yaw, pitchRad: sph.pitch };
+  }
+
+  /**
+   * Mark that a drag just finished so the trailing synthetic click/select is
+   * ignored - then auto-clear on the next frame so a LATER genuine click (e.g.
+   * clicking empty space to deselect) still works. (Previously the flag was
+   * only cleared inside select-marker, which never fires after a swallowed
+   * drag, so it lingered and blocked the next deselect.)
+   */
+  _suppressNextClick() {
+    this._dragJustHappened = true;
+    requestAnimationFrame(() => {
+      this._dragJustHappened = false;
+    });
   }
 
   /**
