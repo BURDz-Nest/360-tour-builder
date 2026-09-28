@@ -103,11 +103,20 @@ async function copyRuntime(destHandle, onProgress) {
 
 // ---- high-level tour operations --------------------------------------------
 
-/** Create tours/<slug>/ (user picks the parent), copy runtime, make images/. */
-export async function newTour(name, onProgress) {
+/** Show the OS folder picker (readwrite). Call this FIRST inside a click
+ *  handler - anything that consumes user activation first (prompt/await) will
+ *  make Chrome reject the picker with "Must be handling a user gesture". */
+export async function pickDirectory() {
+  return window.showDirectoryPicker({ mode: "readwrite" });
+}
+
+/** Create tours/<slug>/ under `parent`, copy runtime, make images/.
+ *  `parent` should be pre-picked (see pickDirectory) so the folder picker runs
+ *  inside the original click; if omitted we fall back to picking here. */
+export async function newTour(name, parent, onProgress) {
   const slug = slugify(name);
   if (!slug) throw new Error("Please enter a tour name first.");
-  const parent = await window.showDirectoryPicker({ mode: "readwrite" });
+  if (!parent) parent = await window.showDirectoryPicker({ mode: "readwrite" });
 
   let exists = true;
   try {
@@ -345,9 +354,30 @@ export async function listImageNames(dirHandle) {
   return names;
 }
 
-/** Write tour.json directly into the tour folder (no save dialog). */
+/** Write tour.json directly into the tour folder (no save dialog).
+ *  VERIFIES the write by reading the file back, because cloud File Providers
+ *  (OneDrive / iCloud on macOS) can report a successful write that never
+ *  actually materializes to disk. Throws with a clear message on mismatch so
+ *  callers never show a false "Saved!". */
 export async function saveTourJson(dirHandle, text) {
   await writeFile(dirHandle, "tour.json", text);
+  // Read back a FRESH handle and compare. If the bytes don't match, the write
+  // didn't persist — almost always a OneDrive/iCloud-synced folder.
+  let readBack = "";
+  try {
+    const fh = await getFileHandleDeep(dirHandle, "tour.json", false);
+    readBack = await (await fh.getFile()).text();
+  } catch (e) {
+    throw new Error(`saved but could not verify tour.json (${e.message}).`);
+  }
+  console.info(`[fs] saveTourJson: wrote ${text.length} chars, read back ${readBack.length}.`);
+  if (readBack !== text) {
+    throw new Error(
+      `the write did not persist (wrote ${text.length} chars, disk still has ` +
+        `${readBack.length}). This folder looks cloud-synced \u2014 move your tour to a ` +
+        "plain local folder (outside OneDrive/iCloud) so saves land reliably."
+    );
+  }
 }
 
 // ---- small UI helpers -------------------------------------------------------
@@ -405,4 +435,38 @@ export function renderImageGrid(container, names, resolve, onAssign) {
     btn.addEventListener("click", () => onAssign(name));
     container.appendChild(btn);
   }
+}
+
+/* ---------- language siblings (multi-language tours) ---------- */
+
+// Matches `tour-<code>.json` at the folder root, where <code> is a short
+// ISO-ish language tag: two lowercase letters, optionally hyphen-then-two
+// more (e.g. "es", "pt-br"). Deliberately narrow so a `tour-backup.json` or
+// `tour-final.json` never gets mistaken for a language variant.
+const LANG_FILE_RE = /^tour-([a-z]{2}(?:-[a-z]{2})?)\.json$/;
+
+/**
+ * Scan the tour folder for `tour-<code>.json` sibling files (Spanish,
+ * French, etc.) and return a { code: <parsed JSON> } map. Never throws — a
+ * broken sibling file logs a warning and gets skipped so it can never wedge
+ * the whole editor or a SCORM export.
+ *
+ * NOTE: ROOT-LEVEL files only (no recursion) — language variants always live
+ * next to the primary `tour.json`, matching where player.js's alternates
+ * loader looks for them (see player-template/js/language-config.js).
+ */
+export async function listLanguageSiblings(dirHandle) {
+  const out = {};
+  for await (const [name, handle] of dirHandle.entries()) {
+    if (handle.kind !== "file") continue;
+    const m = LANG_FILE_RE.exec(name);
+    if (!m) continue;
+    try {
+      const file = await handle.getFile();
+      out[m[1]] = JSON.parse(await file.text());
+    } catch (e) {
+      console.warn(`[ATLAS] Skipping malformed language sibling '${name}': ${e.message}`);
+    }
+  }
+  return out;
 }

@@ -1,15 +1,14 @@
 # Info Hotspot HTML Templates
 
 Copy-paste snippets for the **description field** of an info hotspot in
-Spherio Studio. Each `.html` file here is a ready-to-use fragment: open it,
+ATLAS Explore. Each `.html` file here is a ready-to-use fragment: open it,
 copy everything (or the part you need), and paste it into a hotspot's
 description in the builder.
 
 ## How this works
 The description field renders as **live HTML** inside the info popup, so you
 can format text, add images, links, video, tables, and more — not just plain
-sentences. (See `docs/USER-GUIDE.html` and `docs/ARCHITECTURE.md` for the
-mechanics.)
+sentences. (See `../ARCHITECTURE.md` for the mechanics.)
 
 ## The snippets
 | File | What it gives you |

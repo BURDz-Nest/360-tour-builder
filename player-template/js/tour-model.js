@@ -81,6 +81,16 @@ export function slugify(text, fallback = "scene") {
   return slug || fallback;
 }
 
+/** Normalize a raw `languages` array to a de-duped, "en"-first list of
+ *  lowercase codes. Garbage/missing input just falls back to ["en"]. */
+function normalizeLanguages(raw) {
+  const codes = Array.isArray(raw)
+    ? [...new Set(raw.filter((c) => typeof c === "string" && c).map((c) => c.toLowerCase()))]
+    : [];
+  if (!codes.length) return ["en"];
+  return codes.includes("en") ? codes : ["en", ...codes];
+}
+
 export function createEmptyTour() {
   return {
     version: SCHEMA_VERSION,
@@ -100,6 +110,11 @@ export function createEmptyTour() {
       experience: createExperience(),
       createdAt: new Date().toISOString(),
     },
+    // Multi-language (see ARCHITECTURE.md "Multi-language"): declares which
+    // `tour-<code>.json` siblings exist next to this file. "en" (this file)
+    // is always first and implicit — authors never edit this by hand, it's
+    // reconciled from disk by builder/language-manifest.js.
+    languages: ["en"],
     groups: [],
     scenes: [],
   };
@@ -125,7 +140,41 @@ export function createExperience(raw = {}) {
       e.completionMessage ||
         "You've found everything. The experience is complete."
     ),
+    // Welcome-screen content (Multi-language: these are ordinary tour CONTENT,
+    // so a translated tour-<code>.json carries its own Spanish/French/etc.
+    // copy for all three — no separate chrome-string plumbing needed, unlike
+    // the free-roam player's small i18n.js dictionary). welcomeTitle empty =
+    // auto-derive "Welcome to {tour title}" at render time (guided.js).
+    welcomeTitle: String(e.welcomeTitle || ""),
+    // Mini-markdown body: "- " prefixed lines render as an arrow-bullet list
+    // item, everything else is a plain paragraph, and "**bold**" spans render
+    // as <strong> (see guided.js#renderWelcomeBody). Kept as ONE string
+    // (not an array) so authors can freely mix headline paragraphs and
+    // bullets rather than being forced into "every line is a bullet".
+    welcomeBody: welcomeBodyFrom(e),
+    // Blank (not defaulted here) so guided.js's i18n.js#tFor lookup can supply
+    // a LOCALIZED default ("Comenzar" for es, etc.) - matching welcomeTitle's
+    // blank-means-auto-localize convention above. Defaulting to the English
+    // literal "Start" here would silently defeat that fallback for every
+    // tour that doesn't explicitly set this field.
+    startButtonLabel: String(e.startButtonLabel || ""),
   };
+}
+
+const DEFAULT_WELCOME_BODY = [
+  "- Select and drag anywhere on the image to rotate your view.",
+  "- When you see an opportunity, select the area.",
+  "- Find all opportunities in each image.",
+].join("\n");
+
+/** Resolve the welcome body, migrating the older `welcomeBullets` array
+ *  shape (a one-day-old, now-retired format) into the mini-markdown string. */
+function welcomeBodyFrom(e) {
+  if (typeof e.welcomeBody === "string" && e.welcomeBody.trim()) return e.welcomeBody;
+  if (Array.isArray(e.welcomeBullets) && e.welcomeBullets.length) {
+    return e.welcomeBullets.map(String).filter(Boolean).map((t) => `- ${t}`).join("\n");
+  }
+  return DEFAULT_WELCOME_BODY;
 }
 
 /**
@@ -305,6 +354,12 @@ export function validateTour(raw) {
   }
 
   const tour = createEmptyTour();
+
+  // Multi-language: reconcile the declared list, always "en"-first. This is
+  // display/discovery metadata only — player.js decides what to actually do
+  // with it (fetch tour-<code>.json siblings), so a garbage/missing value
+  // here never blocks a tour from loading.
+  tour.languages = normalizeLanguages(raw.languages);
 
   if (raw.version && raw.version > SCHEMA_VERSION) {
     warnings.push(

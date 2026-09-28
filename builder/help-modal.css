@@ -1,3 +1,31 @@
+/* ---- Linklike button (inline text actions) ---- */
+.linklike {
+  background: none; border: none; padding: 0;
+  color: var(--accent); text-decoration: underline; font: inherit;
+}
+
+/* ---- Export SCORM dialog ---- */
+.scorm-form { display: grid; gap: 1rem; }
+.scorm-field { display: grid; gap: 0.35rem; }
+.scorm-field > span, .scorm-field > legend {
+  font-weight: 600; font-size: 0.92rem;
+}
+.scorm-field input[type="text"], .scorm-field input[type="url"] {
+  width: 100%; padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); color: inherit; font: inherit;
+}
+.scorm-modes {
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 0.7rem 0.9rem; margin: 0;
+}
+.scorm-radio {
+  display: grid; grid-template-columns: auto 1fr; gap: 0.55rem;
+  align-items: start; padding: 0.4rem 0; line-height: 1.45;
+  cursor: pointer;
+}
+.scorm-radio input { margin-top: 0.2rem; }
+.scorm-actions { display: flex; justify-content: flex-end; }
 /* help-modal.css - Builder-only styles for the wide Help modal
    (extracted from app.css to stay under the 600-line guideline). */
 

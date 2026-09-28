@@ -18,8 +18,7 @@
 .scene-list + .section-title { margin-top: 1.4rem; }
 
 /* Scene-editor section grouping: clear blank space + a faint divider between
-   the sub-sections (Opening view / Scene details / Scene actions) so they
-   don't crowd together. */
+   the sub-sections (Capture View / Hotspots) so they don't crowd together. */
 .editor-section + .editor-section {
   margin-top: 1.6rem;
   padding-top: 1.6rem;
@@ -29,16 +28,16 @@
 .view-row + .field__hint { margin-bottom: 0.9rem; }
 /* Scene details: give each field (label + input + helper text) more breathing
    room so Name / Panorama / Caption read as distinct settings. */
-#panel-scene-settings .field { margin-bottom: 1.3rem; }
-#panel-scene-settings .field:last-child { margin-bottom: 0; }
+.scene-settings-overlay .field { margin-bottom: 1.3rem; }
+.scene-settings-overlay .field:last-child { margin-bottom: 0; }
 
-/* ---- Editor column: pin the Scene header + top tabs, scroll the panel ----
+/* ---- Editor column: scroll the panel body ----
    The right column is a fixed-height grid cell, so make it a flex column whose
-   active tab-panel takes the remaining space and scrolls on its own. This
+   .editor-scroll body takes the remaining space and scrolls on its own. This
    gives Hotspots a full, independently-scrollable panel. */
 .editor-header { margin-bottom: 0.75rem; }
-/* Breathing room between the top-level tabs and the panel content below (so
-   'Opening view' / the Hotspots segmented control don't hug the tab bar). */
+/* Breathing room at the top of the scrollable body so 'Capture View' / the
+   Hotspots segmented control don't hug the header. */
 .editor-scroll { padding-top: 0.85rem; }
 /* The right-panel heading shows the current scene's NAME (truncated if long),
    so you always know which scene you're editing. */
@@ -76,24 +75,52 @@
 .field__input {
   width: 100%;
   padding: 0.45rem 0.55rem;
-  border: 1px solid var(--line);
+  border: 1px solid #c2c8d0;
   border-radius: 8px;
-  background: var(--panel);
-  color: var(--ink);
+  /* Always a white field with dark text + a clear border, so text-edit boxes
+     are obviously boxes in BOTH light and dark themes (dark-on-dark made them
+     nearly invisible until focused). Applies to every .field__input: scene
+     name/caption, meta fields, marker label/content, and the inline rename
+     inputs (pencil / group rename). */
+  background: #ffffff;
+  color: #1a1d21;
+}
+.field__input::placeholder { color: #6b7280; }
+.field__input:focus-visible {
+  outline: none;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.35);
 }
 textarea.field__input { resize: vertical; }
 
 /* ============ Scene list ============ */
+/* Left column must be a positioning context for the Scene settings overlay. */
+#left-col { position: relative; }
+/* Scene settings overlay: covers the left column when a bubble's gear is clicked. */
+.scene-settings-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  padding: 1rem;
+  overflow-y: auto;
+  background: var(--panel);
+}
+.scene-settings-overlay[hidden] { display: none; }
+.scene-settings-overlay__head {
+  display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.85rem;
+}
 .scene-list { list-style: none; margin: 0 0 0.75rem; padding: 0; }
 .scene-item {
   display: flex;
-  align-items: center;
-  gap: 0.35rem;
+  flex-direction: column;
+  align-items: stretch;
   border: 1px solid var(--line);
   border-radius: 8px;
   margin-bottom: 0.35rem;
   background: var(--panel);
 }
+/* Top line of a bubble: drag handle + thumbnail + name/meta (fully readable). */
+.scene-item__main { display: flex; align-items: center; gap: 0.35rem; }
 .scene-item.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .scene-item.has-accent {
   border-left: 3px solid var(--group-accent, var(--line));
@@ -145,7 +172,36 @@ textarea.field__input { resize: vertical; }
     var(--line) 4px, var(--line) 8px);
 }
 .scene-item__thumb.is-broken img { display: none; }
-.scene-item__controls { display: flex; gap: 0.2rem; padding-right: 0.35rem; }
+/* Chevron toggle on the far right of a bubble: expands the action row below. */
+.scene-item__toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; margin-right: 0.15rem;
+  background: none; border: none; border-radius: 6px;
+  color: var(--muted); cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.scene-item__toggle:hover { background: var(--panel-soft); color: var(--ink); }
+.scene-item.is-expanded .scene-item__toggle { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .scene-item__toggle { transition: none; } }
+/* Collapsible action row (pencil / gear / trash) - hidden until expanded. */
+.scene-item__controls {
+  display: none; align-items: center; justify-content: flex-end; gap: 0.1rem;
+  padding: 0.15rem 0.3rem 0.2rem;
+  border-top: 1px solid var(--line);
+}
+.scene-item.is-expanded .scene-item__controls { display: flex; }
+/* Per-bubble icon controls (pencil / gear / trash). Star has its own rule below. */
+.scene-item__ctl {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0;
+  background: none; border: none; border-radius: 6px;
+  color: var(--muted); cursor: pointer;
+}
+.scene-item__ctl:hover:not(:disabled) { background: var(--panel-soft); color: var(--ink); }
+.scene-item__ctl:disabled { opacity: 0.35; cursor: default; }
+.scene-item__ctl--danger:hover:not(:disabled) { color: var(--danger); background: var(--danger-bg); }
+/* Inline scene rename input (pencil) - replaces the bubble body while editing. */
+.scene-item__rename { flex: 1; min-width: 0; margin: 0.3rem 0.2rem; }
 .scene-item__handle {
   cursor: grab;
   padding: 0 0.15rem 0 0.45rem;
@@ -281,6 +337,13 @@ textarea.field__input { resize: vertical; }
 }
 .scene-item__star.is-entry { color: #f5a623; }
 .scene-item__star.is-default { color: #f5a623; opacity: 0.4; }
+.scene-item__star:disabled { opacity: 0.3; cursor: default; }
+/* Red note shown in the Uncategorized bucket once the tour uses groups. */
+.scene-group__warn {
+  color: var(--danger);
+  font-size: 0.72rem;
+  margin: 0.1rem 0.2rem 0.45rem;
+}
 @media (prefers-reduced-motion: reduce) {
   .scene-group__chevron { transition: none; }
 }
@@ -334,6 +397,14 @@ textarea.field__input { resize: vertical; }
 
 /* ============ Marker editor ============ */
 .marker-actions { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+/* Centered variant: the + Add buttons sit together, centered under the hint. */
+.marker-actions--center { justify-content: center; }
+/* Thin separator between a tab's explainer text and its controls. */
+.hs-divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 0.6rem 0 0.75rem;
+}
 
 /* ---- Copy-hotspots popover menu (anchored under its trigger button) ---- */
 .copy-menu {
@@ -413,7 +484,6 @@ textarea.field__input { resize: vertical; }
 .marker-row__details { display: none; padding: 0 0.55rem 0.6rem; }
 .marker-row.is-selected .marker-row__details { display: block; }
 .marker-row__actions { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; }
-.marker-row__pos { margin: 0.25rem 0 0; }
 @media (prefers-reduced-motion: reduce) {
   .marker-row__chevron { transition: none; }
 }
@@ -469,3 +539,54 @@ textarea.field__input { resize: vertical; }
 /* An explicit display above overrides the browser's [hidden] rule, so the
    badge would show even when hidden - restore hide-when-hidden behavior. */
 .start-badge[hidden] { display: none; }
+
+/* ---- Multi-language chip (Tour settings) ----
+   Read-only summary of detected tour-<code>.json siblings; click opens a
+   popover listing them. Authors never edit this directly, they add/remove
+   files on disk. data-state="solo" = English only (subtle grey);
+   data-state="multi" = alternates detected (accent blue). */
+.lang-chip-wrap { position: relative; }
+.lang-chip {
+  appearance: none;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 999px;
+  font: inherit; font-size: 11px; font-weight: 800; letter-spacing: .04em;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+.lang-chip:hover { background: var(--panel); color: var(--ink); }
+.lang-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lang-chip[data-state="multi"] {
+  background: rgba(0, 113, 220, .12);
+  border-color: rgba(0, 113, 220, .4);
+  color: var(--accent);
+}
+.lang-chip[data-state="multi"]:hover { background: rgba(0, 113, 220, .2); }
+
+.lang-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+  min-width: 220px; max-width: 300px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: 12px;
+}
+/* Match-specificity guard so the browser's default [hidden]{display:none}
+   wins over any future `.lang-pop { display: ...; }` rule. */
+.lang-pop[hidden] { display: none; }
+.lang-pop-title { margin: 0 0 8px; font-size: 12px; font-weight: 800; color: var(--ink); letter-spacing: .01em; }
+.lang-pop-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.lang-pop-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 6px 8px; border-radius: 6px;
+  background: var(--panel-soft);
+}
+.lang-pop-name { font-weight: 700; color: var(--ink); }
+.lang-pop-meta { font-size: 11px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.lang-pop-hint { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }

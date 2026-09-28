@@ -22,6 +22,36 @@ export function bindDismissibleModal(modalEl, closeBtnEl) {
   return { open, close };
 }
 
+/**
+ * Wire a toolbar dropdown: a trigger button that toggles a menu, closing on
+ * outside-click, Escape, or after any click inside the menu (so picking an item
+ * both fires its own handler and dismisses). Keeps aria-expanded in sync.
+ *
+ * @param {HTMLElement} triggerEl the burger/menu button
+ * @param {HTMLElement} menuEl    the <div role="menu" hidden> it controls
+ */
+export function bindDropdownMenu(triggerEl, menuEl) {
+  const isOpen = () => !menuEl.hidden;
+  const setOpen = (open) => {
+    menuEl.hidden = !open;
+    triggerEl.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+  const close = () => setOpen(false);
+  triggerEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setOpen(!isOpen());
+  });
+  // Clicking an item runs its handler, then closes the menu.
+  menuEl.addEventListener("click", () => setTimeout(close, 0));
+  document.addEventListener("click", (e) => {
+    if (isOpen() && !menuEl.contains(e.target) && e.target !== triggerEl) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isOpen()) close();
+  });
+  return { close };
+}
+
 export function miniBtn(text, title, onClick, disabled = false) {
   const b = document.createElement("button");
   b.type = "button";

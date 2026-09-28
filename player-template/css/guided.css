@@ -210,11 +210,17 @@
   margin: 0 0 0.5rem;
   font: 700 1.6rem/1.2 system-ui, sans-serif;
 }
-.guided-complete__msg {
+..guided-complete__msg {
   margin: 0 0 1.3rem;
   font: 400 1.05rem/1.5 system-ui, sans-serif;
   color: #444;
   white-space: pre-wrap;
+}
+/* LMS-only "you're done, close the window" line — a touch smaller/softer than
+   the author's main completion message, and always visible above the button. */
+.guided-complete__instr {
+  font-size: 0.95rem;
+  color: #666;
 }
 
 @media (max-width: 480px) {
@@ -253,13 +259,19 @@
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
+/* Extra top clearance when the language dropdown is present (see
+   .has-lang-toggle applied in guided.js) so the corner chip never crowds
+   the title underneath it. */
+.guided-start__card.has-lang-toggle {
+  padding-top: 4.4rem;
+}
 .guided-start__title {
   margin: 0 0 1.5rem;
   font: 700 clamp(1.6rem, 4vw, 2.2rem)/1.2 system-ui, sans-serif;
 }
 .guided-start__list {
   list-style: none;
-  margin: 0 auto 2rem;
+  margin: 0 auto 1rem;
   padding: 0;
   max-width: 32rem;
   text-align: left;
@@ -279,6 +291,56 @@
   left: 0.25rem;
   color: #0071dc; /* Walmart blue */
   font-weight: 700;
+}
+/* Plain paragraph lines (any welcomeBody line that ISN'T "- bulleted") sit
+   in the same text column as the bullet list, so mixed content lines up. */
+.guided-start__para {
+  margin: 0 auto 1rem;
+  max-width: 32rem;
+  text-align: left;
+  font: 400 1.1rem/1.5 system-ui, sans-serif;
+  color: #16181d;
+}
+.guided-start__body > .guided-start__para:last-child,
+.guided-start__body > .guided-start__list:last-child {
+  margin-bottom: 2rem; /* breathing room before the Start button */
+}
+/* Language picker — only rendered when the tour has >1 language variant.
+   This is the SAME reusable dropdown component as the free-roam header
+   toggle (js/language-toggle.js), just repositioned into the card's top-
+   right corner and restyled here for a light surface (the header version is
+   white-on-dark-glass, which would be invisible on this white card). Scoped
+   under .guided-start__langhost so these overrides never leak onto the
+   header's own dropdown. */
+.guided-start__card { position: relative; }
+.guided-start__langhost {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.3rem;
+}
+.guided-start__langhost .lang-toggle-trigger {
+  background: #f3f5f7;
+  color: #16181d;
+  border: 1px solid #d9dee4;
+}
+.guided-start__langhost .lang-toggle-trigger:hover { background: #e9ecef; }
+.guided-start__langhost .lang-toggle.is-open .lang-toggle-trigger { background: #e2e6ea; }
+.guided-start__langhost .lang-toggle-menu {
+  background: #fff;
+  border: 1px solid #d9dee4;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.guided-start__langhost .lang-toggle-option { color: #16181d; }
+.guided-start__langhost .lang-toggle-option:hover,
+.guided-start__langhost .lang-toggle-option:focus-visible { background: #f0f2f4; }
+.guided-start__langhost .lang-toggle-option.is-active { color: #0071dc; }
+/* Give the title breathing room on narrow cards so the corner chip never
+   overlaps the (centered) text. */
+@media (max-width: 420px) {
+  .guided-start__langhost { position: static; display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
+  /* Toggle is back in normal flow above, so the extra top padding from
+     .has-lang-toggle would just be dead space — drop it back to normal. */
+  .guided-start__card.has-lang-toggle { padding-top: 2.4rem; }
 }
 .guided-start__btn {
   appearance: none;

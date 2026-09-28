@@ -8,8 +8,13 @@ import { listRecent, forgetProject } from "./project-store.js";
 
 export function mountOverlays($, h) {
   const welcome = $("welcome");
+  const welcomeClose = $("welcome-close");
   const recentList = $("welcome-recent");
   const imageModal = $("image-modal");
+
+  // "Back to tour" is only meaningful once a tour is loaded (Home reopened it).
+  const canClose = () => !!h.isTourLoaded?.();
+  welcomeClose?.addEventListener("click", () => { if (canClose()) hideWelcome(); });
 
   /* ---------------- Welcome screen ---------------- */
   $("welcome-new").addEventListener("click", async () => {
@@ -69,7 +74,11 @@ export function mountOverlays($, h) {
     return li;
   }
 
-  function showWelcome() { welcome.hidden = false; renderRecent(); }
+  function showWelcome() {
+    welcome.hidden = false;
+    if (welcomeClose) welcomeClose.hidden = !canClose(); // show "back to tour" only when there's a tour
+    renderRecent();
+  }
   function hideWelcome() { welcome.hidden = true; }
 
   /* ---------------- Images modal ---------------- */
@@ -91,8 +100,10 @@ export function mountOverlays($, h) {
   /* ---------------- Global Escape ---------------- */
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    if (!imageModal.hidden) closeImageModal();
-    // Welcome stays put — the user picks an action to leave it.
+    if (!imageModal.hidden) { closeImageModal(); return; }
+    // Welcome: Escape returns to the tour ONLY if one is loaded; otherwise the
+    // user must pick an action (can't dismiss into an empty builder).
+    if (!welcome.hidden && canClose()) hideWelcome();
   });
 
   return { showWelcome, hideWelcome, renderRecent, openImageModal, closeImageModal };

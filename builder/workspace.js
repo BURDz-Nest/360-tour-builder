@@ -5,7 +5,7 @@
 // behaviour it needs (dependency injection), so the file-system UI lives in one
 // cohesive place instead of bloating builder.js.
 
-import * as fs from "./fs-workspace.js?v=3";
+import * as fs from "./fs-workspace.js?v=6";
 import { rememberProject } from "./project-store.js";
 
 export function createWorkspace(ctx) {
@@ -13,7 +13,7 @@ export function createWorkspace(ctx) {
     state, $, toast, getScene, validateTour,
     createEmptyTour, createScene,
     updateScene, renderAll, selectScene, updatePreview, cancelPlacing,
-    resolver,
+    resolver, onTourLoaded,
   } = ctx;
 
   // Image-modal mode. ASSIGN (default, opened via "Images…") = clicking a
@@ -37,19 +37,28 @@ export function createWorkspace(ctx) {
     try {
       const raw = await fs.readTourJson(dirHandle);
       if (raw) {
-        const { ok, tour } = validateTour(raw);
+        const { ok, tour, errors } = validateTour(raw);
         if (ok) {
           state.tour = tour;
           state.currentSceneId = tour.scenes[0]?.id || null;
+        } else {
+          // A tour.json exists but didn't validate -> tell the user WHY instead
+          // of silently opening an empty builder (the old confusing behavior).
+          toast(
+            "Opened the folder, but its tour.json didn't match the expected " +
+              `format${errors?.length ? ": " + errors[0] : ""}. Try \u201cImport tour.json\u201d.`,
+            true
+          );
         }
       }
     } catch (e) {
-      toast(`Folder opened, but its tour.json looks invalid: ${e.message}`, true);
+      toast(`Folder opened, but its tour.json couldn't be read: ${e.message}`, true);
     }
     if (name && !state.tour.meta.title) state.tour.meta.title = name;
     renderAll();
-    selectScene(state.currentSceneId); // null is fine — blanks viewer + shows empty message
+    selectScene(state.currentSceneId); // null is fine - blanks viewer + shows empty message
     rememberProject(dirHandle.name, dirHandle);
+    onTourLoaded?.(); // reset autosave baseline to the just-loaded state
     refreshImageGrid();
   }
 
@@ -63,12 +72,23 @@ export function createWorkspace(ctx) {
     updatePreview(); // blank the viewfinder + show "Add images" message
   }
 
-  async function handleNewTour() {
+async function handleNewTour() {
+    // Pick the folder FIRST, while we still have the click's user activation.
+    // (prompt() below consumes the gesture, so calling the picker after it
+    // intermittently fails with "Must be handling a user gesture".)
+    let parent;
+    try {
+      parent = await fs.pickDirectory();
+    } catch (e) {
+      if (e.name === "AbortError") return false; // user cancelled the picker
+      toast(e.message, true);
+      return false;
+    }
     const name = (prompt("Name your new tour (e.g. \u201cStore 1234 Frontend\u201d):") || "").trim();
     if (!name) return false;
     try {
       toast("Creating tour folder + copying runtime\u2026");
-      const { dirHandle } = await fs.newTour(name, (d, t) => toast(`Copying runtime ${d}/${t}\u2026`));
+      const { dirHandle } = await fs.newTour(name, parent, (d, t) => toast(`Copying runtime ${d}/${t}\u2026`));
       resetTour();
       await adoptWorkspace(dirHandle, name);
       toast(`Created \u201c${name}\u201d. Drag your 360 photos into the Images panel.`);
@@ -273,21 +293,9 @@ export function createWorkspace(ctx) {
     return { created: fresh.length, firstId };
   }
 
-  /** Create scenes for any folder images that aren't used yet (non-destructive). */
-  async function addAllImagesAsScenes() {
-    if (!state.dirHandle) return toast("Create or open a tour folder first.", true);
-    const names = await fs.listImageNames(state.dirHandle);
-    if (!names.length) return toast("No images in this tour yet \u2014 add some first.", true);
-    const { created, firstId } = appendScenesForImages(names, inAddMode() ? imageTarget : null);
-    if (!created) return toast("All images are already used by scenes.");
-    renderAll();
-    if (firstId) selectScene(firstId);
-    toast(`Created ${created} new scene(s) from images.`);
-  }
-
   return {
     handleNewTour, handleOpenTour, openRecent, handleAddImages,
-    addAllImagesAsScenes, bindFolder, refreshImageGrid, handleOptimize,
+    bindFolder, refreshImageGrid, handleOptimize,
     setAssignMode, setAddTarget, hasFolder: () => !!state.dirHandle,
   };
 }

@@ -10,10 +10,37 @@
  */
 
 import { miniBtn } from "./ui-dom.js";
-import { resolveGroupEntryScene } from "../player-template/js/tour-model.js?v=3";
+import { resolveGroupEntryScene } from "../player-template/js/tour-model.js?v=4";
 
 const COLLAPSE_KEY = "builder-collapsed-groups";
 const UNGROUPED = "__ungrouped__";
+
+// Inline SVG glyphs for the per-bubble controls. SVG (not emoji/font glyphs) so
+// they render identically everywhere, theme via currentColor, and survive the
+// repo's no-emoji rule. viewBox 24 unless noted.
+const ICON = {
+  pencil:
+    '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  gear:
+    '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  trash:
+    '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  chevron:
+    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>',
+};
+
+/** Build an icon-only control button used inside a scene bubble. */
+function iconBtn(svg, title, onClick, { extraClass = "", disabled = false } = {}) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "scene-item__ctl" + (extraClass ? " " + extraClass : "");
+  b.title = title;
+  b.setAttribute("aria-label", title);
+  b.innerHTML = svg;
+  b.disabled = disabled;
+  b.addEventListener("click", (e) => { e.stopPropagation(); onClick(e); });
+  return b;
+}
 
 /**
  * @param {object} cfg
@@ -25,7 +52,9 @@ const UNGROUPED = "__ungrouped__";
  * @param {object} cfg.actions  {
  *   onSelect, onAddScene(groupId), onAddGroup,
  *   onRenameGroup(id, name), onDeleteGroup(id), onSetColor(id, color),
- *   onMoveToGroup(sceneId, groupId, beforeSceneId), onSetEntry(groupId, sceneId)
+ *   onMoveToGroup(sceneId, groupId, beforeSceneId), onSetEntry(groupId, sceneId),
+ *   onRenameScene(sceneId, name), onOpenSettings(sceneId),
+ *   onSetStart(sceneId), onDeleteScene(sceneId)
  * }
  */
 export function createSceneList({
@@ -52,6 +81,7 @@ export function createSceneList({
   function renderSection(group, members, tour, currentId) {
     const key = group ? group.id : UNGROUPED;
     const isOpen = !collapsed.has(key);
+    const hasGroups = tour.groups.length > 0;
 
     const section = document.createElement("div");
     section.className = "scene-group" + (isOpen ? "" : " is-collapsed");
@@ -77,6 +107,15 @@ export function createSceneList({
     add.addEventListener("click", () => actions.onAddScene(group ? group.id : null));
     body.append(add);
 
+    // Once the tour uses groups, uncategorized scenes aren't shown to visitors,
+    // so their "start scene" star is meaningless - warn + disable it.
+    if (!group && hasGroups && members.length) {
+      const warn = document.createElement("p");
+      warn.className = "scene-group__warn";
+      warn.textContent = "Uncategorized scenes aren\u2019t used in grouped tours.";
+      body.append(warn);
+    }
+
     // Entry star has two states so it survives reordering:
     //   explicitId - the scene the author PINNED (gold star, sticks to that
     //                scene through any reorder because it's keyed by id)
@@ -89,7 +128,7 @@ export function createSceneList({
     const defaultId = group && !explicitId ? resolveGroupEntryScene(tour, group.id)?.id : null;
     const entry = { explicitId, defaultId };
     members.forEach((scene) =>
-      body.append(renderRow(scene, tour, currentId, group, entry))
+      body.append(renderRow(scene, tour, currentId, group, entry, hasGroups))
     );
     if (group && !members.length) {
       const empty = document.createElement("p");
@@ -198,9 +237,10 @@ export function createSceneList({
     input.addEventListener("blur", () => commit(true));
   }
 
-  function renderRow(scene, tour, currentId, group, entry) {
+  function renderRow(scene, tour, currentId, group, entry, hasGroups) {
     const row = document.createElement("div");
     row.className = "scene-item" + (scene.id === currentId ? " is-active" : "");
+    row.dataset.sceneId = scene.id;
     // Tint each row with its area's color (left accent) for at-a-glance grouping.
     if (group && group.color) {
       row.classList.add("has-accent");
@@ -214,12 +254,33 @@ export function createSceneList({
     handle.title = "Drag to reorder / move between areas";
     handle.textContent = "\u2630";
 
-    row.append(
+    // Compact top line: handle + thumb + name, then the star and a chevron on
+    // the far right. The chevron expands the pencil/gear/trash row below.
+    const main = document.createElement("div");
+    main.className = "scene-item__main";
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "scene-item__toggle";
+    toggle.title = "Scene options";
+    toggle.setAttribute("aria-label", "Scene options");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.innerHTML = ICON.chevron;
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = row.classList.toggle("is-expanded");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
+    main.append(
       handle,
       renderThumb(scene),
-      renderBody(scene, tour),
-      renderControls(scene, group, entry)
+      renderBody(scene),
+      renderStar(scene, tour, group, entry, hasGroups),
+      toggle
     );
+
+    row.append(main, renderControls(scene));
     return row;
   }
 
@@ -243,15 +304,14 @@ export function createSceneList({
     return thumb;
   }
 
-  function renderBody(scene, tour) {
-    const isStart = scene.id === tour.meta.startSceneId;
+function renderBody(scene) {
     const body = document.createElement("button");
     body.type = "button";
     body.className = "scene-item__body";
 
     const nameLine = document.createElement("span");
     nameLine.className = "scene-item__name";
-    nameLine.textContent = (isStart ? "[start] " : "") + (scene.name || "(unnamed)");
+    nameLine.textContent = scene.name || "(unnamed)";
 
     const meta = document.createElement("span");
     meta.className = "scene-item__meta";
@@ -263,18 +323,29 @@ export function createSceneList({
     return body;
   }
 
-  function renderControls(scene, group, entry) {
-    const controls = document.createElement("span");
+  /** The collapsible action row (revealed by the chevron): pencil / gear / trash. */
+  function renderControls(scene) {
+    const controls = document.createElement("div");
     controls.className = "scene-item__controls";
-    // Area entry star (grouped scenes only). Two visuals so it survives reorder:
-    //   gold filled  -> this scene is the PINNED entry (sticks to the scene)
-    //   faint filled -> auto default (first scene) when nothing is pinned
-    //   hollow       -> not the entry; click to pin
+    controls.append(
+      iconBtn(ICON.pencil, "Rename scene", () => beginSceneRename(scene)),
+      iconBtn(ICON.gear, "Scene settings", () => actions.onOpenSettings(scene.id)),
+      iconBtn(ICON.trash, "Delete scene", () => actions.onDeleteScene(scene.id), {
+        extraClass: "scene-item__ctl--danger",
+      })
+    );
+    return controls;
+  }
+
+  /** The star button - area-entry for grouped scenes, start-scene for ungrouped. */
+  function renderStar(scene, tour, group, entry, hasGroups) {
+    const star = document.createElement("button");
+    star.type = "button";
+
     if (group) {
+      // ---- existing area-entry logic (untouched) ----
       const isPinned = entry.explicitId && scene.id === entry.explicitId;
       const isDefault = !entry.explicitId && scene.id === entry.defaultId;
-      const star = document.createElement("button");
-      star.type = "button";
       star.className =
         "scene-item__star" +
         (isPinned ? " is-entry" : "") +
@@ -286,12 +357,55 @@ export function createSceneList({
           ? "Default entry (first scene). Click to pin this scene so it stays the entry when you reorder."
           : "Set as this area's entry scene";
       star.setAttribute("aria-pressed", isPinned ? "true" : "false");
-      star.addEventListener("click", () =>
-        actions.onSetEntry(group.id, scene.id === group.entrySceneId ? "" : scene.id)
-      );
-      controls.append(star);
+      star.addEventListener("click", (e) => {
+        e.stopPropagation();
+        actions.onSetEntry(group.id, scene.id === group.entrySceneId ? "" : scene.id);
+      });
+      return star;
     }
-    return controls;
+
+    // ---- ungrouped: global start-scene toggle ----
+    const isStart = scene.id === tour.meta.startSceneId;
+    star.className = "scene-item__star" + (isStart ? " is-entry" : "");
+    star.textContent = isStart ? "\u2605" : "\u2606";
+    star.setAttribute("aria-pressed", isStart ? "true" : "false");
+    if (hasGroups) {
+      star.disabled = true;
+      star.title = "Uncategorized scenes aren\u2019t used in grouped tours";
+    } else {
+      star.title = isStart ? "This is the start scene" : "Set as the tour's start scene";
+      star.addEventListener("click", (e) => {
+        e.stopPropagation();
+        actions.onSetStart(scene.id);
+      });
+    }
+    return star;
+  }
+
+  /** Swap a scene bubble's body for an inline text input; Enter/blur save, Esc cancels. */
+  function beginSceneRename(scene) {
+    const row = listEl.querySelector(`.scene-item[data-scene-id="${scene.id}"]`);
+    const body = row?.querySelector(".scene-item__body");
+    if (!body) return;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "scene-item__rename field__input";
+    input.value = scene.name || "";
+    body.replaceWith(input);
+    input.focus();
+    input.select();
+    let done = false;
+    const commit = (save) => {
+      if (done) return; // guard the Enter-then-blur double fire
+      done = true;
+      if (save) actions.onRenameScene(scene.id, input.value); // re-renders the list
+      else render();
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); commit(true); }
+      else if (e.key === "Escape") { e.preventDefault(); commit(false); }
+    });
+    input.addEventListener("blur", () => commit(true));
   }
 
   /* ---- drag & drop (scene id based; works across sections) ---- */

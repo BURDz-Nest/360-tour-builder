@@ -33,6 +33,58 @@
 .player-bar__share:hover { background: rgba(255,255,255,0.15); }
 .player-bar__share:focus-visible { outline: 2px solid #5b8cff; outline-offset: 2px; }
 
+/* ---- Language toggle (multi-language tours only) ----
+   Mounted by language-toggle.js into #lang-toggle-host, a normal flex item in
+   the header (unlike ATLAS Coach's version, which floats fixed over a
+   welcome screen — this player has no discrete "screens" to hide behind, so
+   it just sits in the bar next to the other buttons). */
+.lang-toggle { position: relative; }
+.lang-toggle-trigger {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px;
+  font: inherit; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer;
+}
+.lang-toggle-trigger:hover { background: rgba(255,255,255,0.15); }
+.lang-toggle-trigger:focus-visible { outline: 2px solid #5b8cff; outline-offset: 2px; }
+.lang-toggle.is-open .lang-toggle-trigger { background: rgba(255,255,255,0.18); }
+.lang-toggle-caret { font-size: 0.7rem; opacity: 0.85; transition: transform 0.15s ease; }
+.lang-toggle.is-open .lang-toggle-caret { transform: rotate(180deg); }
+.lang-toggle-menu {
+  list-style: none;
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+  min-width: 100%;
+  margin: 0; padding: 5px;
+  background: rgba(31,35,43,0.95);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  display: flex; flex-direction: column; gap: 2px;
+}
+/* Match-specificity guard so [hidden] wins over the flex rule above (same
+   trick used elsewhere in this file for .player-loading/.player-error). */
+.lang-toggle-menu[hidden] { display: none; }
+.lang-toggle-option {
+  padding: 0.45rem 0.8rem;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.lang-toggle-option:hover, .lang-toggle-option:focus-visible {
+  outline: none;
+  background: rgba(255,255,255,0.10);
+}
+.lang-toggle-option.is-active { color: #ffc220; font-weight: 700; }
+.lang-toggle-option.is-active::after { content: " \2713"; margin-left: 6px; }
+
 /* ---- Areas dropdown (fast-travel between groups) ---- */
 /* Floats just under the title bar, over the panorama, with a see-through pill. */
 .areas-menu { position: absolute; top: 0.7rem; left: 0.7rem; z-index: 40; }

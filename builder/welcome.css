@@ -11,15 +11,21 @@
 }
 .welcome[hidden] { display: none; }
 .welcome__panel {
+  position: relative;
   background: var(--panel);
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-  width: min(560px, 100%);
+  width: min(960px, 100%);
   max-height: 88vh; overflow: auto;
   padding: 2rem;
 }
 .welcome__brand { margin: 0; font-size: 1.7rem; color: var(--ink); }
 .welcome__tagline { margin: 0.4rem 0 1.5rem; color: var(--muted); font-size: 0.95rem; }
+/* "Back to tour" close button — only shown when Home is opened over a loaded tour. */
+.welcome__close {
+  position: absolute; top: 0.6rem; right: 0.6rem;
+  font-size: 1.3rem; line-height: 1; width: 2rem; height: 2rem;
+}
 .welcome__actions { display: grid; gap: 0.75rem; grid-template-columns: 1fr 1fr; }
 @media (max-width: 480px) { .welcome__actions { grid-template-columns: 1fr; } }
 .welcome__action {
@@ -49,4 +55,63 @@
 }
 .welcome-recent__remove:hover { color: var(--danger); border-color: var(--danger); }
 .welcome__import { margin: 1.5rem 0 0; }
+
+/* Two-column body: project chooser on the left, setup tips aside on the right.
+   Collapses to a single column on narrow screens (mobile / small windows). */
+.welcome__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.welcome__main { min-width: 0; }
+@media (max-width: 820px) {
+  .welcome__cols { grid-template-columns: 1fr; gap: 1.25rem; }
+}
+
+/* Setup tips aside — a subtle sibling panel next to the project chooser. */
+.welcome__tips {
+  background: var(--panel-soft, rgba(0, 113, 220, 0.06));
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.1rem 1.15rem;
+  display: grid;
+  gap: 1rem;
+}
+.welcome__tips-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.welcome__tip { display: grid; gap: 0.3rem; }
+.welcome__tip-title {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.welcome__tip p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink-soft, var(--ink));
+}
+.welcome__tip code {
+  background: rgba(0, 113, 220, 0.12);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.82em;
+}
+.welcome__tip-steps {
+  margin: 0.15rem 0 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink-soft, var(--ink));
+}
+.welcome__tip-steps li::marker { color: var(--muted); font-weight: 600; }
 

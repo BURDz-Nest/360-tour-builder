@@ -11,7 +11,7 @@
  * (polygon hotspots authored by dragging corner handles in the preview).
  */
 
-import { MARKER_TYPES, MARKER_SHAPES } from "../player-template/js/tour-model.js?v=3";
+import { MARKER_TYPES, MARKER_SHAPES } from "../player-template/js/tour-model.js?v=4";
 
 /**
  * @param {object} ctx
@@ -140,11 +140,11 @@ export function createMarkerActions({
     viewer.renderMarkers(scene.markers); // re-draw polygon + handles
   }
 
-  /** Commit a whole-zone body drag: replace all corner points (DEGREES). */
+  /** Commit a whole zone drag: replace ALL points with their translated set. */
   function moveZone(id, points) {
     const scene = currentScene();
     const m = scene?.markers.find((x) => x.id === id);
-    if (!m || !Array.isArray(points)) return;
+    if (!m || !Array.isArray(points) || !points.length) return;
     m.points = points.map((p) => ({ yaw: p.yaw, pitch: p.pitch }));
     viewer.renderMarkers(scene.markers); // re-draw polygon + handles
   }

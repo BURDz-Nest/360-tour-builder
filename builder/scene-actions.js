@@ -7,7 +7,7 @@
  * (callers do that via the actions bag).
  */
 
-import { createScene, createMarker } from "../player-template/js/tour-model.js?v=3";
+import { createScene, createMarker } from "../player-template/js/tour-model.js?v=4";
 
 /** Deep-copy a marker but assign a fresh id (so the copy can coexist). */
 export function cloneMarkerWithNewId(m) {

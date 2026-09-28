@@ -55,7 +55,11 @@
 }
 .mini-btn:hover:not(:disabled) { background: var(--panel-soft); }
 .mini-btn:disabled { opacity: 0.4; cursor: default; }
-.mini-btn--danger { color: var(--danger); border-color: var(--danger-border); }
+/* Destructive variant (e.g. Delete hotspot) — red text + border. */
+.mini-btn--danger {
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
 .mini-btn--danger:hover:not(:disabled) { background: var(--danger-bg); }
 
 /* ============ Builder layout ============ */
@@ -68,21 +72,77 @@
   padding: 0.6rem 1rem;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
+  position: relative;
+  z-index: 10; /* keep the burger dropdown above the builder panels below */
 }
 .topbar__brand { font-size: 1.05rem; font-weight: 700; margin: 0; }
 .topbar__brand small { color: var(--muted); font-weight: 500; }
+/* Vertical rule + breathing room between the brand and the toolbar controls. */
+.topbar__divider {
+  width: 1px; align-self: stretch; min-height: 22px;
+  background: var(--line); margin: 0 0.35rem;
+}
 .topbar__spacer { flex: 1; }
+
+/* Burger dropdown (Home / Add Images / Import tour.json). */
+.menu-wrap { position: relative; display: inline-flex; }
+#btn-menu::before { content: "\2630"; font-size: 1.05rem; line-height: 1; }
+.menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+  min-width: 190px; padding: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  display: flex; flex-direction: column;
+}
+.menu[hidden] { display: none; }
+.menu__item {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; color: var(--ink);
+  padding: 8px 12px; border-radius: 6px; font: inherit; font-size: 0.9rem;
+  cursor: pointer;
+}
+.menu__item:hover { background: var(--panel-soft); }
+
+/* Autosave readout in the top bar (e.g. "All changes saved"). */
+.save-status {
+  font-size: 0.8rem; color: var(--muted); white-space: nowrap;
+  margin-right: 0.25rem; min-width: 6.5rem; text-align: right;
+}
+/* Status dot: green when saved, amber while saving, red on error. Hidden when idle/blank. */
+.save-status--saving, .save-status--saved, .save-status--error { color: var(--ink-soft); }
+.save-status--saving::before, .save-status--saved::before, .save-status--error::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 6px; vertical-align: middle;
+}
+.save-status--saved { color: var(--muted); }
+.save-status--saved::before { background: #2a8703; } /* Walmart success green */
+.save-status--saving::before { background: #ffc220; } /* Walmart spark (amber) */
+.save-status--error { color: var(--danger); }
+.save-status--error::before { background: var(--danger); }
 
 .builder-main {
   display: grid;
-  grid-template-columns: 280px 1fr 340px;
+  grid-template-columns: var(--left-w, 280px) 6px 1fr 6px var(--right-w, 340px);
   gap: 0;
   height: calc(100vh - 53px);
   position: relative;
   z-index: 0; /* own stacking context: child z-indexes can't escape over modals */
 }
+/* Draggable splitters between the three columns (resize left + right panels). */
+.col-resizer {
+  cursor: col-resize;
+  background: var(--line);
+  opacity: 0.35;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+.col-resizer:hover, .col-resizer.is-dragging {
+  opacity: 1;
+  background: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) { .col-resizer { transition: none; } }
 @media (max-width: 980px) {
   .builder-main { grid-template-columns: 1fr; height: auto; overflow: auto; }
+  .col-resizer { display: none; }
 }
 
 .col {
@@ -185,8 +245,12 @@
   position: fixed;
   bottom: 18px; left: 50%;
   transform: translateX(-50%) translateY(20px);
-  background: var(--ink);
-  color: #fff;
+  /* Fixed high-contrast chip so it stays readable in BOTH light and dark
+     themes. (Previously used var(--ink), which is near-white in dark mode ->
+     white-on-white.) The border keeps it distinct from a dark app background. */
+  background: #23262b;
+  color: #f5f7fa;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   padding: 0.6rem 1rem;
   border-radius: 8px;
   box-shadow: var(--shadow);
@@ -197,7 +261,7 @@
   max-width: 90vw;
 }
 .toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.is-error { background: var(--danger); }
+.toast.is-error { background: #b42318; color: #fff; border-color: rgba(255, 255, 255, 0.18); }
 
 /* ============ Builder hotspot pins (preview) ============ */
 /* Builder pins reuse the shared .tour-marker system (see below) —
@@ -222,7 +286,7 @@
 .builder-pin.is-selected .tour-marker__ring { animation-play-state: paused; }
 
 /* ---- Builder: workspace bar + image panel (Chrome/Edge FS workspace) ---- */
-#workspace-bar { display: inline-flex; gap: 0.5rem; }
+#history-bar { display: inline-flex; gap: 0.35rem; }
 .image-panel {
   border: 2px dashed var(--border, #c9ccd2);
   border-radius: 10px;
@@ -294,8 +358,8 @@
 
 /* ---- Read-only field (derived values: panorama path, etc.) ---- */
 .field__input--readonly {
-  background: var(--bg);
-  color: var(--ink-soft);
+  background: #eef1f5;
+  color: #4a4f57;
   cursor: default;
 }
 

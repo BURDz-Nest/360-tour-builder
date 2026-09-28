@@ -1,0 +1,27 @@
+/*
+ * rich-text-toolbar.css — tiny formatting toolbar for the Welcome instructions
+ * textarea (Tour settings > Guided experience). Split into its own file
+ * rather than growing builder-panels.css past its line-count ceiling; also
+ * keeps this genuinely reusable if another textarea ever wants the same
+ * bold/bullet affordance.
+ */
+.rte-toolbar {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.3rem 0 0.4rem;
+}
+.rte-btn {
+  appearance: none;
+  cursor: pointer;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+.rte-btn:hover { background: var(--panel); border-color: var(--accent); }
+.rte-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rte-btn strong { font-weight: 800; }

@@ -107,14 +107,45 @@ export function createIconPicker({ type, iconId, onChange }) {
       tile.classList.toggle("is-active", tile.dataset.iconId === currentIconId());
     });
     grid.hidden = false;
-    positionGrid();
+    positionGrid(); // float it (and flip above if there's no room below)
     trigger.setAttribute("aria-expanded", "true");
     document.addEventListener("click", onDocClick, true);
     document.addEventListener("keydown", onKey);
-    // Keep the popup glued to the trigger while the panel/window scrolls.
-    // Capture phase so inner scroll containers (.editor-scroll) are caught too.
+    // Keep the popover glued to the trigger as the panel/page scrolls or resizes.
     window.addEventListener("scroll", positionGrid, true);
     window.addEventListener("resize", positionGrid);
+  }
+
+  /**
+   * Float the grid as a fixed-position popover anchored to the trigger row so it
+   * escapes the scrollable editor panel (which used to clip it). Opens downward
+   * by default; flips above when there isn't enough room below.
+   */
+  function positionGrid() {
+    const r = row.getBoundingClientRect();
+    const gap = 4;
+    const vh = window.innerHeight;
+    const spaceBelow = vh - r.bottom - gap;
+    const spaceAbove = r.top - gap;
+
+    // Measure natural height (unclamped) to decide direction + cap.
+    grid.style.maxHeight = "none";
+    const desired = grid.scrollHeight;
+    const openUp = spaceBelow < Math.min(desired, 240) && spaceAbove > spaceBelow;
+    const avail = openUp ? spaceAbove : spaceBelow;
+
+    grid.style.position = "fixed";
+    grid.style.left = `${r.left}px`;
+    grid.style.width = `${r.width}px`;
+    grid.style.right = "auto";
+    grid.style.maxHeight = `${Math.max(120, Math.min(desired, avail))}px`;
+    if (openUp) {
+      grid.style.top = "auto";
+      grid.style.bottom = `${vh - r.top + gap}px`;
+    } else {
+      grid.style.bottom = "auto";
+      grid.style.top = `${r.bottom + gap}px`;
+    }
   }
 
   function closeGrid() {
@@ -124,36 +155,6 @@ export function createIconPicker({ type, iconId, onChange }) {
     document.removeEventListener("keydown", onKey);
     window.removeEventListener("scroll", positionGrid, true);
     window.removeEventListener("resize", positionGrid);
-  }
-
-  /**
-   * Anchor the fixed-position grid to the trigger row. Opens downward when
-   * there's room, otherwise flips above; always clamped inside the viewport so
-   * it can never be cut off by a scroll container (that was the bug).
-   */
-  function positionGrid() {
-    const r = row.getBoundingClientRect();
-    const margin = 8;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const width = Math.max(r.width, 220);
-
-    const spaceBelow = vh - r.bottom - margin;
-    const spaceAbove = r.top - margin;
-    const openDown = spaceBelow >= 200 || spaceBelow >= spaceAbove;
-    const maxH = Math.max(120, Math.min(288, openDown ? spaceBelow : spaceAbove));
-
-    const left = Math.max(margin, Math.min(r.left, vw - width - margin));
-    grid.style.width = width + "px";
-    grid.style.left = left + "px";
-    grid.style.maxHeight = maxH + "px";
-    if (openDown) {
-      grid.style.top = r.bottom + 4 + "px";
-      grid.style.bottom = "auto";
-    } else {
-      grid.style.top = "auto";
-      grid.style.bottom = vh - r.top + 4 + "px";
-    }
   }
 
   function onDocClick(e) {

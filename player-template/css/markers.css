@@ -192,8 +192,11 @@
 .icon-picker__caret { color: var(--muted); font-size: 0.8rem; }
 
 .icon-picker__grid {
-  position: fixed;
-  z-index: 60;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
   gap: 0.4rem;

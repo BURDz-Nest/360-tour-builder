@@ -12,7 +12,7 @@
  * fresh DOM tree.
  */
 
-import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js?v=4";
+import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js?v=5";
 import {
   miniBtn,
   labeledInput,
@@ -20,7 +20,7 @@ import {
   labeledColor,
   labeledCheckbox,
 } from "./ui-dom.js";
-import { createIconPicker } from "./icon-picker.js?v=2";
+import { createIconPicker } from "./icon-picker.js?v=1";
 
 /**
  * @param {object} cfg
@@ -124,12 +124,8 @@ function renderIconRow({ scene, m, selected, scenes, guided, actions }) {
           actions.onUpdate(m.id, { html: v })
         )
   );
-  if (guided && !isLink) details.append(requiredToggle(m, actions));
+if (guided && !isLink) details.append(requiredToggle(m, actions));
 
-  const pos = document.createElement("p");
-  pos.className = "marker-row__pos muted";
-  pos.textContent = `Position: yaw ${m.yaw} deg, pitch ${m.pitch} deg`;
-  details.append(pos);
   return row;
 }
 
@@ -169,12 +165,8 @@ function renderZoneRow({ m, selected, guided, actions }) {
       (on) => actions.onUpdate(m.id, { idleStroke: on })
     )
   );
-  if (guided) details.append(requiredToggle(m, actions));
+if (guided) details.append(requiredToggle(m, actions));
 
-  const hint = document.createElement("p");
-  hint.className = "marker-row__pos muted";
-  hint.textContent = "Selected: drag the zone body to move it, or drag the corner dots to reshape it.";
-  details.append(hint);
   return row;
 }
 
@@ -185,9 +177,9 @@ function rowActions(m, actions, moveable = true) {
   if (moveable) {
     bar.append(miniBtn("Move", "Re-place on sphere", () => actions.onReplace(m.id)));
   }
-  const delBtn = miniBtn("Delete", "Delete hotspot", () => actions.onDelete(m.id));
-  delBtn.classList.add("mini-btn--danger");
-  bar.append(delBtn);
+  const del = miniBtn("Delete", "Delete hotspot", () => actions.onDelete(m.id));
+  del.classList.add("mini-btn--danger"); // destructive action reads red
+  bar.append(del);
   return bar;
 }
 

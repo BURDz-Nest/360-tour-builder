@@ -13,7 +13,7 @@
 
 import { Viewer } from "@photo-sphere-viewer/core";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
-import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js?v=3";
+import { MARKER_TYPES, isZone } from "../player-template/js/tour-model.js?v=4";
 import { degStr, escapeHtml } from "../player-template/js/psv-adapter.js";
 import { renderMarkerHtml } from "../player-template/js/marker-icons.js";
 
@@ -22,7 +22,7 @@ const RAD2DEG = 180 / Math.PI;
 export class BuilderViewer {
   /**
    * @param {HTMLElement} container
-   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id), onMarkerMove(id,yawDeg,pitchDeg), onMarkerDeselect(), onZoneCornerMove(id,cornerIdx,yawDeg,pitchDeg), onZoneMove(id,points) }
+   * @param {object} handlers { onPlace(yawDeg,pitchDeg), onMarkerClick(id), onMarkerMove(id,yawDeg,pitchDeg), onMarkerDeselect(), onZoneCornerMove(id,cornerIdx,yawDeg,pitchDeg) }
    */
   constructor(container, handlers = {}) {
     this.handlers = handlers;
@@ -39,21 +39,10 @@ export class BuilderViewer {
     this.markers = this.viewer.getPlugin(MarkersPlugin);
 
     this.viewer.addEventListener("click", ({ data }) => {
-      if (!data) return;
-      if (this.placeMode) {
-        const yaw = round(normDeg(data.yaw * RAD2DEG));
-        const pitch = round(data.pitch * RAD2DEG);
-        this.handlers.onPlace?.(yaw, pitch);
-        return;
-      }
-      if (this._dragJustHappened) return; // a drop isn't a click
-      // Clicking empty panorama (no marker under the cursor) deselects. We do
-      // this here instead of via PSV's unselect-marker event because zones
-      // re-render when selected, which desyncs PSV's internal selection so it
-      // never fires unselect-marker for them.
-      if (!data.marker && this._selectedMarkerId) {
-        this.handlers.onMarkerDeselect?.();
-      }
+      if (!this.placeMode || !data) return;
+      const yaw = round(normDeg(data.yaw * RAD2DEG));
+      const pitch = round(data.pitch * RAD2DEG);
+      this.handlers.onPlace?.(yaw, pitch);
     });
 
     this.markers.addEventListener("select-marker", ({ marker }) => {
@@ -62,8 +51,32 @@ export class BuilderViewer {
       if (String(marker.id).includes("::corner::")) return;
       // Suppress the click that fires at the end of a drag (otherwise every
       // drop would also re-open the editor / steal focus).
-      if (this._dragJustHappened) return;
+      if (this._dragJustHappened) {
+        this._dragJustHappened = false;
+        return;
+      }
       this.handlers.onMarkerClick?.(marker.id);
+    });
+
+    // PSV fires this when you click empty panorama (or a different marker)
+    // while one is selected. Use it to deselect so the highlight + side-panel
+    // selection clear when you click away.
+    this.markers.addEventListener("unselect-marker", () => {
+      if (this._dragJustHappened) return; // a drop isn't a deselect
+      this.handlers.onMarkerDeselect?.();
+    });
+
+    // Belt-and-suspenders: PSV's own unselect can be flaky when a "click" has
+    // any micro-movement (trackpads) or gets swallowed by our drag handlers.
+    // A plain DOM click on empty canvas is reliable, so deselect here too.
+    // We only act on true background clicks: anything inside a marker
+    // (`.psv-marker` covers pins, zones AND corner handles) or the navbar is
+    // ignored. selectMarker(null) is idempotent, so double-firing is harmless.
+    this.container.addEventListener("click", (e) => {
+      if (this.placeMode || !this._selectedMarkerId) return;
+      const t = e.target;
+      if (t.closest?.(".psv-marker") || t.closest?.(".psv-navbar")) return;
+      this.handlers.onMarkerDeselect?.();
     });
   }
 
@@ -164,77 +177,8 @@ export class BuilderViewer {
     });
     if (selected) {
       this._addZoneHandles(m, color);
-      this._attachZoneBodyDrag(m.id);
+      this._attachZoneBodyDrag(m);
     }
-  }
-
-  /**
-   * Let the author drag the whole selected zone by its BODY (translates every
-   * corner together), in addition to reshaping via the corner handles. Only
-   * wired on the selected zone, so an unselected zone still click-to-selects.
-   */
-  _attachZoneBodyDrag(zoneId) {
-    const el = this.markers.getMarker(zoneId)?.element;
-    if (!el) return;
-    el.style.cursor = "move";
-    el.style.touchAction = "none";
-    // Selected: swallow mousedown/touchstart so PSV doesn't pan while we drag.
-    el.addEventListener("mousedown", (e) => e.stopPropagation());
-    el.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
-    el.addEventListener("pointerdown", (ev) => this._onZoneBodyDown(ev, zoneId));
-  }
-
-  _onZoneBodyDown(ev, zoneId) {
-    if (ev.button !== 0) return; // left-click only
-    ev.stopPropagation();
-    ev.preventDefault();
-    const start = this._clientToSpherical(ev.clientX, ev.clientY);
-    const zone = (this._markerList || []).find((x) => x.id === zoneId);
-    if (!start || !zone || !Array.isArray(zone.points)) return;
-    const origin = zone.points.map((p) => ({ yaw: p.yaw, pitch: p.pitch }));
-    const startX = ev.clientX;
-    const startY = ev.clientY;
-    const DRAG_THRESHOLD_PX = 4;
-    let dragged = false;
-    let latest = null;
-    const targetEl = ev.currentTarget;
-    targetEl.setPointerCapture?.(ev.pointerId);
-    targetEl.style.cursor = "grabbing";
-
-    const onMove = (e) => {
-      if (!dragged && Math.hypot(e.clientX - startX, e.clientY - startY) < DRAG_THRESHOLD_PX) return;
-      dragged = true;
-      const cur = this._clientToSpherical(e.clientX, e.clientY);
-      if (!cur) return;
-      // Rigid translation: apply the same yaw/pitch delta to every corner.
-      const dYaw = normDeg((cur.yawRad - start.yawRad) * RAD2DEG);
-      const dPitch = (cur.pitchRad - start.pitchRad) * RAD2DEG;
-      latest = origin.map((p) => ({
-        yaw: round(normDeg(p.yaw + dYaw)),
-        pitch: round(clampPitch(p.pitch + dPitch)),
-      }));
-      this.markers.updateMarker({
-        id: zoneId,
-        polygon: latest.map((p) => [degStr(p.yaw), degStr(p.pitch)]),
-      });
-      latest.forEach((p, idx) => {
-        this.markers.updateMarker({
-          id: `${zoneId}::corner::${idx}`,
-          position: { yaw: degStr(p.yaw), pitch: degStr(p.pitch) },
-        });
-      });
-    };
-    const onUp = (e) => {
-      targetEl.releasePointerCapture?.(e.pointerId);
-      targetEl.style.cursor = "move";
-      document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerup", onUp);
-      if (!dragged || !latest) return; // no movement -> plain click, keep selection
-      this._suppressNextClick(); // suppress the trailing select click
-      this.handlers.onZoneMove?.(zoneId, latest);
-    };
-    document.addEventListener("pointermove", onMove);
-    document.addEventListener("pointerup", onUp);
   }
 
   /** Drop a draggable dot on each corner of the selected zone. */
@@ -285,8 +229,89 @@ export class BuilderViewer {
       targetEl.style.cursor = "grab";
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
-      this._suppressNextClick(); // suppress the trailing select click
+      this._dragJustHappened = true; // suppress the trailing select click
       if (last) this.handlers.onZoneCornerMove?.(zoneId, idx, last.yawDeg, last.pitchDeg);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  }
+
+  /**
+   * Make the whole selected zone draggable: press inside the polygon body and
+   * drag to translate ALL corners together (was: corner-by-corner only).
+   * Mirrors the icon-pin pattern — only the SELECTED zone's body is grabbable,
+   * and a 4px threshold preserves clean clicks. Corner handles keep their own
+   * pointerdown (they stopPropagation), so grabbing a corner still reshapes.
+   */
+  _attachZoneBodyDrag(m) {
+    const el = this.markers.getMarker(m.id)?.element; // the <path> element
+    if (!el) return;
+    el.style.cursor = "grab";
+    el.style.touchAction = "none";
+    el.addEventListener("mousedown", (e) => e.stopPropagation());
+    el.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+    el.addEventListener("pointerdown", (ev) => this._onZoneBodyDown(ev, m.id));
+  }
+
+  _onZoneBodyDown(ev, zoneId) {
+    if (ev.button !== 0) return;
+    ev.stopPropagation(); // don't let PSV start a camera pan
+    ev.preventDefault();
+    const targetEl = ev.currentTarget;
+    targetEl.setPointerCapture?.(ev.pointerId);
+    targetEl.style.cursor = "grabbing";
+    // Snapshot the zone's starting points; we apply cumulative deltas so the
+    // shape never drifts across many move events.
+    const zone = (this._markerList || []).find((x) => x.id === zoneId);
+    if (!zone) return;
+    const startPts = (zone.points || []).map((p) => ({ yaw: p.yaw, pitch: p.pitch }));
+    let prev = this._clientToSpherical(ev.clientX, ev.clientY);
+    let moved = null;
+    let dragged = false;
+    const startX = ev.clientX;
+    const startY = ev.clientY;
+
+    const onMove = (e) => {
+      if (!dragged && Math.hypot(e.clientX - startX, e.clientY - startY) < 4) return;
+      dragged = true;
+      const cur = this._clientToSpherical(e.clientX, e.clientY);
+      if (!cur || !prev) return;
+      // Accumulate the total drag delta (degrees) from the press point.
+      const dYaw = normDeg((cur.yawRad - prev.yawRad) * RAD2DEG);
+      const dPitch = (cur.pitchRad - prev.pitchRad) * RAD2DEG;
+      moved = (moved || { yaw: 0, pitch: 0 });
+      moved.yaw += dYaw;
+      moved.pitch += dPitch;
+      prev = cur;
+      const pts = startPts.map((p) => ({
+        yaw: normDeg(p.yaw + moved.yaw),
+        pitch: clampPitch(p.pitch + moved.pitch),
+      }));
+      this.markers.updateMarker({
+        id: zoneId,
+        polygon: pts.map((p) => [degStr(p.yaw), degStr(p.pitch)]),
+      });
+      // Keep the corner handles glued to the moving polygon.
+      pts.forEach((p, idx) => {
+        this.markers.updateMarker({
+          id: `${zoneId}::corner::${idx}`,
+          position: { yaw: degStr(p.yaw), pitch: degStr(p.pitch) },
+        });
+      });
+      this._lastZonePts = pts;
+    };
+    const onUp = (e) => {
+      targetEl.releasePointerCapture?.(e.pointerId);
+      targetEl.style.cursor = "grab";
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      if (!dragged || !this._lastZonePts) return;
+      this._dragJustHappened = true; // suppress the trailing select/deselect click
+      this.handlers.onZoneMove?.(zoneId, this._lastZonePts.map((p) => ({
+        yaw: round(p.yaw),
+        pitch: round(p.pitch),
+      })));
+      this._lastZonePts = null;
     };
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
@@ -380,7 +405,7 @@ export class BuilderViewer {
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
       if (!dragged) return; // no movement - treat as a plain click
-      this._suppressNextClick(); // suppress the trailing click
+      this._dragJustHappened = true; // suppress the trailing click
       const sph = this._clientToSpherical(e.clientX, e.clientY);
       if (!sph) return;
       const yawDeg = round(normDeg(sph.yawRad * RAD2DEG));
@@ -399,20 +424,6 @@ export class BuilderViewer {
     const sph = this.viewer.dataHelper.viewerCoordsToSphericalCoords(point);
     if (!sph) return null;
     return { yawRad: sph.yaw, pitchRad: sph.pitch };
-  }
-
-  /**
-   * Mark that a drag just finished so the trailing synthetic click/select is
-   * ignored - then auto-clear on the next frame so a LATER genuine click (e.g.
-   * clicking empty space to deselect) still works. (Previously the flag was
-   * only cleared inside select-marker, which never fires after a swallowed
-   * drag, so it lingered and blocked the next deselect.)
-   */
-  _suppressNextClick() {
-    this._dragJustHappened = true;
-    requestAnimationFrame(() => {
-      this._dragJustHappened = false;
-    });
   }
 
   /**
@@ -487,12 +498,12 @@ function normDeg(deg) {
   return d;
 }
 
-function round(n) {
-  return Math.round(n * 10) / 10;
-}
-
-/** Keep a pitch within the sphere's valid range so a dragged zone can't flip
- *  over the poles. */
+/** Clamp a pitch (degrees) to the valid sphere range so a dragged zone can't
+ *  wrap over the poles into a broken polygon. */
 function clampPitch(deg) {
   return Math.max(-89.9, Math.min(89.9, deg));
+}
+
+function round(n) {
+  return Math.round(n * 10) / 10;
 }

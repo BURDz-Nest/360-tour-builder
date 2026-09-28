@@ -15,27 +15,35 @@ import {
   validateTour,
   MARKER_TYPES,
   MARKER_SHAPES,
-} from "../player-template/js/tour-model.js?v=7";
+} from "../player-template/js/tour-model.js?v=11";
 // NOTE on cache: ES module imports use the URL as the cache key, so adding
 // ?v= here forces a fresh fetch when builder-viewer.js changes. The parent
 // <script src="builder.js?v=NN"> tag's version does NOT cascade to sibling
 // imports. Bump the BUILDER_BUILD constant whenever a builder/*.js file ships
 // behaviour-changing edits so users don't run stale modules from cache.
-const BUILDER_BUILD = "61";
-import { BuilderViewer } from "./builder-viewer.js?v=40";
-import { renderMarkerRow } from "./marker-row.js?v=47";
+const BUILDER_BUILD = "73";
+import { BuilderViewer } from "./builder-viewer.js?v=39";
+import { renderMarkerRow } from "./marker-row.js?v=48";
 import { createMarkerActions } from "./marker-actions.js?v=43";
-import * as fs from "./fs-workspace.js?v=3";
-import { createWorkspace } from "./workspace.js?v=4";
-import { mountOverlays } from "./overlays.js?v=2";
+import * as fs from "./fs-workspace.js?v=6";
+import { createWorkspace } from "./workspace.js?v=7";
+import { mountOverlays } from "./overlays.js?v=3";
 import { createPreview } from "./preview.js?v=2";
-import { createAssetResolver } from "./asset-resolver.js?v=1";
-import { createSceneList } from "./scene-list.js?v=9";
+import { createAssetResolver } from "./asset-resolver.js?v=2";
+import { createSceneList } from "./scene-list.js?v=12";
 import { createGroupActions } from "./group-actions.js?v=4";
 import { duplicateScene, copyHotspots, openSceneCopyMenu } from "./scene-actions.js";
 import { resolveInitialTheme, applyTheme, bindThemeToggle } from "./theme.js";
 import { mountTabs } from "./tabs.js?v=1";
-import { bindDismissibleModal } from "./ui-dom.js?v=2";
+import { mountPanelResizers } from "./panel-resize.js?v=1";
+import { bindDismissibleModal, bindDropdownMenu } from "./ui-dom.js?v=3";
+import { createAutosave } from "./autosave.js?v=1";
+import { createHistory } from "./history.js?v=1";
+import { createScormExport } from "./scorm-export.js?v=2";
+import { createTourIO } from "./builder-io.js?v=3";
+import { mountQualityPicker } from "./image-quality.js?v=2";
+import { bindMetaFields } from "./meta-bindings.js?v=1";
+import { refreshLanguageSiblings, initLanguageChip } from "./language-manifest.js?v=1";
 
 // Apply theme BEFORE first paint to avoid the flash-of-light-mode dance.
 applyTheme(resolveInitialTheme());
@@ -51,7 +59,6 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
-const QUALITY_STORAGE_KEY = "tour-builder.imageQualityPreset";
 let viewer;
 let resolver; // blob-URL asset resolver (reads images from the folder handle)
 let preview;
@@ -60,7 +67,9 @@ let groupActions;
 let overlays;
 let ws; // File System workspace (undefined on non-FS browsers)
 let markerActions;
-let editorTabs; // top-level right-panel tabs (Scene settings | Hotspots)
+let autosave; // background tour.json persister (FS workspace mode only)
+let history; // undo/redo snapshot stack
+let io; // tour persistence / import / preview (builder-io.js)
 let toastTimer; // declared up-front to avoid a TDZ error when init() toasts.
 
 init();
@@ -77,10 +86,7 @@ function init() {
     },
     onMarkerDeselect: () => markerActions.selectMarker(null), // click empty -> deselect
     onZoneCornerMove: (id, idx, yaw, pitch) => markerActions.moveZoneCorner(id, idx, yaw, pitch),
-    onZoneMove: (id, points) => {
-      markerActions.moveZone(id, points);
-      markerActions.selectMarker(id); // keep it selected + surfaced in the panel
-    },
+    onZoneMove: (id, points) => markerActions.moveZone(id, points), // drag whole zone body
   });
   markerActions = createMarkerActions({
     state, viewer, $, toast, getScene, createMarker,
@@ -89,6 +95,15 @@ function init() {
   });
   resolver = createAssetResolver({ state, fs });
   preview = createPreview({ state, $, toast, getScene, viewer, resolver });
+  // Tour I/O (save / import / preview). Uses late getters for history/autosave/
+  // overlays because those are created further down in init().
+  io = createTourIO({
+    state, $, fs, toast, resolver, validateTour,
+    renderAll, selectScene,
+    getHistory: () => history,
+    getAutosave: () => autosave,
+    getOverlays: () => overlays,
+  });
   sceneList = createSceneList({
     listEl: $("scene-list"),
     countEl: $("scene-count"),
@@ -104,6 +119,11 @@ function init() {
       onSetColor: (id, color) => groupActions.setGroupColor(id, color),
       onMoveToGroup: (sid, gid, before) => groupActions.moveSceneToGroup(sid, gid, before),
       onSetEntry: (gid, sid) => groupActions.setGroupEntry(gid, sid),
+      // Per-bubble controls (pencil / gear / star / trash):
+      onRenameScene: (id, name) => renameSceneById(id, name),
+      onOpenSettings: (id) => openSceneSettings(id),
+      onSetStart: (id) => setStartScene(id),
+      onDeleteScene: (id) => deleteScene(id),
     },
   });
   groupActions = createGroupActions({
@@ -114,6 +134,30 @@ function init() {
   });
   bindThemeToggle($("btn-theme"), $("btn-theme-icon"));
 
+  // Undo/redo: debounced snapshots of the whole tour. record() is called from
+  // renderAll() (structural edits) and from broad input/pointer listeners
+  // (field typing, marker drags) so no mutation site needs a manual hook.
+  history = createHistory({
+    snapshot: () => { try { return JSON.stringify(state.tour); } catch { return null; } },
+    restore: applyRestoredTour,
+    onChange: reflectHistoryButtons,
+  });
+  $("btn-undo").addEventListener("click", () => history.undo());
+  $("btn-redo").addEventListener("click", () => history.redo());
+  // Catch text/select edits and the tail end of drags (both mutate state.tour).
+  document.addEventListener("input", () => history?.record());
+  document.addEventListener("change", () => history?.record());
+  document.addEventListener("pointerup", () => history?.record());
+  document.addEventListener("keydown", (e) => {
+    const meta = e.metaKey || e.ctrlKey;
+    if (!meta || e.key.toLowerCase() !== "z") return;
+    // Let native undo win inside a text field the user is actively editing.
+    const t = document.activeElement;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA") && !t.readOnly) return;
+    e.preventDefault();
+    if (e.shiftKey) history.redo(); else history.undo();
+  });
+
   // Left-panel tabs: Scenes | Tour settings (remembers your last choice).
   mountTabs({
     pairs: [
@@ -123,64 +167,65 @@ function init() {
     storageKey: "builder-left-tab",
   });
 
-  // Meta inputs
-  bindInput("meta-title", (v) => (state.tour.meta.title = v));
-  bindInput("meta-description", (v) => (state.tour.meta.description = v));
-  bindInput("meta-author", (v) => (state.tour.meta.author = v));
-  $("meta-show-thumbnails").addEventListener("change", (e) => (state.tour.meta.showThumbnails = e.target.checked));
-  $("meta-show-waypoint-shadows").addEventListener("change", (e) => {
-    state.tour.meta.showWaypointShadows = e.target.checked;
-    applyShadowPref();
-  });
-  $("meta-show-info-zones").addEventListener("change", (e) => (state.tour.meta.showInfoZones = e.target.checked));
-  $("meta-show-hints").addEventListener("change", (e) => (state.tour.meta.showHotspotHints = e.target.checked));
+  // Drag-to-resize the left (scenes) + right (editor) columns; widths persist.
+  mountPanelResizers();
 
-  // Guided experience (opt-in linear mode).
-  $("meta-exp-enabled").addEventListener("change", (e) => {
-    ensureExperience();
-    state.tour.meta.experience.enabled = e.target.checked;
-    reflectExperience();
-    renderMarkerList(); // "required" checkboxes appear/disappear with the mode
-  });
-  $("meta-exp-startscreen").addEventListener("change", (e) => { ensureExperience(); state.tour.meta.experience.showStartScreen = e.target.checked; });
-  $("meta-exp-skipping").addEventListener("change", (e) => { ensureExperience(); state.tour.meta.experience.allowSkipping = e.target.checked; });
-  bindInput("meta-exp-title", (v) => { ensureExperience(); state.tour.meta.experience.completionTitle = v; });
-  bindInput("meta-exp-message", (v) => { ensureExperience(); state.tour.meta.experience.completionMessage = v; });
+  // Multi-language chip (Tour settings panel) — wired once; re-rendered on
+  // tour load/focus (see below) by language-manifest.js.
+  initLanguageChip($);
+
+  // Meta inputs, display toggles, and guided-experience config — extracted to
+  // meta-bindings.js (see that file's header) to keep this controller lean.
+  bindMetaFields({ $, state, bindInput, ensureExperience, reflectExperience, renderMarkerList, applyShadowPref });
 
   // Image quality preset (authoring preference, persisted to localStorage).
-  populateQualityPicker();
+  mountQualityPicker({ $, fs, toast });
 
   // Toolbar
   $("btn-new-group").addEventListener("click", () => groupActions.addGroup());
-  $("btn-download").addEventListener("click", saveTour);
+  $("btn-download").addEventListener("click", io.saveTour);
   $("btn-import").addEventListener("click", () => $("file-import").click());
-  $("file-import").addEventListener("change", importTour);
-  $("btn-preview").addEventListener("click", previewInPlayer);
+  $("file-import").addEventListener("change", io.importTour);
+  $("btn-preview").addEventListener("click", io.previewInPlayer);
+
+  // Burger menu (Home / Add Images / Import). Items keep their own handlers
+  // (wired elsewhere); this just toggles the dropdown and closes on pick.
+  bindDropdownMenu($("btn-menu"), $("main-menu"));
 
   // Help & publishing modal (static content — always available).
   const helpModal = bindDismissibleModal($("help-modal"), $("help-modal-close"));
   $("btn-help").addEventListener("click", helpModal.open);
 
-  // Workspace (File System Access — Chrome/Edge). Hide if unsupported.
+  // Export SCORM modal (the module wires its own dialog controls).
+  const scormExport = createScormExport({ $, state, fs, serializeTour: io.serializeTour, toast });
+  $("btn-export-scorm").addEventListener("click", async () => {
+    const err = io.preExportCheck();
+    if (err) return toast(err, true);
+    await io.prepareThumbnails(); // bundle mode reads thumbs from disk
+    scormExport.open();
+  });
+
+  // Workspace (File System Access - Chrome/Edge). Hide if unsupported.
   if (fs.fsSupported()) {
+    // Autosave: created first so the workspace can reset its baseline on load.
+    autosave = createAutosave({
+      serializeTour: io.serializeTour,
+      getDirHandle: () => state.dirHandle,
+      saveJson: fs.saveTourJson,
+      setStatus: io.setSaveStatus,
+    });
     ws = createWorkspace({
       state, $, toast, getScene, validateTour,
       createEmptyTour, createScene,
       updateScene, renderAll, selectScene, updatePreview: preview.updatePreview,
       cancelPlacing: () => markerActions.cancelPlacing(),
       resolver,
+      onTourLoaded: () => { autosave.markClean(); history.reset(); refreshLanguageSiblings(state, $); }, // fresh baselines on load
     });
-    // Topbar shortcuts (same actions as the Welcome screen).
-    $("btn-new-tour").addEventListener("click", ws.handleNewTour);
-    $("btn-open-tour").addEventListener("click", ws.handleOpenTour);
     $("btn-add-images").addEventListener("click", () => $("file-images").click());
     $("file-images").addEventListener("change", (e) => ws.handleAddImages([...e.target.files]));
-    $("btn-add-all-scenes").addEventListener("click", async () => {
-      await ws.addAllImagesAsScenes();
-      overlays.closeImageModal();
-    });
     $("btn-bind-folder").addEventListener("click", ws.bindFolder);
-    $("btn-optimize").addEventListener("click", ws.handleOptimize);
+    $("btn-optimize").addEventListener("click", ws.handleOptimize); // now lives in Tour settings
     fs.setupDropZone($("image-panel"), ws.handleAddImages);
 
     // Welcome / Help / Images overlays (all dialog chrome lives in overlays.js).
@@ -191,19 +236,27 @@ function init() {
       onImport: () => $("file-import").click(),
       refreshImageGrid: ws.refreshImageGrid,
       setAssignMode: ws.setAssignMode,
+      isTourLoaded: () => !!(state.dirHandle || state.tour.scenes.length),
     });
+    // Topbar "Home" reopens the start screen; closeable because a tour is loaded.
+    $("btn-home").addEventListener("click", () => overlays.showWelcome());
     overlays.showWelcome();
+    autosave.start();
   } else {
-    $("workspace-bar").hidden = true;
+    // No File System Access API (non-Chromium, or Chrome blocked by IT policy).
+    // Fail LOUDLY: hide the folder toolbar and show a "use Edge" message rather
+    // than leaving the user with an empty builder and silently dead buttons.
+    $("menu-wrap").hidden = true;
+    showUnsupportedBrowser();
   }
 
   // Scene editor
   bindInput("scene-name", (v) => updateScene({ name: v }, { relistScene: true }));
   bindInput("scene-caption", (v) => updateScene({ caption: v }));
   $("btn-capture-view").addEventListener("click", captureView);
-  $("btn-set-start").addEventListener("click", setStartScene);
   $("btn-duplicate-scene").addEventListener("click", duplicateCurrentScene);
-  $("btn-delete-scene").addEventListener("click", deleteScene);
+  // Scene settings overlay (opened by a scene's gear icon).
+  $("btn-scene-settings-back").addEventListener("click", closeSceneSettings);
 
   // Marker buttons (tabbed: Navigation | Info; Info splits into Icon vs Zone).
   $("btn-add-link").addEventListener("click", () => markerActions.beginPlacing(MARKER_TYPES.LINK));
@@ -212,15 +265,6 @@ function init() {
     markerActions.beginPlacing(MARKER_TYPES.INFO, MARKER_SHAPES.ZONE)
   );
   $("btn-copy-hotspots").addEventListener("click", openCopyHotspotsMenu);
-
-  // Top-level editor tabs (Scene settings | Hotspots). No storageKey: we want
-  // selecting a scene to always land on Scene settings (see selectScene).
-  editorTabs = mountTabs({
-    pairs: [
-      { tab: $("tab-scene-settings"), panel: $("panel-scene-settings") },
-      { tab: $("tab-scene-hotspots"), panel: $("panel-scene-hotspots") },
-    ],
-  });
 
   // Hotspots sub-tabs (Navigation | Info), styled like the left-panel tabs.
   mountTabs({
@@ -233,7 +277,28 @@ function init() {
 
   renderAll();
   preview.updatePreview();
-  toast("New tour started. Add a scene to begin.");
+  history?.reset(); // baseline: the empty starting tour (nothing to undo yet)
+  // No toast here: Welcome (shown above) always gates the screen on load.
+
+  // Re-scan for language siblings when the author tabs back in (e.g. after
+  // dropping a translated tour-es.json into the folder in Finder/Explorer).
+  window.addEventListener("focus", () => {
+    if (state.dirHandle) refreshLanguageSiblings(state, $);
+  });
+}
+
+/**
+ * Reveal the Welcome dialog in "unsupported browser" mode: swap its normal
+ * new/open/recent content for a clear message pointing users to Edge. Called
+ * when window.showDirectoryPicker is missing so the tool never appears "broken"
+ * with dead buttons.
+ */
+function showUnsupportedBrowser() {
+  const supported = $("welcome-supported");
+  const unsupported = $("welcome-unsupported");
+  if (supported) supported.hidden = true;
+  if (unsupported) unsupported.hidden = false;
+  $("welcome").hidden = false;
 }
 
 /* ===================== Scenes ===================== */
@@ -257,22 +322,43 @@ function selectScene(id) {
   state.selectedMarkerId = null;
   viewer?.setSelectedMarker(null);
   markerActions?.cancelPlacing();
-  editorTabs?.show("tab-scene-settings"); // always land on settings for a new scene
   renderSceneList();
   renderSceneEditor();
   preview.updatePreview();
 }
 
-function deleteScene() {
-  const id = state.currentSceneId;
+/* ---- Scene settings overlay (left column; opened by a bubble's gear) ---- */
+function openSceneSettings(id) {
+  selectScene(id); // select first so the overlay's fields reflect this scene
+  $("scene-settings-overlay").hidden = false;
+}
+function closeSceneSettings() {
+  $("scene-settings-overlay").hidden = true;
+}
+
+/** Rename a scene by id (from the bubble's pencil) without changing selection. */
+function renameSceneById(id, name) {
+  const scene = getScene(state.tour, id);
+  if (!scene) return;
+  scene.name = name;
+  if (id === state.currentSceneId) $("scene-name").value = name;
+  renderSceneList();
+  renderSceneEditor();
+}
+
+function deleteScene(sceneId) {
+  const id = sceneId || state.currentSceneId;
   if (!id) return;
   if (!confirm("Delete this scene? Links pointing to it will be left dangling.")) return;
   state.tour.scenes = state.tour.scenes.filter((s) => s.id !== id);
   if (state.tour.meta.startSceneId === id) {
     state.tour.meta.startSceneId = state.tour.scenes[0]?.id || "";
   }
-  state.currentSceneId = state.tour.scenes[0]?.id || null;
-  selectScene(state.currentSceneId);
+  if (state.currentSceneId === id) {
+    state.currentSceneId = state.tour.scenes[0]?.id || null;
+    closeSceneSettings(); // the scene we were editing is gone
+    selectScene(state.currentSceneId);
+  }
   renderSceneList();
 }
 
@@ -306,9 +392,10 @@ function openCopyHotspotsMenu() {
   });
 }
 
-function setStartScene() {
-  if (!state.currentSceneId) return;
-  state.tour.meta.startSceneId = state.currentSceneId;
+function setStartScene(sceneId) {
+  const id = sceneId || state.currentSceneId;
+  if (!id) return;
+  state.tour.meta.startSceneId = id;
   renderSceneList();
   renderSceneEditor();
   toast("Set as the starting scene.");
@@ -332,147 +419,6 @@ function captureView() {
   toast("Saved this camera angle as the scene's default view.");
 }
 
-/* ===================== Import / Export ===================== */
-
-/**
- * Save tour.json. Prefers the File System Access API (Chrome/Edge) so it writes
- * straight into the tour's folder (e.g. tours/<name>/tour.json) and remembers
- * the location for one-click re-saves. Falls back to a classic download.
- */
-async function saveTour() {
-  const err = preExportCheck();
-  if (err) return toast(err, true);
-  await prepareThumbnails();
-  const json = JSON.stringify(serializeTour(), null, 2);
-
-  // Workspace mode: write straight into the bound tour folder, no dialog.
-  if (state.dirHandle) {
-    try {
-      await fs.saveTourJson(state.dirHandle, json);
-      return toast("Saved tour.json into your tour folder.");
-    } catch (e) {
-      toast(`Couldn't save to folder: ${e.message}`, true);
-      // fall through to picker/download as a backup
-    }
-  }
-
-  if (window.showSaveFilePicker) {
-    try {
-      if (!state.fileHandle) {
-        state.fileHandle = await window.showSaveFilePicker({
-          suggestedName: "tour.json",
-          types: [{ description: "Tour config", accept: { "application/json": [".json"] } }],
-        });
-      }
-      const writable = await state.fileHandle.createWritable();
-      await writable.write(json);
-      await writable.close();
-      return toast(`Saved ${state.fileHandle.name} into your tour folder.`);
-    } catch (e) {
-      if (e.name === "AbortError") return; // user cancelled the picker
-      console.warn("[builder] FS save failed; falling back to download", e);
-    }
-  }
-
-  // Fallback: classic download to ~/Downloads.
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "tour.json";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast("Downloaded tour.json. Move it into your tour folder next to player.html.");
-}
-
-async function previewInPlayer() {
-  const err = preExportCheck();
-  if (err) return toast(err, true);
-  // Generate snapshot files AND point each scene at its thumbnail BEFORE we
-  // stage the preview — awaited so we never open the player before the thumbs
-  // exist (that race caused broken-image icons).
-  await prepareThumbnails();
-  // Build a preview config whose image paths are resolved to blob: URLs read
-  // straight from the tour folder. This makes preview work no matter WHERE the
-  // folder lives (even outside the repo) and lets us always open the repo's
-  // template player, which is guaranteed to be served + same-origin. We clone
-  // first so the real tour keeps its portable relative paths.
-  let config;
-  try {
-    config = JSON.parse(JSON.stringify(serializeTour()));
-    for (const s of config.scenes || []) {
-      if (s.panorama) s.panorama = await resolver.resolve(s.panorama);
-      if (s.thumbnail) s.thumbnail = await resolver.resolve(s.thumbnail);
-    }
-    localStorage.setItem("tour-preview-config", JSON.stringify(config));
-  } catch (e) {
-    return toast(`Couldn't stage preview: ${e.message}`, true);
-  }
-  // Always open the repo's template player (served by the dev server + same
-  // origin, so the blob: image URLs created above are reachable). Cache-bust so
-  // fresh ?v= pins for player.js/css are always picked up.
-  const bust = `&_=${Date.now()}`;
-  window.open("../player-template/player.html?config=__preview__" + bust, "_blank");
-}
-
-async function importTour(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const { ok, tour, errors, warnings } = validateTour(JSON.parse(text));
-    if (!ok) throw new Error(errors.join("; "));
-    state.tour = tour;
-    state.currentSceneId = tour.scenes[0]?.id || null;
-    state.selectedMarkerId = null;
-    state.fileHandle = null; // imported a different file; next Save asks where
-    renderAll();
-    selectScene(state.currentSceneId);
-    overlays?.hideWelcome();
-    toast(` Loaded "${tour.meta.title}".${warnings.length ? ` (${warnings.length} warning(s) — see console)` : ""}`);
-    warnings.forEach((w) => console.warn("[import]", w));
-  } catch (err) {
-    toast(` Import failed: ${err.message}`, true);
-  } finally {
-    e.target.value = "";
-  }
-}
-
-function serializeTour() {
-  // Return a clean copy; meta.createdAt refreshed on export.
-  return {
-    ...state.tour,
-    meta: { ...state.tour.meta, createdAt: new Date().toISOString() },
-  };
-}
-
-/**
- * Make sure snapshot thumbnails exist on disk AND that every local-image scene
- * references one. Backfills `thumbnail` for scenes whose panorama is a local
- * "images/<file>" path (covers old tours that predate the thumbnail feature).
- */
-async function prepareThumbnails() {
-  if (state.dirHandle) {
-    try {
-      await fs.ensureThumbnails(state.dirHandle);
-    } catch (e) {
-      console.warn("[builder] ensureThumbnails failed", e);
-    }
-  }
-  for (const s of state.tour.scenes) {
-    if (s.thumbnail) continue;
-    const m = /^images\/(.+)$/.exec(s.panorama || "");
-    if (m) s.thumbnail = `images/thumbs/${fs.thumbName(m[1])}`;
-  }
-}
-
-function preExportCheck() {
-  if (!state.tour.scenes.length) return "Add at least one scene first.";
-  const missing = state.tour.scenes.filter((s) => !s.panorama);
-  if (missing.length) return `${missing.length} scene(s) are missing a panorama URL.`;
-  return null;
-}
-
 /* ---- Guided experience helpers ---- */
 
 // Lazily ensure meta.experience exists (older in-memory tours may predate it).
@@ -486,6 +432,9 @@ function reflectExperience() {
   const exp = ensureExperience();
   $("meta-exp-enabled").checked = !!exp.enabled;
   $("meta-exp-startscreen").checked = exp.showStartScreen !== false;
+  $("meta-exp-welcome-title").value = exp.welcomeTitle || "";
+  $("meta-exp-welcome-body").value = exp.welcomeBody || "";
+  $("meta-exp-start-label").value = exp.startButtonLabel || "";
   $("meta-exp-skipping").checked = !!exp.allowSkipping;
   $("meta-exp-title").value = exp.completionTitle || "";
   $("meta-exp-message").value = exp.completionMessage || "";
@@ -499,6 +448,31 @@ function guidedMode() {
 
 /* ===================== Rendering ===================== */
 
+/** Put a tour snapshot (JSON string) back into state + re-render. For undo/redo. */
+function applyRestoredTour(json) {
+  let obj;
+  try { obj = JSON.parse(json); } catch { return; }
+  const { ok, tour } = validateTour(obj);
+  state.tour = ok ? tour : obj;
+  // Keep the current scene if it survived the undo; else fall back to the first.
+  if (!getScene(state.tour, state.currentSceneId)) {
+    state.currentSceneId = state.tour.scenes[0]?.id || null;
+  }
+  state.selectedMarkerId = null;
+  viewer?.setSelectedMarker(null);
+  markerActions?.cancelPlacing();
+  renderAll();
+  preview.updatePreview();
+}
+
+/** Enable/disable the toolbar undo/redo buttons from the history status. */
+function reflectHistoryButtons({ canUndo = false, canRedo = false } = {}) {
+  const u = $("btn-undo");
+  const r = $("btn-redo");
+  if (u) u.disabled = !canUndo;
+  if (r) r.disabled = !canRedo;
+}
+
 function renderAll() {
   $("meta-title").value = state.tour.meta.title;
   $("meta-description").value = state.tour.meta.description;
@@ -511,6 +485,7 @@ function renderAll() {
   applyShadowPref();
   renderSceneList();
   renderSceneEditor();
+  history?.record(); // debounced snapshot for undo/redo
 }
 
 function renderSceneList() {
@@ -603,31 +578,6 @@ function bindInput(id, onInput) {
 function applyShadowPref() {
   const on = state.tour.meta.showWaypointShadows !== false;
   $("preview").classList.toggle("tour-shadows-off", !on);
-}
-
-/** Build the quality dropdown options from fs.QUALITY_PRESETS and restore
- *  the user's saved choice (or the registry default). Persists on change. */
-function populateQualityPicker() {
-  const sel = $("image-quality");
-  if (!sel) return; // workspace-bar hidden (browser without FS API) — no-op
-  sel.innerHTML = "";
-  for (const [key, preset] of Object.entries(fs.QUALITY_PRESETS)) {
-    const opt = new Option(preset.label, key);
-    sel.append(opt);
-  }
-  const saved = localStorage.getItem(QUALITY_STORAGE_KEY);
-  if (saved && fs.setQualityPreset(saved)) {
-    sel.value = saved;
-  } else {
-    sel.value = fs.getQualityPreset().key;
-  }
-  sel.addEventListener("change", () => {
-    if (fs.setQualityPreset(sel.value)) {
-      localStorage.setItem(QUALITY_STORAGE_KEY, sel.value);
-      const p = fs.getQualityPreset();
-      toast(`Image quality set to "${p.label}" (${p.maxWidth}px, q=${p.quality}).`);
-    }
-  });
 }
 
 function toast(message, isError = false) {

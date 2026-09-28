@@ -36,10 +36,26 @@ export function createAssetResolver({ state, fs }) {
       if (cache.has(key)) return cache.get(key);
       try {
         const file = await fs.readFileDeep(state.dirHandle, key);
+        // DIAGNOSTIC: a 0-byte read is the tell-tale sign of a cloud-only
+        // (OneDrive "Files On-Demand") placeholder that never downloaded, or a
+        // corrupt/failed save. It reads as a File but has no pixels, so WebGL
+        // later logs "texSubImage2D: bad image data" and the panorama is blank.
+        // Surface it loudly here so the cause is obvious instead of silent.
+        if (!file || file.size === 0) {
+          console.warn(
+            `[asset] "${key}" read as ${file ? file.size : "null"} bytes \u2014 ` +
+              "the file is empty/unavailable. If this folder is in OneDrive, the " +
+              "image is likely a cloud-only placeholder: right-click the folder " +
+              "in File Explorer \u2192 'Always keep on this device', then reopen."
+          );
+          return ""; // caller shows a broken-image / blank state
+        }
+        console.info(`[asset] "${key}" \u2192 ${file.size} bytes (${file.type || "unknown type"})`);
         const url = URL.createObjectURL(file);
         cache.set(key, url);
         return url;
-      } catch {
+      } catch (e) {
+        console.warn(`[asset] failed to read "${key}" from folder handle:`, e);
         return ""; // missing file -> caller shows a broken-image state
       }
     }

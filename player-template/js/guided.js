@@ -5,7 +5,7 @@
  * import() when meta.experience.enabled is true, so guided mode adds zero
  * weight to ordinary tours.
  *
- * Behaviour (see docs/ARCHITECTURE.md §guided):
+ *  * Behaviour (see ARCHITECTURE.md "Guided experience"):
  *   - Navigation pins are already suppressed (psv-adapter toViewerNodes with
  *     { guided:true }); progression is 100% linear + completion-driven.
  *   - The learner must OPEN every "required" info hotspot in a scene. Opening
@@ -20,7 +20,9 @@
  * and talks to PSV only through the handles player.js passes in.
  */
 
-import { getScene, requiredMarkers } from "./tour-model.js?v=6";
+import { getScene, requiredMarkers } from "./tour-model.js?v=8";
+import { mountLanguageToggle } from "./language-toggle.js?v=1";
+import { tFor } from "./i18n.js?v=2";
 
 /**
  * @param {object} cfg
@@ -28,9 +30,20 @@ import { getScene, requiredMarkers } from "./tour-model.js?v=6";
  * @param {object} cfg.virtualTour   PSV VirtualTourPlugin instance
  * @param {object} cfg.markers       PSV MarkersPlugin instance
  * @param {HTMLElement} cfg.stageEl  element to mount the guided UI into
- * @returns {{ onEnterScene(id:string):void, onInfoOpened(id:string):void }}
+ * @param {() => void} [cfg.onComplete]  fired once when the run is finished
+ *                                       (used to report SCORM completion)
+ * @param {string[]} [cfg.languages]        all available language codes (>1 to show a picker)
+ * @param {string} [cfg.activeLanguage]     the currently-loaded language code
+ * @param {(code:string) => void} [cfg.onLanguageChange]  fired from the welcome
+ *   screen's language picker — player.js handles the actual tour swap
+ *   (see switchLanguage()); this controller is fully torn down + remounted
+ *   fresh either way, so it never needs to react mid-run.
+ * @returns {{ onEnterScene(id:string):void, onInfoOpened(id:string):void, destroy():void }}
  */
-export function mountGuided({ tour, virtualTour, markers, stageEl }) {
+export function mountGuided({
+  tour, virtualTour, markers, stageEl, onComplete, inLms = false,
+  languages, activeLanguage, onLanguageChange,
+}) {
   const scenes = tour.scenes || [];
   const exp = tour.meta?.experience || {};
   const tourTitle = tour.meta?.title || "";
@@ -50,8 +63,8 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
       .catch((err) => console.warn("[guided] skip failed", err));
   }
 
-  const ui = buildUI(stageEl, { allowSkipping, onSkip: skipScene });
-  if (wantsStart) ui.showStart(tourTitle);
+  const ui = buildUI(stageEl, { allowSkipping, onSkip: skipScene, inLms, languages, activeLanguage, onLanguageChange });
+  if (wantsStart) ui.showStart(tourTitle, exp);
 
   const reqIdsFor = (scene) => requiredMarkers(scene).map((m) => m.id);
   const sceneIndex = (id) => scenes.findIndex((s) => s.id === id);
@@ -99,7 +112,10 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
       ui.showPrompt({
         text: "That was the final scene.",
         buttonLabel: "Finish",
-        onClick: () => ui.showCompletion(exp, restart),
+        onClick: () => {
+          onComplete?.(); // report completion to the LMS (if any)
+          ui.showCompletion(exp, restart);
+        },
       });
     }
   }
@@ -118,7 +134,7 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
         .setCurrentNode(first.id)
         .catch((err) => console.warn("[guided] restart failed", err));
     }
-    if (wantsStart) ui.showStart(tourTitle); // re-welcome on Start over
+    if (wantsStart) ui.showStart(tourTitle, exp); // re-welcome on Start over
   }
 
   // Best-effort visual "done" state on the found marker (dim + checkmark via CSS).
@@ -135,12 +151,15 @@ export function mountGuided({ tour, virtualTour, markers, stageEl }) {
     }
   }
 
-  return { onEnterScene, onInfoOpened };
+  return { onEnterScene, onInfoOpened, destroy: ui.destroy };
 }
 
 /* ===================== UI (namespaced .guided-*) ===================== */
 
-function buildUI(stageEl, { allowSkipping = false, onSkip } = {}) {
+function buildUI(stageEl, {
+  allowSkipping = false, onSkip, inLms = false,
+  languages, activeLanguage, onLanguageChange,
+} = {}) {
   const mount = stageEl || document.body;
   let completeEl = null; // the completion overlay, if shown
 
@@ -226,11 +245,38 @@ function buildUI(stageEl, { allowSkipping = false, onSkip } = {}) {
     const p = el("p", "guided-complete__msg");
     p.textContent =
       exp.completionMessage || "You've found everything. The experience is complete.";
+    card.append(check, h, p);
+
+    if (inLms) {
+      // SCORM path: completion was ALREADY reported when they clicked "Finish"
+      // on the last scene — nothing here needs to trigger it. So we just tell
+      // them they're done and to close the window. The "Start over" of the
+      // non-LMS flow is intentionally omitted (it can't restart a SCO cleanly).
+      const instr = el("p", "guided-complete__msg guided-complete__instr");
+      instr.textContent =
+        "Your completion has been recorded. You can now close this window to return to your course.";
+      // Best-effort convenience button. If the browser won't close the launch
+      // window, the instruction above still tells the learner what to do — so
+      // the button is never a dead end and never restarts the experience.
+      const closeBtn = el("button", "guided-prompt__btn");
+      closeBtn.type = "button";
+      closeBtn.textContent = "Close window";
+      closeBtn.onclick = () => tryCloseLmsWindow();
+      card.append(instr, closeBtn);
+      overlay.append(card);
+      mount.append(overlay);
+      completeEl = overlay;
+      requestAnimationFrame(() => overlay.classList.add("is-in"));
+      closeBtn.focus();
+      return;
+    }
+
+    // Non-LMS path (e.g. WebGL associate tours): keep the familiar "Start over".
     const again = el("button", "guided-prompt__btn");
     again.type = "button";
     again.textContent = "Start over";
     again.onclick = () => onRestart?.();
-    card.append(check, h, p, again);
+    card.append(again);
     overlay.append(card);
     mount.append(overlay);
     completeEl = overlay;
@@ -243,35 +289,59 @@ function buildUI(stageEl, { allowSkipping = false, onSkip } = {}) {
     completeEl = null;
   }
 
-  // Welcome / instructions screen shown before the run starts.
+  // Welcome / instructions screen shown before the run starts. Title, body,
+  // and the button label are ordinary tour CONTENT (meta.experience.welcome*),
+  // authored/edited in the builder's Tour settings panel and translated like
+  // everything else when an author ships a tour-<code>.json sibling.
   let startEl = null;
-  function showStart(title) {
+  let startLangToggle = null; // { setActive, destroy } from mountLanguageToggle(), or null
+  function showStart(title, exp = {}) {
     hideStart();
     hideNav(); // don't let arrows peek from behind the welcome card
     const overlay = el("div", "guided-start", { role: "dialog", "aria-modal": "true" });
     const card = el("div", "guided-start__card");
+
+    // Language dropdown — top-right of the card, above the title. Same
+    // reusable component + look as the free-roam header toggle (just
+    // restyled for a light card via .guided-start__langhost in guided.css);
+    // only rendered when this tour has >1 language variant. Picking one
+    // hands off to onLanguageChange (player.js's switchLanguage), which
+    // tears this whole controller down and remounts it fresh against the
+    // new language's tour — so the run always starts clean, never
+    // half-translated.
+    if (Array.isArray(languages) && languages.length > 1) {
+      card.classList.add("has-lang-toggle"); // extra top padding, see guided.css
+      const langHost = el("div", "guided-start__langhost");
+      card.append(langHost);
+      startLangToggle = mountLanguageToggle({
+        languages, active: activeLanguage, mountEl: langHost,
+        onChange: (code) => onLanguageChange?.(code),
+      });
+    }
+
     const h = el("h1", "guided-start__title");
     // "Untitled Tour" is the validator's default -> treat as no real title.
     const named = title && title !== "Untitled Tour";
-    h.textContent = named ? `Welcome to ${title}` : "Welcome!";
-    const list = el("ul", "guided-start__list");
-    [
-      "Select and drag anywhere on the image to rotate your view.",
-      "When you see an opportunity, select the area.",
-      "Find all opportunities in each image.",
-    ].forEach((t) => {
-      const li = document.createElement("li");
-      li.textContent = t;
-      list.append(li);
-    });
+    const customTitle = (exp.welcomeTitle || "").trim();
+    // Fallback boilerplate ONLY (author left welcomeTitle blank) is localized
+    // via i18n.js#tFor so it doesn't leak English into an otherwise-Spanish
+    // (etc.) welcome screen — author-set welcomeTitle always wins outright.
+    h.textContent = customTitle
+      || (named ? tFor(activeLanguage, "welcomeTitled").replace("{title}", title) : tFor(activeLanguage, "welcomeBare"));
+    card.append(h);
+
+    const body = el("div", "guided-start__body");
+    renderWelcomeBody(body, exp.welcomeBody);
+    card.append(body);
+
     const btn = el("button", "guided-start__btn");
     btn.type = "button";
-    btn.textContent = "Start";
+    btn.textContent = (exp.startButtonLabel || "").trim() || tFor(activeLanguage, "startButton");
     btn.onclick = () => {
       hideStart();
       showNav(); // reveal the skip arrows once the run actually begins
     };
-    card.append(h, list, btn);
+    card.append(btn);
     overlay.append(card);
     mount.append(overlay);
     startEl = overlay;
@@ -280,11 +350,47 @@ function buildUI(stageEl, { allowSkipping = false, onSkip } = {}) {
   }
 
   function hideStart() {
+    startLangToggle?.destroy(); // drop its document-level click/Escape listeners
+    startLangToggle = null;
     startEl?.remove();
     startEl = null;
   }
 
-  return { setProgress, showPrompt, hidePrompt, showCompletion, hideCompletion, showStart, hideStart, updateNav, showNav, hideNav };
+  /** Tear down every DOM node this controller created. Called by player.js
+   *  before remounting on a language switch (or if the player unmounts). */
+  function destroy() {
+    hud.remove();
+    navEl?.remove();
+    prompt.remove();
+    hideStart();
+    hideCompletion();
+  }
+
+  return {
+    setProgress, showPrompt, hidePrompt, showCompletion, hideCompletion,
+    showStart, hideStart, updateNav, showNav, hideNav, destroy,
+  };
+}
+
+/**
+ * Best-effort close of the LMS launch window. A window can only be closed by
+ * script if script opened it — which is true for Moodle's "new window" (popup)
+ * launch. We aim at window.top (the popup), not our own iframe. If the browser
+ * refuses (same-window launch, or policy), nothing happens and the caller shows
+ * a "you can close this" hint instead. All wrapped in try/catch for safety.
+ */
+function tryCloseLmsWindow() {
+  try {
+    const top = window.top || window;
+    top.close();
+  } catch {
+    /* browser refused / cross-origin — caller falls back to a hint */
+  }
+  try {
+    window.close(); // also try our own window in case we ARE the popup
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Build one skip-arrow button (chevron SVG). */
@@ -310,4 +416,53 @@ function el(tag, className, attrs) {
   if (className) node.className = className;
   if (attrs) for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
   return node;
+}
+
+/**
+ * Mini-markdown renderer for the welcome screen body (meta.experience.welcomeBody).
+ * Supports exactly two things, on purpose — this is a tour-authoring field, not
+ * a general-purpose editor:
+ *   - lines starting with "- " render as an arrow-bullet <li> (grouped into one
+ *     <ul> per consecutive run of bullet lines, matching the original design)
+ *   - any other non-blank line renders as a plain <p>
+ * ...and "**bold**" spans render as <strong> INSIDE either. Built with real DOM
+ * nodes (never innerHTML) so authored/translated content can never inject markup.
+ */
+function renderWelcomeBody(container, body) {
+  const lines = String(body || "").split("\n");
+  let list = null; // the currently-open <ul>, or null between bullet runs
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { list = null; continue; } // blank line: end any open list, no output
+    if (line.startsWith("- ")) {
+      if (!list) {
+        list = el("ul", "guided-start__list");
+        container.appendChild(list);
+      }
+      const li = document.createElement("li");
+      appendFormatted(li, line.slice(2));
+      list.appendChild(li);
+    } else {
+      list = null;
+      const p = el("p", "guided-start__para");
+      appendFormatted(p, line);
+      container.appendChild(p);
+    }
+  }
+}
+
+/** Append `text` to `parent` as DOM nodes, turning **bold** spans into <strong>.
+ *  Plain text nodes elsewhere — never innerHTML, so this can't inject markup. */
+function appendFormatted(parent, text) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  for (const part of parts) {
+    if (!part) continue;
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      const strong = document.createElement("strong");
+      strong.textContent = part.slice(2, -2);
+      parent.appendChild(strong);
+    } else {
+      parent.appendChild(document.createTextNode(part));
+    }
+  }
 }

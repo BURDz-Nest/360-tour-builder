@@ -3,18 +3,37 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Spherio Studio</title>
+    <title>ATLAS Explore</title>
     <meta name="description" content="Local dashboard for authoring 360 virtual tours." />
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <!-- Set data-theme synchronously, before any CSS paints, to avoid a flash of
+         light mode. builder.js also resolves/applies the theme (theme.js is the
+         single source of truth for the toggle + storage key), but it's an ES
+         module and modules are always deferred -- they run AFTER first paint,
+         too late to prevent the flash. This tiny classic script is the only way
+         to beat that. Mirrors theme.js's resolveInitialTheme() on purpose. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("tour-builder.theme");
+          var dark = saved === "dark" || (saved !== "light" &&
+            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        } catch (e) { /* localStorage blocked (private mode) -- default light, harmless */ }
+      })();
+    </script>
 
     <!-- Photo-Sphere-Viewer v5.11.5 + three 0.169.0 (builder needs core + markers). Shared from player-template/. -->
     <link rel="stylesheet" href="../player-template/vendor/psv-core.css" />
     <link rel="stylesheet" href="../player-template/vendor/psv-markers.css" />
     <link rel="stylesheet" href="../player-template/css/app.css?v=26" />
-    <link rel="stylesheet" href="builder-ui.css?v=6" />
-    <link rel="stylesheet" href="builder-panels.css?v=7" />
-    <link rel="stylesheet" href="welcome.css?v=1" />
+    <link rel="stylesheet" href="builder-ui.css?v=11" />
+    <link rel="stylesheet" href="builder-panels.css?v=13" />
+<link rel="stylesheet" href="rich-text-toolbar.css?v=1" />
+    <link rel="stylesheet" href="welcome.css?v=4" />
     <link rel="stylesheet" href="help-modal.css?v=2" />
-    <link rel="stylesheet" href="../player-template/css/markers.css?v=9" />
+    <link rel="stylesheet" href="../player-template/css/markers.css?v=8" />
 
     <script type="importmap">
       {
@@ -28,27 +47,38 @@
   </head>
   <body class="builder-body">
     <header class="topbar">
-      <h1 class="topbar__brand">Spherio Studio <small>local authoring</small></h1>
-      <span id="workspace-bar">
-        <button id="btn-new-tour" class="btn btn--primary" type="button">+ New tour</button>
-        <button id="btn-open-tour" class="btn" type="button">Open tour folder</button>
-        <button id="btn-images" class="btn" type="button">Images…</button>
+      <h1 class="topbar__brand">ATLAS Explore</h1>
+      <span class="topbar__divider" aria-hidden="true"></span>
+      <div id="menu-wrap" class="menu-wrap">
+        <button id="btn-menu" class="btn btn--icon" type="button"
+                aria-haspopup="true" aria-expanded="false" aria-controls="main-menu"
+                aria-label="Menu" title="Menu"></button>
+        <div id="main-menu" class="menu" role="menu" hidden>
+          <button id="btn-home" class="menu__item" type="button" role="menuitem">⌂ Home</button>
+          <button id="btn-images" class="menu__item" type="button" role="menuitem">Add Images…</button>
+          <button id="btn-import" class="menu__item" type="button" role="menuitem">Import tour.json</button>
+        </div>
+      </div>
+      <span id="history-bar">
+        <button id="btn-undo" class="btn" type="button" title="Undo (Cmd/Ctrl+Z)" disabled>Undo</button>
+        <button id="btn-redo" class="btn" type="button" title="Redo (Cmd/Ctrl+Shift+Z)" disabled>Redo</button>
       </span>
+      <button id="btn-help" class="btn" type="button">Help</button>
+      <input id="file-import" type="file" accept="application/json,.json" hidden />
       <span class="topbar__spacer"></span>
+      <span id="save-status" class="save-status" aria-live="polite"></span>
       <button id="btn-theme" class="btn btn--icon" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
         <span id="btn-theme-icon" aria-hidden="true"></span>
       </button>
-      <button id="btn-help" class="btn" type="button">Help &amp; publishing</button>
-      <button id="btn-import" class="btn" type="button">Import tour.json</button>
-      <input id="file-import" type="file" accept="application/json,.json" hidden />
       <button id="btn-preview" class="btn" type="button">Preview in player</button>
+      <button id="btn-export-scorm" class="btn" type="button">Export SCORM</button>
       <button id="btn-download" class="btn btn--primary" type="button">Save tour</button>
     </header>
 
     <div class="builder-main">
       <!-- LEFT: tour settings + scene list, split into tabs so long scene
            lists get their own breathing room. -->
-      <section class="col" aria-label="Tour settings and scenes">
+      <section id="left-col" class="col" aria-label="Tour settings and scenes">
         <div class="tabs" role="tablist" aria-label="Left panel sections">
           <button id="tab-scenes" class="tab is-active" type="button"
                   role="tab" aria-selected="true" aria-controls="panel-scenes">
@@ -72,7 +102,20 @@
         <!-- TOUR SETTINGS tab -->
         <div id="panel-settings" class="tab-panel" role="tabpanel"
              aria-labelledby="tab-settings" hidden>
-          <h2 class="section-title">Tour details</h2>
+          <div class="scenes-toolbar">
+            <h2 class="section-title" style="margin:0">Tour details</h2>
+            <!-- Click-open chip showing detected language variants. Label +
+                 popover contents filled by renderLanguageChip() in
+                 language-manifest.js on tour load/focus. Click handlers wired
+                 ONCE via initLanguageChip() during builder init. -->
+            <div class="lang-chip-wrap">
+              <button type="button" class="lang-chip" id="meta-lang-chip"
+                      data-state="solo" aria-haspopup="dialog" aria-expanded="false"
+                      aria-controls="meta-lang-pop">English only</button>
+              <div class="lang-pop" id="meta-lang-pop" role="dialog"
+                   aria-label="Languages in this tour" hidden></div>
+            </div>
+          </div>
           <label class="field">
             <span class="field__label">Title</span>
             <input id="meta-title" class="field__input" type="text" />
@@ -105,8 +148,9 @@
           <label class="field">
             <span class="field__label">Image quality (applies to new imports)</span>
             <select id="image-quality" class="field__input"></select>
-            <span class="field__hint muted">Use <em>Optimize images</em> in the Images panel to re-encode existing photos at this setting.</span>
+            <span class="field__hint muted">Applies to photos you add from now on. To re-encode photos already in the tour at this setting, use <em>Optimize existing images</em> below.</span>
           </label>
+          <button id="btn-optimize" class="btn" type="button" style="margin:-0.4rem 0 1.15rem">Optimize existing images</button>
 
           <h2 class="section-title">Guided experience</h2>
           <label class="field field--check">
@@ -124,6 +168,32 @@
               <input id="meta-exp-startscreen" type="checkbox" />
               <span class="field__label">Show a <strong>welcome/start screen</strong> with instructions</span>
             </label>
+            <label class="field">
+              <span class="field__label">Welcome title <span class="muted">(optional — blank = “Welcome to {tour title}”)</span></span>
+              <input id="meta-exp-welcome-title" class="field__input" type="text"
+                     placeholder="Welcome!" />
+            </label>
+            <label class="field">
+              <span class="field__label">Welcome instructions</span>
+              <div class="rte-toolbar" role="toolbar" aria-label="Text formatting">
+                <button type="button" class="rte-btn" id="wb-bold" title="Bold the selected text"><strong>B</strong></button>
+                <button type="button" class="rte-btn" id="wb-bullet" title="Toggle a bullet (→) on the current line(s)">→ Bullet</button>
+              </div>
+              <textarea id="meta-exp-welcome-body" class="field__input" rows="4"
+                        placeholder="- Select and drag anywhere on the image to rotate your view."></textarea>
+              <span class="field__hint muted">Select text and click <strong>B</strong> to bold it. Click <strong>→ Bullet</strong> to toggle a bullet on the current line(s) — plain lines become paragraphs instead.</span>
+            </label>
+            <label class="field">
+              <span class="field__label">Start button label</span>
+              <input id="meta-exp-start-label" class="field__input" type="text"
+                     placeholder="Start" />
+            </label>
+            <p class="field__hint muted" style="margin-top:-.4rem">
+              To translate the welcome screen (and the rest of this tour), ship a
+              <code>tour-&lt;code&gt;.json</code> sibling — see the language chip above.
+              Learners choose a language right on the welcome screen when more
+              than one exists.
+            </p>
             <label class="field field--check">
               <input id="meta-exp-skipping" type="checkbox" />
               <span class="field__label">Allow <strong>scene skipping</strong> (prev/next arrows that override the find-everything lock — for facilitators short on time)</span>
@@ -140,9 +210,44 @@
             </label>
           </div>
         </div>
-      </section>
 
-      <!-- CENTER: live preview -->
+        <!-- Scene settings overlay: opened by a scene's gear icon; covers the
+             scene list/tabs until you click Back. Name/caption/panorama +
+             Duplicate live here now (start + delete are icons on the bubble). -->
+        <div id="scene-settings-overlay" class="scene-settings-overlay" hidden>
+          <div class="scene-settings-overlay__head">
+            <button id="btn-scene-settings-back" class="btn btn--icon" type="button"
+                    aria-label="Back to scenes" title="Back to scenes">&#8592;</button>
+            <h2 class="section-title" style="margin:0">Scene settings</h2>
+          </div>
+          <div class="editor-section">
+            <label class="field">
+              <span class="field__label">Name</span>
+              <input id="scene-name" class="field__input" type="text" />
+              <span class="field__hint muted">Shown in the tour’s scene gallery and in the scene list. Give each scene a clear, unique name.</span>
+            </label>
+            <label class="field">
+              <span class="field__label">Panorama image</span>
+              <input id="scene-panorama" class="field__input field__input--readonly" type="text"
+                     readonly tabindex="-1" placeholder="No image yet — open Add Images to add one" />
+              <span class="field__hint muted">The 360° photo for this scene. Add or swap it from the <em>Add Images</em> dialog — this field is read-only.</span>
+            </label>
+            <label class="field">
+              <span class="field__label">Caption <span class="muted">(optional)</span></span>
+              <input id="scene-caption" class="field__input" type="text" />
+              <span class="field__hint muted">A short line shown over the panorama in the player — e.g. a room name or a helpful note.</span>
+            </label>
+          </div>
+          <div class="editor-section">
+            <div class="marker-actions">
+              <button id="btn-duplicate-scene" class="btn" type="button" title="Create a copy of this scene right after it">Duplicate scene</button>
+            </div>
+            <p class="field__hint muted">Tip: rename, set as start scene, and delete are also available as icons right on each scene in the list.</p>
+          </div>
+        </div>
+      </section>
+      <div id="resizer-left" class="col-resizer" role="separator" aria-orientation="vertical"
+           tabindex="-1" aria-label="Resize scenes panel" title="Drag to resize"></div>
       <section class="col col--center" aria-label="Live 360 preview">
         <div class="preview-wrap">
           <div id="preview" class="preview"></div>
@@ -155,6 +260,8 @@
           <div id="place-hint" class="place-hint" role="status" hidden></div>
         </div>
       </section>
+      <div id="resizer-right" class="col-resizer" role="separator" aria-orientation="vertical"
+           tabindex="-1" aria-label="Resize editor panel" title="Drag to resize"></div>
 
       <!-- RIGHT: scene + marker editor -->
       <section class="col col--editor" aria-label="Scene editor">
@@ -166,63 +273,21 @@
             <span id="start-badge" class="start-badge" hidden>Start scene</span>
           </div>
 
-          <!-- Top-level editor tabs: Scene settings | Hotspots -->
-          <div class="tabs" role="tablist" aria-label="Scene editor sections">
-            <button id="tab-scene-settings" class="tab is-active" type="button"
-                    role="tab" aria-selected="true" aria-controls="panel-scene-settings">
-              Scene settings
-            </button>
-            <button id="tab-scene-hotspots" class="tab" type="button"
-                    role="tab" aria-selected="false" aria-controls="panel-scene-hotspots" tabindex="-1">
-              Hotspots
-            </button>
-          </div>
-
-          <!-- ============ SCENE SETTINGS ============ -->
-          <div id="panel-scene-settings" class="tab-panel editor-scroll" role="tabpanel" aria-labelledby="tab-scene-settings">
+          <div class="editor-scroll">
+            <!-- Capture View: the first thing a visitor sees on entering. -->
             <div class="editor-section">
-              <h2 class="section-title">Opening view</h2>
+              <h2 class="section-title">Capture View</h2>
               <div class="view-row">
-                <button id="btn-capture-view" class="btn" type="button">Capture current view</button>
+                <button id="btn-capture-view" class="btn" type="button">Capture</button>
                 <span id="view-readout" class="view-readout"></span>
               </div>
-              <p class="field__hint muted">Rotate and zoom the preview to the angle you want visitors to see first, then click <em>Capture current view</em>. Every time someone enters this scene, the camera starts here.</p>
+              <p class="field__hint muted">Capture the current view. Every time someone enters this scene, the camera starts here.</p>
             </div>
 
+            <!-- ============ HOTSPOTS ============ -->
             <div class="editor-section">
-              <h2 class="section-title">Scene details</h2>
-              <label class="field">
-                <span class="field__label">Name</span>
-                <input id="scene-name" class="field__input" type="text" />
-                <span class="field__hint muted">Shown in the tour’s scene gallery and in the scene list on the left. Give each scene a clear, unique name.</span>
-              </label>
-              <label class="field">
-                <span class="field__label">Panorama image</span>
-                <input id="scene-panorama" class="field__input field__input--readonly" type="text"
-                       readonly tabindex="-1" placeholder="No image yet — open “Images…” to add one" />
-                <span class="field__hint muted">The 360° photo for this scene. Add or swap it from the <em>Images…</em> dialog — this field is read-only.</span>
-              </label>
-              <label class="field">
-                <span class="field__label">Caption <span class="muted">(optional)</span></span>
-                <input id="scene-caption" class="field__input" type="text" />
-                <span class="field__hint muted">A short line shown over the panorama in the player — e.g. a room name or a helpful note.</span>
-              </label>
-            </div>
-
-            <div class="editor-section">
-              <h2 class="section-title">Scene actions</h2>
-              <div class="marker-actions">
-                <button id="btn-set-start" class="btn" type="button">Set as start</button>
-                <button id="btn-duplicate-scene" class="btn" type="button" title="Create a copy of this scene right after it">Duplicate scene</button>
-                <button id="btn-delete-scene" class="btn btn--danger" type="button">Delete scene</button>
-              </div>
-              <p class="field__hint muted"><strong>Set as start</strong> makes this the first scene visitors land on. <strong>Duplicate scene</strong> copies this scene and its hotspots as a new one. <strong>Delete scene</strong> removes it permanently.</p>
-            </div>
-          </div>
-
-          <!-- ============ HOTSPOTS ============ -->
-          <div id="panel-scene-hotspots" class="tab-panel editor-scroll" role="tabpanel" aria-labelledby="tab-scene-hotspots" hidden>
-            <div class="segmented" role="tablist" aria-label="Hotspot type">
+              <h2 class="section-title">Hotspots</h2>
+              <div class="segmented" role="tablist" aria-label="Hotspot type">
               <button id="tab-hs-nav" class="seg is-active" type="button"
                       role="tab" aria-selected="true" aria-controls="panel-hs-nav">
                 Navigation
@@ -235,28 +300,31 @@
 
             <!-- NAVIGATION hotspots -->
             <div id="panel-hs-nav" class="tab-panel" role="tabpanel" aria-labelledby="tab-hs-nav">
-              <div class="marker-actions">
+              <p class="field__hint muted">Navigation hotspots are clickable arrows/pins that move visitors to another scene.</p>
+              <hr class="hs-divider" />
+              <div class="marker-actions marker-actions--center">
                 <button id="btn-add-link" class="btn" type="button">+ Navigation</button>
                 <button id="btn-copy-hotspots" class="btn" type="button" title="Copy all hotspots from another scene into this one">Copy hotspots...</button>
               </div>
-              <p class="field__hint muted">Navigation hotspots are clickable arrows/pins that move visitors to another scene.</p>
               <div id="marker-list-nav"></div>
             </div>
 
             <!-- INFO hotspots: an icon pin OR a transparent zone -->
             <div id="panel-hs-info" class="tab-panel" role="tabpanel" aria-labelledby="tab-hs-info" hidden>
-              <div class="marker-actions">
-                <button id="btn-add-info" class="btn" type="button" title="A glyph pin you click for details">+ Info icon</button>
-                <button id="btn-add-info-zone" class="btn" type="button" title="A transparent region that reveals on hover">+ Info zone</button>
-              </div>
-              <label class="field field--check" style="margin-top:.6rem">
+              <p class="field__hint muted">Info hotspots show a pop-up when clicked. Use an <em>icon</em> for a point, or a <em>zone</em> to highlight a whole object/area.</p>
+              <hr class="hs-divider" />
+              <label class="field field--check">
                 <input id="meta-show-hints" type="checkbox" />
                 <span class="field__label">Show a <strong>magnifier</strong> on info zones (helps mobile users spot them)</span>
               </label>
-              <p class="field__hint muted">Info hotspots show a pop-up when clicked. Use an <em>icon</em> for a point, or a <em>zone</em> to highlight a whole object/area.</p>
+              <div class="marker-actions marker-actions--center">
+                <button id="btn-add-info" class="btn" type="button" title="A glyph pin you click for details">+ Info icon</button>
+                <button id="btn-add-info-zone" class="btn" type="button" title="A transparent region that reveals on hover">+ Info zone</button>
+              </div>
               <div id="marker-list-info"></div>
             </div>
-          </div>
+            </div><!-- /Hotspots editor-section -->
+          </div><!-- /editor-scroll -->
         </div>
       </section>
     </div>
@@ -278,41 +346,138 @@
 
         <div id="image-panel" class="image-panel">
           <div class="image-panel__actions">
-            <button id="btn-add-images" class="btn" type="button">Add images…</button>
+            <button id="btn-add-images" class="btn btn--primary" type="button">Add images…</button>
             <input id="file-images" type="file" accept="image/*" multiple hidden />
-            <button id="btn-add-all-scenes" class="btn" type="button">Add all as scenes</button>
-            <button id="btn-optimize" class="btn" type="button">Optimize images</button>
           </div>
-          <p class="muted image-panel__hint">Drag 360 photos here, or click “Add images” — each becomes a new scene, sized by your <strong>Image quality</strong> setting in the meta panel (default: <strong>Original</strong>, no downscale). “Optimize images” re-encodes everything at the current preset — note it can only shrink, never sharpen.</p>
+          <p class="muted image-panel__hint">Drag 360 photos here, or click “Add images” — each becomes a new scene, sized by your <strong>Image quality</strong> setting in <span class="help-ui">Tour settings</span> (default: <strong>Original</strong>, no downscale).</p>
           <div id="image-grid" class="image-grid"></div>
         </div>
       </div>
     </div>
 
     <!-- Welcome screen: project = folder. Shown on load (FS-supported browsers). -->
-    <div id="welcome" class="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <!-- No `hidden` here on purpose: every JS path (showWelcome / showUnsupportedBrowser)
+         ends up displaying this on load anyway, so painting it visible from the start
+         avoids a flash of the builder chrome underneath before the module script runs. -->
+    <div id="welcome" class="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
       <div class="welcome__panel">
-        <h1 id="welcome-title" class="welcome__brand">Spherio Studio</h1>
-        <p class="welcome__tagline">Build a walk-through 360 tour. Start by creating a project or opening an existing one.</p>
+        <button id="welcome-close" class="welcome__close btn btn--icon" type="button" hidden
+                aria-label="Close and return to the current tour" title="Back to tour">×</button>
+        <h1 id="welcome-title" class="welcome__brand">ATLAS Explore</h1>
 
-        <div class="welcome__actions">
-          <button id="welcome-new" class="btn btn--primary welcome__action" type="button">
-            <span class="welcome__action-title">+ New project</span>
-            <span class="welcome__action-sub">Create a fresh tour folder</span>
-          </button>
-          <button id="welcome-open" class="btn welcome__action" type="button">
-            <span class="welcome__action-title">Open project</span>
-            <span class="welcome__action-sub">Pick an existing tour folder</span>
-          </button>
+        <!-- Shown when the browser supports the File System Access API. -->
+        <div id="welcome-supported">
+          <p class="welcome__tagline">Start by creating a project or opening an existing one.</p>
+
+          <div class="welcome__cols">
+            <div class="welcome__main">
+              <div class="welcome__actions">
+                <button id="welcome-new" class="btn btn--primary welcome__action" type="button">
+                  <span class="welcome__action-title">+ New project</span>
+                  <span class="welcome__action-sub">Create a fresh tour folder</span>
+                </button>
+                <button id="welcome-open" class="btn welcome__action" type="button">
+                  <span class="welcome__action-title">Open project</span>
+                  <span class="welcome__action-sub">Pick an existing tour folder</span>
+                </button>
+              </div>
+
+              <h2 class="welcome__subhead">Recent projects</h2>
+              <ul id="welcome-recent" class="welcome-recent"></ul>
+
+              <p class="welcome__import muted">
+                Have a <code>tour.json</code> but no folder access?
+                <button id="welcome-import" class="linklike" type="button">Import it instead</button>.
+              </p>
+            </div>
+
+            <aside class="welcome__tips" aria-label="Setup tips">
+              <h2 class="welcome__tips-title">Setup tips</h2>
+
+              <div class="welcome__tip">
+                <h3 class="welcome__tip-title">First time picking a folder?</h3>
+                <p>Give all your tours one home on your computer, then each project
+                  lives in its own sub-folder inside it. Quick setup:</p>
+                <ol class="welcome__tip-steps">
+                  <li>In your home folder, create a folder named
+                    <code>ATLAS-Explore</code> — this is where every tour you
+                    build will live.</li>
+                  <li>Click <strong>+ New project</strong>. When the browser
+                    opens the folder picker, go into your new
+                    <code>ATLAS-Explore</code> folder and create a fresh
+                    sub-folder for this tour (for example
+                    <code>my-first-tour</code>). Pick that sub-folder.</li>
+                  <li>That’s it — your <code>tour.json</code> and images save
+                    into that sub-folder automatically.</li>
+                </ol>
+              </div>
+
+              <div class="welcome__tip">
+                <h3 class="welcome__tip-title">Cloud-sync folders (optional)</h3>
+                <p>OneDrive, iCloud Drive, and Dropbox used to silently drop
+                  browser writes. That’s mostly fixed now, but keeping
+                  <code>ATLAS-Explore</code> in a plain local spot is still
+                  the safest bet.</p>
+              </div>
+            </aside>
+          </div>
         </div>
 
-        <h2 class="welcome__subhead">Recent projects</h2>
-        <ul id="welcome-recent" class="welcome-recent"></ul>
+        <!-- Shown when the File System Access API is unavailable (e.g. non-Chromium
+             browser, or Chrome blocked by IT policy). Fails loudly, not silently. -->
+        <div id="welcome-unsupported" hidden>
+          <p class="welcome__tagline">
+            <strong>This browser can’t open folders on your computer.</strong>
+            ATLAS Explore saves tours straight to your local disk using the
+            File System Access API, which isn’t available here.
+          </p>
+          <p class="welcome__import">
+            Please open this link in <strong>Microsoft Edge</strong> (recommended)
+            or Google Chrome with the File System Access API enabled. If you’re
+            already using Chrome and seeing this, it’s most likely blocked by an
+            IT policy — just use <strong>Edge</strong> instead.
+          </p>
+        </div>
+      </div>
+    </div>
 
-        <p class="welcome__import muted">
-          Have a <code>tour.json</code> but no folder access?
-          <button id="welcome-import" class="linklike" type="button">Import it instead</button>.
-        </p>
+    <!-- Export SCORM modal -->
+    <div id="scorm-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="scorm-modal-title">
+      <div class="modal__panel">
+        <div class="modal__header">
+          <h2 id="scorm-modal-title" class="section-title">Export SCORM 1.2 package</h2>
+          <button id="scorm-modal-close" class="btn" type="button" aria-label="Close export dialog">Close</button>
+        </div>
+
+        <div class="scorm-form">
+          <label class="scorm-field">
+            <span>Package title (shown in the LMS)</span>
+            <input id="scorm-title" type="text" placeholder="My 360 Tour" />
+          </label>
+
+          <fieldset class="scorm-field scorm-modes">
+            <legend>Where do the images live?</legend>
+            <label class="scorm-radio">
+              <input type="radio" name="scorm-mode" value="bundle" checked />
+              <span><strong>Bundle images in the ZIP</strong> &mdash; fully self-contained, works offline. Larger file; watch your LMS size limit.</span>
+            </label>
+            <label class="scorm-radio">
+              <input type="radio" name="scorm-mode" value="remote" />
+              <span><strong>Reference images on a server (e.g. Azure)</strong> &mdash; tiny ZIP, but images must be uploaded separately and CORS-enabled.</span>
+            </label>
+          </fieldset>
+
+          <label id="scorm-azure-row" class="scorm-field" hidden>
+            <span>Image base URL (must end with <code>/</code>)</span>
+            <input id="scorm-azure-base" type="url" placeholder="https://acct.blob.core.windows.net/tours/mytour/" />
+          </label>
+
+          <p id="scorm-est" class="help-note" hidden></p>
+
+          <div class="scorm-actions">
+            <button id="scorm-export-go" class="btn btn--primary" type="button">Build &amp; download .zip</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -328,7 +493,7 @@
 
           <section class="help-card help-card--full">
             <h3>The big idea</h3>
-            <p>Spherio Studio turns your 360&deg; photos into a clickable walk-through tour &mdash; no coding. Each tour is just a <strong>folder</strong> on your computer that holds the photos and a <code>tour.json</code> file describing the scenes and hotspots. &ldquo;Opening a project&rdquo; means picking that folder; &ldquo;saving&rdquo; writes the <code>tour.json</code> back into it.</p>
+            <p>ATLAS Explore turns your 360&deg; photos into a clickable walk-through tour &mdash; no coding. Each tour is just a <strong>folder</strong> on your computer that holds the photos and a <code>tour.json</code> file describing the scenes and hotspots. &ldquo;Opening a project&rdquo; means picking that folder; &ldquo;saving&rdquo; writes the <code>tour.json</code> back into it.</p>
             <p class="help-note">A <strong>scene</strong> = one 360&deg; photo. A <strong>hotspot</strong> = a clickable thing on a photo (a doorway that jumps to another scene, or an info point that pops up details). An <strong>area/group</strong> = an optional folder-within-your-tour for organizing lots of scenes.</p>
           </section>
 
@@ -363,10 +528,10 @@
           <section class="help-card">
             <h3>Working with scenes</h3>
             <ul>
-              <li><strong>Select</strong> a scene on the left to edit it.</li>
-              <li><strong>Opening view:</strong> rotate/zoom the preview to the angle you want, then <span class="help-ui">Capture current view</span>. Visitors start facing that way.</li>
-              <li><strong>Name</strong> and optional <strong>Caption</strong> live in Scene settings.</li>
-              <li><span class="help-ui">Set as start</span> makes it the first scene. <span class="help-ui">Duplicate scene</span> copies it (with hotspots). <span class="help-ui">Delete scene</span> removes it.</li>
+              <li><strong>Select</strong> a scene on the left to edit its hotspots and opening view.</li>
+              <li><strong>Each scene has icon buttons:</strong> a <strong>pencil</strong> to rename it inline, a <strong>gear</strong> to open Scene settings (name, caption, image, duplicate), a <strong>star</strong> to make it the start scene, and a <strong>trash can</strong> to delete it.</li>
+              <li><strong>Capture View:</strong> rotate/zoom the preview to the angle you want, then <span class="help-ui">Capture</span> (top of the right panel). Visitors start facing that way.</li>
+              <li>The <strong>start</strong> star only applies to ungrouped scenes &mdash; once you make areas, grouped scenes use each area's <strong>entry</strong> star instead.</li>
             </ul>
           </section>
 
@@ -389,7 +554,7 @@
               <li><strong>Info zone</strong> (<span class="help-ui">+ Info zone</span>): a transparent box over a whole object/area. After adding it, <strong>drag its corner dots in the preview</strong> to fit the shape. The magnifier toggle helps mobile users spot zones.</li>
               <li><strong>Move a pin:</strong> click it to select, then drag it in the preview. <strong>Reuse work:</strong> <span class="help-ui">Copy hotspots&hellip;</span> pulls all hotspots from another scene.</li>
             </ul>
-            <p class="help-note"><strong>Descriptions accept HTML</strong> &mdash; add bold text, links, images, even video. Ready-made snippets live in the <code>templates/</code> folder next to this app.</p>
+            <p class="help-note"><strong>Descriptions accept HTML</strong> &mdash; add bold text, links, images, even video.</p>
           </section>
 
           <section class="help-card">
@@ -424,6 +589,12 @@
               <li>Storage account + a Blob <strong>container</strong>, with <strong>CORS enabled</strong> for your site's domain <span class="muted">(the #1 gotcha &mdash; without it images load black)</span>.</li>
               <li>Public read (or a SAS token), upload your <code>images/</code>, then point the scenes at their Azure URLs.</li>
             </ul>
+            <h4>SCORM for an LMS (Moodle) &mdash; to track completion</h4>
+            <ul>
+              <li>Click <span class="help-ui">Export SCORM</span> (top toolbar) to build a <strong>SCORM 1.2</strong> <code>.zip</code>, then upload it to your LMS as a SCORM activity.</li>
+              <li>Choose <strong>Bundle images</strong> for a self-contained package (mind your LMS size limit), or <strong>Reference on a server</strong> to keep the zip tiny and load images from Azure (needs CORS + HTTPS).</li>
+              <li><strong>Completion</strong> reports automatically: a <em>guided</em> tour completes when the learner clicks <em>Finish</em>; a free-roam tour completes once every scene is visited (or via the <em>Mark complete</em> button).</li>
+            </ul>
           </section>
 
           <section class="help-card help-card--full">
@@ -440,6 +611,6 @@
       </div>
     </div>
 
-    <script type="module" src="builder.js?v=61"></script>
+    <script type="module" src="builder.js?v=73"></script>
   </body>
 </html>
